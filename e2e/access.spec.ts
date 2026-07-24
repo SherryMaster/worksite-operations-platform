@@ -31,7 +31,13 @@ test("the CEO can open the desktop application shell", async ({ page }) => {
 test("a Foreman without MFA cannot open protected workspaces", async ({
   page,
 }) => {
-  const { foremanEmailAddress } = await getPhaseOneTestUsers();
+  const { foremanEmailAddress, foremanMfaEnabled } =
+    await getPhaseOneTestUsers();
+
+  test.skip(
+    foremanMfaEnabled,
+    "The configured Foreman has completed MFA enrollment.",
+  );
 
   await page.goto("/sign-in");
   await clerk.signIn({ page, emailAddress: foremanEmailAddress });
@@ -44,4 +50,7 @@ test("a Foreman without MFA cannot open protected workspaces", async ({
   await expect(
     page.getByRole("heading", { name: "Company dashboard" }),
   ).not.toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Sign out and verify MFA" }),
+  ).toBeVisible();
 });

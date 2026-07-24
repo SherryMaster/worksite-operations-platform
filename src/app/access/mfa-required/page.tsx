@@ -1,6 +1,5 @@
-import { UserProfile } from "@clerk/nextjs";
+import { SignOutButton, UserProfile } from "@clerk/nextjs";
 import { CheckCircle2 } from "lucide-react";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { BrandMark } from "@/components/brand-mark";
@@ -48,15 +47,17 @@ export default async function MfaRequiredPage() {
               <CheckCircle2 className="size-4 text-emerald-500" />
               Application role already verified
             </div>
-            <Button
-              render={<Link href="/" />}
-              nativeButton={false}
-              variant="outline"
-              size="lg"
-              className="mt-8 rounded-none border-stone-700 bg-transparent text-stone-200 hover:bg-stone-800"
-            >
-              Check access again
-            </Button>
+            <div className="mt-8">
+              <SignOutButton redirectUrl="/sign-in">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="rounded-none border-stone-700 bg-transparent text-stone-200 hover:bg-stone-800"
+                >
+                  Sign out and verify MFA
+                </Button>
+              </SignOutButton>
+            </div>
           </section>
 
           <section

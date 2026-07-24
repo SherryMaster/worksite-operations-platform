@@ -7,11 +7,13 @@ type ClerkUser = {
   created_at: number;
   email_addresses: ClerkEmailAddress[];
   primary_email_address_id: string | null;
+  two_factor_enabled: boolean;
 };
 
 export type PhaseOneTestUsers = {
   ceoEmailAddress: string;
   foremanEmailAddress: string;
+  foremanMfaEnabled: boolean;
 };
 
 let usersPromise: Promise<PhaseOneTestUsers> | undefined;
@@ -60,6 +62,7 @@ export function getPhaseOneTestUsers(): Promise<PhaseOneTestUsers> {
     return {
       ceoEmailAddress: primaryEmailAddress(users[0]),
       foremanEmailAddress: primaryEmailAddress(users.at(-1)!),
+      foremanMfaEnabled: users.at(-1)!.two_factor_enabled,
     };
   })();
 
