@@ -1,10 +1,17 @@
-import { CalendarDays, ChevronLeft, ShieldCheck } from "lucide-react";
+import {
+  ArrowUpRight,
+  CalendarDays,
+  ChevronLeft,
+  ShieldCheck,
+  Users,
+} from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { StatusBadge } from "@/components/phase2/status-badge";
 import { getProject } from "@/lib/phase2/data";
 import { formatDate } from "@/lib/phase2/format";
+import { listWorkers } from "@/lib/phase3/data";
 
 export default async function ForemanProjectPage({
   params,
@@ -12,7 +19,10 @@ export default async function ForemanProjectPage({
   params: Promise<{ projectId: string }>;
 }) {
   const { projectId } = await params;
-  const project = await getProject(projectId);
+  const [project, workers] = await Promise.all([
+    getProject(projectId),
+    listWorkers({ project: projectId }),
+  ]);
   if (!project) notFound();
 
   return (
@@ -78,10 +88,24 @@ export default async function ForemanProjectPage({
       </div>
 
       <div className="mt-4 border border-stone-300 bg-stone-100 p-4">
+        <Users className="size-5 text-amber-700" aria-hidden="true" />
+        <p className="mt-3 text-sm font-semibold">
+          {workers.length} current {workers.length === 1 ? "worker" : "workers"}
+        </p>
+        <Link
+          href="/foreman/workers"
+          className="mt-3 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-amber-800"
+        >
+          Open worker list
+          <ArrowUpRight className="size-4" aria-hidden="true" />
+        </Link>
+      </div>
+
+      <div className="mt-4 border border-stone-300 bg-stone-100 p-4">
         <CalendarDays className="size-5 text-stone-400" aria-hidden="true" />
-        <p className="mt-3 text-sm font-semibold">Operational records</p>
+        <p className="mt-3 text-sm font-semibold">Attendance</p>
         <p className="mt-1 text-xs leading-5 text-stone-500">
-          Workers arrive in Phase 3. Offline attendance arrives in Phase 4.
+          Offline attendance arrives in Phase 4.
         </p>
       </div>
     </main>

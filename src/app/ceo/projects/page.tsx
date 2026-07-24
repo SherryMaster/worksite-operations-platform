@@ -5,6 +5,7 @@ import { StatusBadge } from "@/components/phase2/status-badge";
 import { formatDate } from "@/lib/phase2/format";
 import { listProjects } from "@/lib/phase2/data";
 import { projectStatusLabel, type ProjectStatus } from "@/lib/phase2/status";
+import { listWorkers } from "@/lib/phase3/data";
 
 const statuses: ProjectStatus[] = [
   "PLANNED",
@@ -24,7 +25,19 @@ export default async function ProjectsPage({
   const status = statuses.includes(params.status as ProjectStatus)
     ? (params.status as ProjectStatus)
     : null;
-  const projects = (await listProjects()).filter((project) => {
+  const [allProjects, workers] = await Promise.all([
+    listProjects(),
+    listWorkers(),
+  ]);
+  const workerCounts = workers.reduce(
+    (counts, worker) => {
+      const projectId = worker.currentAssignment?.project_id;
+      if (projectId) counts[projectId] = (counts[projectId] ?? 0) + 1;
+      return counts;
+    },
+    {} as Record<string, number>,
+  );
+  const projects = allProjects.filter((project) => {
     const matchesQuery =
       !query ||
       [project.name, project.client_name, project.location]
@@ -151,7 +164,9 @@ export default async function ProjectsPage({
                       <br />
                       to {formatDate(project.end_date)}
                     </td>
-                    <td className="px-5 py-4">0</td>
+                    <td className="px-5 py-4">
+                      {workerCounts[project.id] ?? 0}
+                    </td>
                     <td className="px-5 py-4 text-right">
                       <Link
                         href={`/ceo/projects/${project.id}`}
@@ -193,7 +208,7 @@ export default async function ProjectsPage({
                   <span>
                     {project.currentForeman?.displayName ?? "No Foreman"}
                   </span>
-                  <span>0 workers</span>
+                  <span>{workerCounts[project.id] ?? 0} workers</span>
                 </div>
               </Link>
             ))}

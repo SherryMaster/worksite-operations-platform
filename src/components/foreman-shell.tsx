@@ -14,7 +14,7 @@ import { BrandMark } from "@/components/brand-mark";
 const navigation = [
   { label: "Today", icon: Clock3, href: "/foreman" },
   { label: "Attendance", icon: CalendarDays, href: null },
-  { label: "Workers", icon: Users, href: null },
+  { label: "Workers", icon: Users, href: "/foreman/workers" },
   { label: "Leave", icon: ClipboardList, href: null },
 ];
 
@@ -72,8 +72,7 @@ export function ForemanShell({
             <Link
               key={label}
               href={href}
-              aria-current="page"
-              className="flex min-h-16 flex-col items-center justify-center gap-1 border-t-2 border-amber-500 text-stone-950"
+              className="flex min-h-16 flex-col items-center justify-center gap-1 border-t-2 border-transparent text-stone-700 hover:border-amber-500"
             >
               {content}
             </Link>

@@ -78,4 +78,57 @@ describe("audit presentation", () => {
       },
     ]);
   });
+
+  it("describes worker rate changes in plain English and formats sen", () => {
+    const result = presentAuditEntry({
+      action: "worker_rates.insert",
+      actorName: "Sherry",
+      beforeData: null,
+      afterData: {
+        hourly_rate_sen: 1250,
+        worker_id: "worker-secret-id",
+      },
+      entityType: "worker_rate_periods",
+      foremanName: null,
+      module: "worker_rates",
+      projectName: null,
+      source: "ONLINE",
+      workerName: "Ahmad Khan",
+    });
+
+    expect(result.title).toBe("Hourly rate recorded");
+    expect(result.summary).toBe(
+      "Sherry updated Ahmad Khan’s effective hourly-rate history.",
+    );
+    expect(result.changes).toEqual([
+      { field: "Hourly rate", from: null, to: "RM 12.50" },
+    ]);
+  });
+
+  it("does not expose private worker file paths in activity details", () => {
+    const result = presentAuditEntry({
+      action: "documents.insert",
+      actorName: "Sherry",
+      beforeData: null,
+      afterData: {
+        bucket_id: "worker-documents",
+        object_path: "private/secret.pdf",
+        original_filename: "passport.pdf",
+        status: "ACTIVE",
+        worker_id: "worker-secret-id",
+      },
+      entityType: "worker_documents",
+      foremanName: null,
+      module: "documents",
+      projectName: null,
+      source: "ONLINE",
+      workerName: "Ahmad Khan",
+    });
+
+    expect(result.title).toBe("Worker file uploaded");
+    expect(result.summary).toContain("File contents and document numbers");
+    expect(result.changes).toEqual([
+      { field: "Record status", from: null, to: "Active" },
+    ]);
+  });
 });
