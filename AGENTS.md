@@ -138,6 +138,14 @@ For Phase 4:
 - Never log secrets, tokens, document contents, or full identity-document numbers.
 - Remove temporary logging, dead code, mock shortcuts, and unused dependencies.
 
+### Final UI Theme Direction
+
+- Keep feature delivery usable during phased development; perform the broad navigation and visual-system overhaul during the final UI polish stage.
+- The approved reference direction is [Resourceinn](https://resourceinn.com/): a professional company/HRMS product interface with structured navigation, restrained light surfaces, subtle lavender/purple brand color, selective warm call-to-action accents, rounded cards, and clear enterprise workflows.
+- Do not copy Resourceinn assets or layouts literally. Translate that product character into the Worksite Operations brand and construction context.
+- Avoid the current editorial/article-like prototype treatment in the final theme.
+- Write interface and audit text for non-technical company staff. Show plain-English activity descriptions by default and keep implementation identifiers inside optional technical details.
+
 Read the exact attendance, payroll, correction, permission, and state rules in the approved documents before implementing those areas.
 
 ## Required Task Workflow

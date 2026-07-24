@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import nextEnv from "@next/env";
 
 const { loadEnvConfig } = nextEnv;
@@ -20,22 +20,30 @@ if (!databaseUrl || !process.env.SUPABASE_DB_PASSWORD) {
   process.exit(1);
 }
 
-const result = spawnSync(
-  "psql",
-  [
-    databaseUrl,
-    "--set",
-    "ON_ERROR_STOP=1",
-    "--file",
-    "supabase/tests/phase_1_rls.sql",
-  ],
-  {
-    env: {
-      ...process.env,
-      PGPASSWORD: process.env.SUPABASE_DB_PASSWORD,
-    },
-    stdio: "inherit",
-  },
-);
+const testFiles = readdirSync("supabase/tests")
+  .filter((file) => file.endsWith(".sql"))
+  .sort();
 
-process.exit(result.status ?? 1);
+for (const testFile of testFiles) {
+  const result = spawnSync(
+    "psql",
+    [
+      databaseUrl,
+      "--set",
+      "ON_ERROR_STOP=1",
+      "--file",
+      `supabase/tests/${testFile}`,
+    ],
+    {
+      env: {
+        ...process.env,
+        PGPASSWORD: process.env.SUPABASE_DB_PASSWORD,
+      },
+      stdio: "inherit",
+    },
+  );
+
+  if (result.status !== 0) {
+    process.exit(result.status ?? 1);
+  }
+}

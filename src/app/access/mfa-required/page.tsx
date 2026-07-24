@@ -20,14 +20,15 @@ export default async function MfaRequiredPage() {
         <div className="mt-10 grid gap-8 lg:grid-cols-[0.72fr_1.28fr]">
           <section className="lg:pt-6">
             <p className="font-heading text-xs font-semibold uppercase tracking-[0.24em] text-amber-400">
-              Foreman security
+              Additional account security
             </p>
             <h1 className="mt-4 font-heading text-5xl font-semibold uppercase leading-[0.9] tracking-tight">
-              Set up multi-factor access.
+              Your account requires MFA.
             </h1>
             <p className="mt-5 leading-7 text-stone-400">
-              Every active Foreman must enroll an authenticator and verify the
-              second factor before site information is available.
+              The CEO has enabled multi-factor authentication for your account.
+              Enroll an authenticator and verify it before opening project
+              information.
             </p>
             <ol className="mt-8 space-y-4 text-sm text-stone-300">
               {[

@@ -7,7 +7,7 @@ export type AccessStatus =
 
 type ApplicationUser = Pick<
   Database["public"]["Tables"]["application_users"]["Row"],
-  "is_active" | "role"
+  "is_active" | "mfa_required" | "role"
 >;
 
 export type ApplicationAccess = {
@@ -43,6 +43,7 @@ export function evaluateAccess({
 
   if (
     applicationUser.role === "FOREMAN" &&
+    applicationUser.mfa_required &&
     (!hasEnrolledSecondFactor || !hasCurrentSecondFactor(currentSessionFva))
   ) {
     return { role: applicationUser.role, status: "MFA_REQUIRED" };

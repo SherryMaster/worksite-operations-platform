@@ -10,17 +10,39 @@ describe("application access policy", () => {
   it("authorizes an active CEO without making MFA mandatory", () => {
     expect(
       evaluateAccess({
-        applicationUser: { role: "CEO", is_active: true },
+        applicationUser: {
+          role: "CEO",
+          is_active: true,
+          mfa_required: false,
+        },
         currentSessionFva: [0, -1],
         hasEnrolledSecondFactor: false,
       }),
     ).toEqual({ role: "CEO", status: "AUTHORIZED" });
   });
 
-  it("requires both Foreman enrollment and a verified second factor", () => {
+  it("authorizes a Foreman when the CEO leaves MFA optional", () => {
     expect(
       evaluateAccess({
-        applicationUser: { role: "FOREMAN", is_active: true },
+        applicationUser: {
+          role: "FOREMAN",
+          is_active: true,
+          mfa_required: false,
+        },
+        currentSessionFva: [0, -1],
+        hasEnrolledSecondFactor: false,
+      }),
+    ).toEqual({ role: "FOREMAN", status: "AUTHORIZED" });
+  });
+
+  it("requires a verified second factor only when the CEO enables it", () => {
+    expect(
+      evaluateAccess({
+        applicationUser: {
+          role: "FOREMAN",
+          is_active: true,
+          mfa_required: true,
+        },
         currentSessionFva: [0, -1],
         hasEnrolledSecondFactor: true,
       }),
@@ -28,7 +50,11 @@ describe("application access policy", () => {
 
     expect(
       evaluateAccess({
-        applicationUser: { role: "FOREMAN", is_active: true },
+        applicationUser: {
+          role: "FOREMAN",
+          is_active: true,
+          mfa_required: true,
+        },
         currentSessionFva: [0, 0],
         hasEnrolledSecondFactor: false,
       }),
@@ -36,7 +62,11 @@ describe("application access policy", () => {
 
     expect(
       evaluateAccess({
-        applicationUser: { role: "FOREMAN", is_active: true },
+        applicationUser: {
+          role: "FOREMAN",
+          is_active: true,
+          mfa_required: true,
+        },
         currentSessionFva: [0, 0],
         hasEnrolledSecondFactor: true,
       }),
@@ -46,7 +76,11 @@ describe("application access policy", () => {
   it("denies inactive and unmapped identities", () => {
     expect(
       evaluateAccess({
-        applicationUser: { role: "FOREMAN", is_active: false },
+        applicationUser: {
+          role: "FOREMAN",
+          is_active: false,
+          mfa_required: false,
+        },
         currentSessionFva: [0, 0],
         hasEnrolledSecondFactor: true,
       }),

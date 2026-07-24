@@ -1,0 +1,341 @@
+import {
+  ArrowUpRight,
+  CalendarDays,
+  ChevronLeft,
+  ClipboardClock,
+  HardHat,
+  MapPin,
+  Pencil,
+} from "lucide-react";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+
+import {
+  assignForemanAction,
+  changeProjectStatusAction,
+} from "@/app/ceo/actions";
+import { ActionButton } from "@/components/phase2/action-button";
+import { ManagedForm } from "@/components/phase2/managed-form";
+import { StatusBadge } from "@/components/phase2/status-badge";
+import { getProject, listForemen } from "@/lib/phase2/data";
+import {
+  formatDate,
+  formatDateTime,
+  malaysiaDateInputValue,
+} from "@/lib/phase2/format";
+import {
+  nextProjectStatuses,
+  projectStatusLabel,
+  type ProjectStatus,
+} from "@/lib/phase2/status";
+
+const confirmation: Partial<Record<ProjectStatus, string>> = {
+  ACTIVE:
+    "Confirm this status change. Reopening a project is recorded in its permanent history.",
+  CANCELLED:
+    "Cancel this project? Its current Foreman assignment will end immediately.",
+  COMPLETED:
+    "Complete this project? Its current Foreman assignment will end immediately.",
+  ARCHIVED: "Archive this project? Archived project details become read-only.",
+  PLANNED:
+    "Restore this archived project to planned? The restoration will be audited.",
+};
+
+export default async function ProjectDetailPage({
+  params,
+}: {
+  params: Promise<{ projectId: string }>;
+}) {
+  const { projectId } = await params;
+  const [project, foremen] = await Promise.all([
+    getProject(projectId),
+    listForemen(),
+  ]);
+  if (!project) notFound();
+
+  const availableForemen = foremen.filter(
+    (foreman) =>
+      foreman.isActive &&
+      foreman.applicationUserId !== project.currentForeman?.applicationUserId &&
+      !foreman.projectId,
+  );
+
+  return (
+    <main className="px-5 py-8 sm:px-8 lg:py-10">
+      <Link
+        href="/ceo/projects"
+        className="inline-flex items-center gap-2 text-sm text-stone-600 hover:text-stone-950"
+      >
+        <ChevronLeft className="size-4" aria-hidden="true" />
+        Back to projects
+      </Link>
+
+      <div className="mt-6 flex flex-col gap-6 border-b border-stone-300 pb-8 xl:flex-row xl:items-end xl:justify-between">
+        <div>
+          <div className="flex flex-wrap items-center gap-3">
+            <StatusBadge status={project.status} />
+            <span className="text-xs uppercase tracking-[0.18em] text-stone-500">
+              Project record
+            </span>
+          </div>
+          <h1 className="mt-4 font-heading text-5xl font-semibold uppercase leading-none sm:text-6xl">
+            {project.name}
+          </h1>
+          <p className="mt-4 flex items-center gap-2 text-sm text-stone-600">
+            <MapPin className="size-4 text-amber-700" aria-hidden="true" />
+            {project.location}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          {project.status !== "ARCHIVED" ? (
+            <Link
+              href={`/ceo/projects/${project.id}/edit`}
+              className="inline-flex min-h-10 items-center gap-2 border border-stone-300 bg-white px-4 text-sm font-semibold hover:border-stone-950"
+            >
+              <Pencil className="size-4" aria-hidden="true" />
+              Edit project
+            </Link>
+          ) : null}
+          {nextProjectStatuses(project.status).map((status) => (
+            <ActionButton
+              key={status}
+              action={changeProjectStatusAction.bind(null, project.id, status)}
+              label={
+                status === "ACTIVE" && project.status !== "PLANNED"
+                  ? "Reopen project"
+                  : status === "PLANNED"
+                    ? "Restore project"
+                    : `Mark ${projectStatusLabel(status)}`
+              }
+              confirmMessage={confirmation[status]}
+              variant={
+                status === "CANCELLED" || status === "ARCHIVED"
+                  ? "destructive"
+                  : "outline"
+              }
+            />
+          ))}
+        </div>
+      </div>
+
+      <nav
+        aria-label="Project sections"
+        className="mt-6 flex gap-1 overflow-x-auto border-b border-stone-300"
+      >
+        {[
+          ["Overview", "#overview"],
+          ["Foreman", "#foreman"],
+          ["History", "#history"],
+        ].map(([label, href], index) => (
+          <a
+            key={href}
+            href={href}
+            className={
+              index === 0
+                ? "border-b-2 border-amber-600 px-4 py-3 text-sm font-semibold"
+                : "border-b-2 border-transparent px-4 py-3 text-sm text-stone-500 hover:text-stone-950"
+            }
+          >
+            {label}
+          </a>
+        ))}
+      </nav>
+
+      <section
+        id="overview"
+        className="mt-8 grid gap-6 xl:grid-cols-[1fr_0.4fr]"
+      >
+        <article className="border border-stone-300 bg-white">
+          <div className="border-b border-stone-200 px-5 py-4">
+            <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
+              Overview
+            </p>
+            <h2 className="mt-1 font-heading text-2xl font-semibold uppercase">
+              Project details
+            </h2>
+          </div>
+          <dl className="grid sm:grid-cols-2">
+            {[
+              ["Client", project.client_name],
+              ["Contractor", project.contractor_name ?? "Not recorded"],
+              ["Start date", formatDate(project.start_date)],
+              ["End date", formatDate(project.end_date)],
+            ].map(([label, value]) => (
+              <div
+                key={label}
+                className="border-b border-stone-200 px-5 py-5 sm:odd:border-r"
+              >
+                <dt className="text-xs font-semibold uppercase tracking-wider text-stone-500">
+                  {label}
+                </dt>
+                <dd className="mt-2 text-sm font-medium">{value}</dd>
+              </div>
+            ))}
+            <div className="px-5 py-5 sm:col-span-2">
+              <dt className="text-xs font-semibold uppercase tracking-wider text-stone-500">
+                Operational notes
+              </dt>
+              <dd className="mt-2 whitespace-pre-wrap text-sm leading-6 text-stone-700">
+                {project.notes || "No operational notes recorded."}
+              </dd>
+            </div>
+          </dl>
+        </article>
+
+        <aside className="border border-stone-800 bg-stone-950 p-6 text-stone-100">
+          <CalendarDays className="size-5 text-amber-400" aria-hidden="true" />
+          <p className="mt-8 text-xs font-semibold uppercase tracking-wider text-stone-500">
+            Workforce
+          </p>
+          <p className="mt-2 font-heading text-5xl font-semibold">0</p>
+          <p className="mt-2 text-sm text-stone-400">
+            Worker assignment begins in Phase 3.
+          </p>
+        </aside>
+      </section>
+
+      <section id="foreman" className="mt-8 border border-stone-300 bg-white">
+        <div className="grid gap-6 border-b border-stone-200 p-5 lg:grid-cols-[1fr_1.1fr] lg:p-6">
+          <div>
+            <HardHat className="size-5 text-amber-700" aria-hidden="true" />
+            <p className="mt-5 font-heading text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
+              Current Foreman
+            </p>
+            <h2 className="mt-2 font-heading text-3xl font-semibold uppercase">
+              {project.currentForeman?.displayName ?? "Unassigned"}
+            </h2>
+            <p className="mt-2 text-sm text-stone-500">
+              {project.currentForeman
+                ? project.currentForeman.username
+                  ? `@${project.currentForeman.username}`
+                  : project.currentForeman.emailAddress
+                : "Assign an active Foreman to open the field workspace."}
+            </p>
+          </div>
+
+          {project.status === "PLANNED" || project.status === "ACTIVE" ? (
+            availableForemen.length > 0 ? (
+              <ManagedForm
+                action={assignForemanAction.bind(null, project.id)}
+                submitLabel={
+                  project.currentForeman ? "Replace Foreman" : "Assign Foreman"
+                }
+                className="border border-stone-200 bg-stone-50 p-4"
+              >
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="space-y-2 text-sm font-medium">
+                    <span>Available Foreman</span>
+                    <select
+                      name="foremanUserId"
+                      required
+                      className="h-11 w-full border border-stone-300 bg-white px-3 text-sm"
+                    >
+                      <option value="">Select Foreman</option>
+                      {availableForemen.map((foreman) => (
+                        <option
+                          key={foreman.applicationUserId}
+                          value={foreman.applicationUserId}
+                        >
+                          {foreman.displayName}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="space-y-2 text-sm font-medium">
+                    <span>Effective date</span>
+                    <input
+                      type="date"
+                      name="startsOn"
+                      required
+                      defaultValue={malaysiaDateInputValue()}
+                      max={malaysiaDateInputValue()}
+                      className="h-11 w-full border border-stone-300 bg-white px-3 text-sm"
+                    />
+                  </label>
+                </div>
+              </ManagedForm>
+            ) : (
+              <div className="border border-dashed border-stone-300 bg-stone-50 p-5">
+                <p className="text-sm font-semibold">
+                  No unassigned active Foreman is available.
+                </p>
+                <Link
+                  href="/ceo/settings#users"
+                  className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-amber-800 hover:underline"
+                >
+                  Manage Foremen
+                  <ArrowUpRight className="size-4" aria-hidden="true" />
+                </Link>
+              </div>
+            )
+          ) : (
+            <div className="border border-stone-200 bg-stone-50 p-5 text-sm leading-6 text-stone-600">
+              Foremen can only be assigned while a project is planned or active.
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section id="history" className="mt-8">
+        <div className="flex items-center gap-3">
+          <ClipboardClock
+            className="size-5 text-amber-700"
+            aria-hidden="true"
+          />
+          <div>
+            <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
+              Permanent history
+            </p>
+            <h2 className="mt-1 font-heading text-3xl font-semibold uppercase">
+              Status and Foreman timeline
+            </h2>
+          </div>
+        </div>
+        <div className="mt-5 grid gap-6 lg:grid-cols-2">
+          <article className="border border-stone-300 bg-white">
+            <h3 className="border-b border-stone-200 px-5 py-4 font-heading text-lg font-semibold uppercase">
+              Status history
+            </h3>
+            <ol className="divide-y divide-stone-200">
+              {project.statusHistory.map((entry) => (
+                <li
+                  key={entry.id}
+                  className="flex items-center justify-between gap-4 px-5 py-4"
+                >
+                  <StatusBadge status={entry.status} />
+                  <time className="text-xs text-stone-500">
+                    {formatDateTime(entry.effective_at)}
+                  </time>
+                </li>
+              ))}
+            </ol>
+          </article>
+          <article className="border border-stone-300 bg-white">
+            <h3 className="border-b border-stone-200 px-5 py-4 font-heading text-lg font-semibold uppercase">
+              Foreman history
+            </h3>
+            {project.assignments.length === 0 ? (
+              <p className="px-5 py-8 text-sm text-stone-500">
+                No Foreman has been assigned.
+              </p>
+            ) : (
+              <ol className="divide-y divide-stone-200">
+                {project.assignments.map((assignment) => (
+                  <li key={assignment.id} className="px-5 py-4">
+                    <p className="text-sm font-semibold">
+                      {assignment.foreman?.displayName}
+                    </p>
+                    <p className="mt-1 text-xs text-stone-500">
+                      {formatDate(assignment.starts_on)} to{" "}
+                      {formatDate(assignment.ends_on)}
+                    </p>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </article>
+        </div>
+      </section>
+    </main>
+  );
+}

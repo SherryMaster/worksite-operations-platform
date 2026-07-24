@@ -28,7 +28,7 @@ export async function getCurrentAccess(): Promise<ApplicationAccess> {
 
   const { data, error } = await supabase
     .from("application_users")
-    .select("role,is_active")
+    .select("role,is_active,mfa_required")
     .eq("clerk_user_id", userId)
     .maybeSingle();
 
