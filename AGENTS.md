@@ -1,15 +1,22 @@
 # AGENTS.md
 
 <!-- BEGIN:nextjs-agent-rules -->
+
 # This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
 
-
 ## Mission
 
 Build the **Worksite Operations Platform**, a focused internal construction-workforce management application. Keep Version 1 simple, secure, and faithful to the approved workflows. It is not an ERP or a generic HR platform.
+
+## Incremental Phase Usability
+
+- Every implementation phase must end as a working, independently usable application increment.
+- Completed features must be reachable and testable through the application UI when a frontend workflow applies.
+- Do not advance to the next phase until the current phase passes its automated checks, works against the development services, and is explicitly accepted by the user.
+- Use `npx -y clerk@latest` for Clerk CLI commands in this repository; a global `clerk` command is not assumed to exist.
 
 ## Source of Truth
 

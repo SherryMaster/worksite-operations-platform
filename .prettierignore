@@ -1,0 +1,11 @@
+.next
+coverage
+docs
+node_modules
+report.txt
+src/components/ui
+src/hooks/use-mobile.ts
+src/lib/utils.ts
+supabase/**/*.sql
+supabase/.temp
+test-results
