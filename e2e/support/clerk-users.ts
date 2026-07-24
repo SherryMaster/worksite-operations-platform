@@ -40,7 +40,24 @@ function getRoleClerkUserIds(role: "CEO" | "FOREMAN"): string[] {
       `select clerk_user_id
        from public.application_users
        where role = '${role}' and is_active
-       order by created_at;`,
+       order by
+         case
+           when role = 'FOREMAN' and exists (
+             select 1
+             from public.foreman_project_assignments
+             where foreman_project_assignments.foreman_user_id =
+               application_users.id
+               and foreman_project_assignments.starts_on <=
+                 (now() at time zone 'Asia/Kuala_Lumpur')::date
+               and (
+                 foreman_project_assignments.ends_on is null
+                 or foreman_project_assignments.ends_on >
+                   (now() at time zone 'Asia/Kuala_Lumpur')::date
+               )
+           ) then 0
+           else 1
+         end,
+         created_at;`,
     ],
     {
       env: {

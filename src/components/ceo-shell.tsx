@@ -13,7 +13,7 @@ export function CeoShell({ children }: { children: React.ReactNode }) {
         </p>
         <CeoNavigation />
         <div className="mt-auto border-t border-stone-800 pt-5 text-xs leading-5 text-stone-500">
-          Phase 2 operating structure
+          Phase 4 attendance operations
           <br />
           Development environment
         </div>

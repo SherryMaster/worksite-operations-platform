@@ -21,10 +21,7 @@ export async function getCurrentAccess(): Promise<ApplicationAccess> {
     redirect("/sign-in");
   }
 
-  const [user, supabase] = await Promise.all([
-    currentUser(),
-    createServerSupabaseClient(),
-  ]);
+  const supabase = await createServerSupabaseClient();
 
   const { data, error } = await supabase
     .from("application_users")
@@ -41,6 +38,8 @@ export async function getCurrentAccess(): Promise<ApplicationAccess> {
   }
 
   const claims = sessionClaims as { fva?: unknown } | null;
+  const needsMfaEnrollmentCheck = data?.role === "FOREMAN" && data.mfa_required;
+  const user = needsMfaEnrollmentCheck ? await currentUser() : null;
 
   return evaluateAccess({
     applicationUser: data,

@@ -1,19 +1,14 @@
-import { SignOutButton } from "@clerk/nextjs";
-import {
-  CalendarDays,
-  ClipboardList,
-  Clock3,
-  LogOut,
-  Users,
-  Wifi,
-} from "lucide-react";
+import { CalendarDays, ClipboardList, Clock3, Users } from "lucide-react";
 import Link from "next/link";
 
 import { BrandMark } from "@/components/brand-mark";
+import { ConnectionIndicator } from "@/components/phase4/connection-indicator";
+import { DeviceSignOutButton } from "@/components/phase4/device-sign-out-button";
+import { InstallAppButton } from "@/components/phase4/install-app-button";
 
 const navigation = [
   { label: "Today", icon: Clock3, href: "/foreman" },
-  { label: "Attendance", icon: CalendarDays, href: null },
+  { label: "Attendance", icon: CalendarDays, href: "/foreman/attendance" },
   { label: "Workers", icon: Users, href: "/foreman/workers" },
   { label: "Leave", icon: ClipboardList, href: null },
 ];
@@ -31,19 +26,8 @@ export function ForemanShell({
         <div className="flex items-center justify-between">
           <BrandMark compact />
           <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1.5 text-xs text-emerald-400">
-              <Wifi className="size-3.5" aria-hidden="true" />
-              Online
-            </span>
-            <SignOutButton redirectUrl="/sign-in">
-              <button
-                type="button"
-                aria-label="Sign out"
-                className="grid size-8 touch-manipulation place-items-center border border-stone-700 text-stone-300 hover:border-stone-500 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
-              >
-                <LogOut className="size-4" aria-hidden="true" />
-              </button>
-            </SignOutButton>
+            <ConnectionIndicator />
+            <DeviceSignOutButton />
           </div>
         </div>
         <div className="mt-3 border-t border-stone-800 pt-3">
@@ -53,6 +37,7 @@ export function ForemanShell({
           <p className="mt-1 font-heading text-lg font-semibold uppercase">
             {projectName ?? "Awaiting assignment"}
           </p>
+          <InstallAppButton />
         </div>
       </header>
       {children}

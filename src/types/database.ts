@@ -69,6 +69,131 @@ export type Database = {
         };
         Relationships: [];
       };
+      attendance_sessions: {
+        Row: {
+          correction_note: string | null;
+          created_at: string;
+          created_by: string;
+          entered_at: string;
+          exited_at: string | null;
+          id: string;
+          project_id: string;
+          record_status: Database["public"]["Enums"]["attendance_record_status"];
+          source: Database["public"]["Enums"]["audit_source"];
+          updated_at: string;
+          updated_by: string;
+          work_date: string;
+          worker_id: string;
+        };
+        Insert: {
+          correction_note?: string | null;
+          created_at?: string;
+          created_by?: string;
+          entered_at: string;
+          exited_at?: string | null;
+          id: string;
+          project_id: string;
+          record_status?: Database["public"]["Enums"]["attendance_record_status"];
+          source?: Database["public"]["Enums"]["audit_source"];
+          updated_at?: string;
+          updated_by?: string;
+          work_date: string;
+          worker_id: string;
+        };
+        Update: {
+          correction_note?: string | null;
+          created_at?: string;
+          created_by?: string;
+          entered_at?: string;
+          exited_at?: string | null;
+          id?: string;
+          project_id?: string;
+          record_status?: Database["public"]["Enums"]["attendance_record_status"];
+          source?: Database["public"]["Enums"]["audit_source"];
+          updated_at?: string;
+          updated_by?: string;
+          work_date?: string;
+          worker_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "attendance_sessions_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "application_users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "attendance_sessions_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "attendance_sessions_updated_by_fkey";
+            columns: ["updated_by"];
+            isOneToOne: false;
+            referencedRelation: "application_users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "attendance_sessions_worker_id_fkey";
+            columns: ["worker_id"];
+            isOneToOne: false;
+            referencedRelation: "workers";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      attendance_sync_actions: {
+        Row: {
+          action_type: string;
+          actor_user_id: string;
+          client_action_id: string;
+          processed_at: string;
+          project_id: string;
+          request_data: Json;
+          result_data: Json;
+          status: Database["public"]["Enums"]["attendance_sync_status"];
+        };
+        Insert: {
+          action_type: string;
+          actor_user_id?: string;
+          client_action_id: string;
+          processed_at?: string;
+          project_id: string;
+          request_data: Json;
+          result_data: Json;
+          status: Database["public"]["Enums"]["attendance_sync_status"];
+        };
+        Update: {
+          action_type?: string;
+          actor_user_id?: string;
+          client_action_id?: string;
+          processed_at?: string;
+          project_id?: string;
+          request_data?: Json;
+          result_data?: Json;
+          status?: Database["public"]["Enums"]["attendance_sync_status"];
+        };
+        Relationships: [
+          {
+            foreignKeyName: "attendance_sync_actions_actor_user_id_fkey";
+            columns: ["actor_user_id"];
+            isOneToOne: false;
+            referencedRelation: "application_users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "attendance_sync_actions_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       audit_entries: {
         Row: {
           action: string;
@@ -110,6 +235,70 @@ export type Database = {
           {
             foreignKeyName: "audit_entries_actor_user_id_fkey";
             columns: ["actor_user_id"];
+            isOneToOne: false;
+            referencedRelation: "application_users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      break_intervals: {
+        Row: {
+          attendance_session_id: string;
+          correction_note: string | null;
+          created_at: string;
+          created_by: string;
+          ended_at: string | null;
+          id: string;
+          record_status: Database["public"]["Enums"]["attendance_record_status"];
+          source: Database["public"]["Enums"]["audit_source"];
+          started_at: string;
+          updated_at: string;
+          updated_by: string;
+        };
+        Insert: {
+          attendance_session_id: string;
+          correction_note?: string | null;
+          created_at?: string;
+          created_by?: string;
+          ended_at?: string | null;
+          id: string;
+          record_status?: Database["public"]["Enums"]["attendance_record_status"];
+          source?: Database["public"]["Enums"]["audit_source"];
+          started_at: string;
+          updated_at?: string;
+          updated_by?: string;
+        };
+        Update: {
+          attendance_session_id?: string;
+          correction_note?: string | null;
+          created_at?: string;
+          created_by?: string;
+          ended_at?: string | null;
+          id?: string;
+          record_status?: Database["public"]["Enums"]["attendance_record_status"];
+          source?: Database["public"]["Enums"]["audit_source"];
+          started_at?: string;
+          updated_at?: string;
+          updated_by?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "break_intervals_attendance_session_id_fkey";
+            columns: ["attendance_session_id"];
+            isOneToOne: false;
+            referencedRelation: "attendance_sessions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "break_intervals_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "application_users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "break_intervals_updated_by_fkey";
+            columns: ["updated_by"];
             isOneToOne: false;
             referencedRelation: "application_users";
             referencedColumns: ["id"];
@@ -266,6 +455,67 @@ export type Database = {
             columns: ["project_id"];
             isOneToOne: false;
             referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      project_days: {
+        Row: {
+          correction_note: string | null;
+          created_at: string;
+          created_by: string;
+          day_type: Database["public"]["Enums"]["attendance_day_type"];
+          id: string;
+          project_id: string;
+          source: Database["public"]["Enums"]["audit_source"];
+          updated_at: string;
+          updated_by: string;
+          work_date: string;
+        };
+        Insert: {
+          correction_note?: string | null;
+          created_at?: string;
+          created_by?: string;
+          day_type: Database["public"]["Enums"]["attendance_day_type"];
+          id?: string;
+          project_id: string;
+          source?: Database["public"]["Enums"]["audit_source"];
+          updated_at?: string;
+          updated_by?: string;
+          work_date: string;
+        };
+        Update: {
+          correction_note?: string | null;
+          created_at?: string;
+          created_by?: string;
+          day_type?: Database["public"]["Enums"]["attendance_day_type"];
+          id?: string;
+          project_id?: string;
+          source?: Database["public"]["Enums"]["audit_source"];
+          updated_at?: string;
+          updated_by?: string;
+          work_date?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "project_days_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "application_users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "project_days_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "project_days_updated_by_fkey";
+            columns: ["updated_by"];
+            isOneToOne: false;
+            referencedRelation: "application_users";
             referencedColumns: ["id"];
           },
         ];
@@ -955,6 +1205,15 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      apply_attendance_action: {
+        Args: {
+          p_action_type: string;
+          p_client_action_id: string;
+          p_payload: Json;
+          p_project_id: string;
+        };
+        Returns: Json;
+      };
       assign_foreman: {
         Args: {
           foreman_user_id: string;
@@ -1114,6 +1373,9 @@ export type Database = {
     };
     Enums: {
       application_role: "CEO" | "FOREMAN";
+      attendance_day_type: "NORMAL" | "SUNDAY" | "PUBLIC_HOLIDAY";
+      attendance_record_status: "ACTIVE" | "VOID";
+      attendance_sync_status: "SYNCED" | "FAILED" | "CONFLICT";
       audit_source: "ONLINE" | "IMPORT" | "OFFLINE_SYNC";
       project_status:
         "PLANNED" | "ACTIVE" | "COMPLETED" | "CANCELLED" | "ARCHIVED";
@@ -1252,6 +1514,9 @@ export const Constants = {
   public: {
     Enums: {
       application_role: ["CEO", "FOREMAN"],
+      attendance_day_type: ["NORMAL", "SUNDAY", "PUBLIC_HOLIDAY"],
+      attendance_record_status: ["ACTIVE", "VOID"],
+      attendance_sync_status: ["SYNCED", "FAILED", "CONFLICT"],
       audit_source: ["ONLINE", "IMPORT", "OFFLINE_SYNC"],
       project_status: [
         "PLANNED",
