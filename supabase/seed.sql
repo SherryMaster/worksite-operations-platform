@@ -1,0 +1,2 @@
+-- Phase 1 users are linked to Clerk identities by the deployment bootstrap.
+-- This file intentionally contains no environment-specific user identifiers.
