@@ -51,6 +51,7 @@ export default async function AuditPage({
       module: entry.module,
       projectName: entry.projectName,
       source: entry.source,
+      workerName: entry.workerName,
     }),
   }));
   const entries = allEntries.filter((entry) => {
@@ -59,6 +60,7 @@ export default async function AuditPage({
       entry.presentation.summary,
       entry.presentation.area,
       entry.actorName,
+      entry.workerName,
       entry.entity_id,
       entry.action,
     ]
@@ -136,6 +138,10 @@ export default async function AuditPage({
               <option value="users">User accounts</option>
               <option value="categories">Trades & skills</option>
               <option value="settings">Company settings</option>
+              <option value="workers">Workers</option>
+              <option value="worker_assignments">Worker assignments</option>
+              <option value="worker_rates">Worker rates</option>
+              <option value="documents">Worker documents</option>
             </select>
             <ChevronDown
               className="pointer-events-none absolute right-3 top-3.5 size-4 text-stone-500"

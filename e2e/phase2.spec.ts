@@ -2,7 +2,7 @@ import { clerk } from "@clerk/testing/playwright";
 import { expect, test } from "@playwright/test";
 
 import { cleanupPhaseTwoE2EProjects } from "./support/phase2-database";
-import { getPhaseOneTestUsers } from "./support/clerk-users";
+import { getPhaseOneTestUser } from "./support/clerk-users";
 
 test.beforeEach(async ({ isMobile }) => {
   test.skip(
@@ -22,11 +22,14 @@ test("the CEO can create, update, and audit a project from the app", async ({
   page,
 }) => {
   test.slow();
-  const { ceoEmailAddress } = await getPhaseOneTestUsers();
+  const { signInTicket } = await getPhaseOneTestUser("CEO");
   const projectName = `E2E Phase 2 ${Date.now()}`;
 
   await page.goto("/sign-in");
-  await clerk.signIn({ page, emailAddress: ceoEmailAddress });
+  await clerk.signIn({
+    page,
+    signInParams: { strategy: "ticket", ticket: signInTicket },
+  });
   await page.goto("/ceo/settings");
   await expect(
     page.getByRole("heading", { name: "Create a Foreman account" }),

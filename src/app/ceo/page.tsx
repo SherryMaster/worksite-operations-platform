@@ -2,16 +2,22 @@ import {
   ArrowUpRight,
   Building2,
   CircleAlert,
+  FileWarning,
   HardHat,
   Settings,
   UserRoundCheck,
+  Users,
 } from "lucide-react";
 import Link from "next/link";
 
 import { getDashboardData } from "@/lib/phase2/data";
+import { getWorkerDashboardSummary } from "@/lib/phase3/data";
 
 export default async function CeoDashboard() {
-  const data = await getDashboardData();
+  const [data, workforce] = await Promise.all([
+    getDashboardData(),
+    getWorkerDashboardSummary(),
+  ]);
   const activeProjects = data.projects.filter(
     (project) => project.status === "ACTIVE",
   ).length;
@@ -21,6 +27,8 @@ export default async function CeoDashboard() {
   const actionCount =
     data.projectsWithoutForemen.length +
     data.unassignedActiveForemen.length +
+    workforce.awaitingAssignment +
+    workforce.documentAlerts +
     (data.companyConfigured ? 0 : 1);
 
   const metrics = [
@@ -37,6 +45,13 @@ export default async function CeoDashboard() {
       detail: `${data.unassignedActiveForemen.length} awaiting assignment`,
       icon: HardHat,
       href: "/ceo/settings#users",
+    },
+    {
+      label: "Active workers",
+      value: workforce.active,
+      detail: `${workforce.awaitingAssignment} awaiting assignment`,
+      icon: Users,
+      href: "/ceo/workers?status=ACTIVE",
     },
     {
       label: "Action required",
@@ -73,7 +88,7 @@ export default async function CeoDashboard() {
 
       <section
         aria-label="Company summary"
-        className="mt-8 grid gap-px border border-stone-300 bg-stone-300 lg:grid-cols-3"
+        className="mt-8 grid gap-px border border-stone-300 bg-stone-300 sm:grid-cols-2 xl:grid-cols-4"
       >
         {metrics.map(({ label, value, detail, icon: Icon, href }) => (
           <Link
@@ -166,6 +181,46 @@ export default async function CeoDashboard() {
                     <ArrowUpRight className="size-4" aria-hidden="true" />
                   </Link>
                 ) : null}
+                {workforce.awaitingAssignment > 0 ? (
+                  <Link
+                    href="/ceo/workers?status=ACTIVE"
+                    className="flex items-center justify-between gap-4 p-5 hover:bg-stone-50"
+                  >
+                    <div>
+                      <p className="text-sm font-semibold">
+                        {workforce.awaitingAssignment} active{" "}
+                        {workforce.awaitingAssignment === 1
+                          ? "worker is"
+                          : "workers are"}{" "}
+                        awaiting a project
+                      </p>
+                      <p className="mt-1 text-xs text-stone-500">
+                        Assign workers from their profiles
+                      </p>
+                    </div>
+                    <Users className="size-4" aria-hidden="true" />
+                  </Link>
+                ) : null}
+                {workforce.documentAlerts > 0 ? (
+                  <Link
+                    href="/ceo/workers"
+                    className="flex items-center justify-between gap-4 p-5 hover:bg-stone-50"
+                  >
+                    <div>
+                      <p className="text-sm font-semibold">
+                        {workforce.documentAlerts}{" "}
+                        {workforce.documentAlerts === 1
+                          ? "worker has"
+                          : "workers have"}{" "}
+                        an expired or expiring document
+                      </p>
+                      <p className="mt-1 text-xs text-stone-500">
+                        Review workforce document alerts
+                      </p>
+                    </div>
+                    <FileWarning className="size-4" aria-hidden="true" />
+                  </Link>
+                ) : null}
                 {!data.companyConfigured ? (
                   <Link
                     href="/ceo/settings#company"
@@ -190,20 +245,20 @@ export default async function CeoDashboard() {
         <aside className="border border-stone-800 bg-stone-950 p-6 text-stone-100">
           <Settings className="size-5 text-amber-400" aria-hidden="true" />
           <p className="mt-8 font-heading text-xs font-semibold uppercase tracking-[0.22em] text-stone-500">
-            Phase 2
+            Phase 3
           </p>
           <h2 className="mt-2 font-heading text-3xl font-semibold uppercase">
-            Structure before workforce
+            Workforce records are live
           </h2>
           <p className="mt-4 text-sm leading-6 text-stone-400">
-            Configure projects, Foremen, trades, skills, and company identity
-            before worker records arrive in Phase 3.
+            Create worker profiles, control employment and project history,
+            manage effective rates, and securely store worker documents.
           </p>
           <Link
-            href="/ceo/settings"
+            href="/ceo/workers"
             className="mt-8 inline-flex items-center gap-2 border border-stone-700 px-4 py-3 text-sm font-semibold hover:border-amber-400 hover:text-amber-300"
           >
-            Open settings
+            Open workers
             <ArrowUpRight className="size-4" aria-hidden="true" />
           </Link>
         </aside>

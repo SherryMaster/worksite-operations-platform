@@ -332,9 +332,10 @@ export async function getAuditEntries() {
     return [];
   }
 
-  const [usersResult, projectsResult] = await Promise.all([
+  const [usersResult, projectsResult, workersResult] = await Promise.all([
     supabase.from("application_users").select("id,clerk_user_id"),
     supabase.from("projects").select("id,name"),
+    supabase.from("workers").select("id,legal_name"),
   ]);
 
   if (usersResult.error) {
@@ -342,6 +343,9 @@ export async function getAuditEntries() {
   }
   if (projectsResult.error) {
     throwQueryError("get_audit_projects", projectsResult.error);
+  }
+  if (workersResult.error) {
+    throwQueryError("get_audit_workers", workersResult.error);
   }
 
   const clerkUsers = await getClerkUsers(
@@ -355,6 +359,9 @@ export async function getAuditEntries() {
   );
   const projectNames = new Map(
     projectsResult.data.map((project) => [project.id, project.name]),
+  );
+  const workerNames = new Map(
+    workersResult.data.map((worker) => [worker.id, worker.legal_name]),
   );
 
   return data.map((entry) => {
@@ -386,6 +393,14 @@ export async function getAuditEntries() {
           : typeof before.project_id === "string"
             ? before.project_id
             : null;
+    const workerId =
+      entry.entity_type === "workers"
+        ? entry.entity_id
+        : typeof after.worker_id === "string"
+          ? after.worker_id
+          : typeof before.worker_id === "string"
+            ? before.worker_id
+            : null;
 
     return {
       ...entry,
@@ -395,6 +410,9 @@ export async function getAuditEntries() {
         : null,
       projectName: projectId
         ? (projectNames.get(projectId) ?? "Project record")
+        : null,
+      workerName: workerId
+        ? (workerNames.get(workerId) ?? "Worker record")
         : null,
     };
   });

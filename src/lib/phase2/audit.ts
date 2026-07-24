@@ -10,6 +10,21 @@ const hiddenFields = new Set([
   "ended_by",
   "actor_user_id",
   "clerk_user_id",
+  "bucket_id",
+  "object_path",
+  "original_filename",
+  "stored_filename",
+  "mime_type",
+  "size_bytes",
+  "byte_size",
+  "worker_id",
+  "document_type_id",
+  "replaced_by_document_id",
+  "replaced_by_id",
+  "uploaded_by",
+  "changed_by",
+  "trade_id",
+  "skill_level_id",
 ]);
 
 const fieldLabels: Record<string, string> = {
@@ -21,6 +36,8 @@ const fieldLabels: Record<string, string> = {
   end_date: "End date",
   enrolled_mfa_methods_removed: "Authenticator and backup codes removed",
   ends_on: "Assignment end date",
+  expiry_date: "Expiry date",
+  file_kind: "File type",
   foreman_user_id: "Foreman",
   is_active: "Account status",
   legal_name: "Legal name",
@@ -29,6 +46,10 @@ const fieldLabels: Record<string, string> = {
   name: "Name",
   notes: "Operational notes",
   project_id: "Project",
+  hourly_rate_sen: "Hourly rate",
+  monthly_amount_sen: "Monthly food deduction",
+  issue_date: "Issue date",
+  reason: "Reason",
   singleton: "Company settings record",
   start_date: "Start date",
   starts_on: "Assignment effective date",
@@ -42,6 +63,10 @@ const areaLabels: Record<string, string> = {
   projects: "Projects",
   settings: "Company settings",
   users: "User accounts",
+  documents: "Worker documents",
+  worker_assignments: "Worker assignments",
+  worker_rates: "Worker rates",
+  workers: "Workers",
 };
 
 type AuditRecord = Record<string, Json | undefined>;
@@ -56,6 +81,7 @@ export type AuditPresentationInput = {
   module: string;
   projectName: string | null;
   source: "IMPORT" | "OFFLINE_SYNC" | "ONLINE";
+  workerName?: string | null;
 };
 
 export type AuditChange = {
@@ -94,6 +120,10 @@ function foremanName(input: AuditPresentationInput) {
   return input.foremanName ?? "the Foreman account";
 }
 
+function workerName(input: AuditPresentationInput) {
+  return input.workerName ?? "the worker";
+}
+
 function describeAction(
   input: AuditPresentationInput,
   before: AuditRecord,
@@ -102,6 +132,77 @@ function describeAction(
   const actor = input.actorName;
   const project = projectName(input, after);
   const foreman = foremanName(input);
+  const worker = workerName(input);
+
+  if (input.entityType === "workers") {
+    return input.action.endsWith(".insert")
+      ? {
+          title: "Worker profile created",
+          summary: `${actor} created the worker profile for ${worker}.`,
+        }
+      : {
+          title: "Worker profile updated",
+          summary: `${actor} updated ${worker}’s identity or contact details.`,
+        };
+  }
+  if (input.entityType === "worker_employment_periods") {
+    return {
+      title: input.action.endsWith(".insert")
+        ? "Employment status recorded"
+        : "Employment period closed",
+      summary: `${actor} updated ${worker}’s employment history.`,
+    };
+  }
+  if (input.entityType === "worker_classification_periods") {
+    return {
+      title: input.action.endsWith(".insert")
+        ? "Trade and skill recorded"
+        : "Trade and skill period closed",
+      summary: `${actor} updated ${worker}’s trade and skill history.`,
+    };
+  }
+  if (input.entityType === "worker_project_assignments") {
+    return {
+      title: input.action.endsWith(".insert")
+        ? "Worker assigned to project"
+        : "Worker assignment ended",
+      summary: input.action.endsWith(".insert")
+        ? `${actor} assigned ${worker} to “${project}”.`
+        : `${actor} ended ${worker}’s assignment to “${project}”.`,
+    };
+  }
+  if (input.entityType === "worker_rate_periods") {
+    return {
+      title: input.action.endsWith(".insert")
+        ? "Hourly rate recorded"
+        : "Hourly rate period closed",
+      summary: `${actor} updated ${worker}’s effective hourly-rate history.`,
+    };
+  }
+  if (input.entityType === "worker_food_deduction_periods") {
+    return {
+      title: input.action.endsWith(".insert")
+        ? "Food deduction recorded"
+        : "Food deduction period closed",
+      summary: `${actor} updated ${worker}’s effective food-deduction history.`,
+    };
+  }
+  if (input.entityType === "worker_documents") {
+    return {
+      title: input.action.endsWith(".insert")
+        ? "Worker file uploaded"
+        : "Worker file status changed",
+      summary: `${actor} updated a private file for ${worker}. File contents and document numbers are not shown here.`,
+    };
+  }
+  if (input.entityType === "document_types") {
+    return {
+      title: input.action.endsWith(".insert")
+        ? "Document type added"
+        : "Document type updated",
+      summary: `${actor} updated the worker document-type settings.`,
+    };
+  }
 
   switch (input.action) {
     case "projects.insert":
@@ -234,6 +335,15 @@ function formatValue(
   if (field === "status" && typeof value === "string") {
     return value.charAt(0) + value.slice(1).toLowerCase();
   }
+  if (
+    (field === "hourly_rate_sen" || field === "monthly_amount_sen") &&
+    typeof value === "number"
+  ) {
+    return new Intl.NumberFormat("en-MY", {
+      currency: "MYR",
+      style: "currency",
+    }).format(value / 100);
+  }
   if (field.toLowerCase().includes("email") && typeof value === "string") {
     return maskEmail(value);
   }
@@ -254,7 +364,10 @@ function describeChanges(
     );
 
   return fields.map((field) => ({
-    field: fieldLabels[field] ?? field.replaceAll("_", " "),
+    field:
+      field === "status" && input.entityType !== "projects"
+        ? "Record status"
+        : (fieldLabels[field] ?? field.replaceAll("_", " ")),
     from: input.beforeData ? formatValue(field, before[field], input) : null,
     to: formatValue(field, after[field], input),
   }));

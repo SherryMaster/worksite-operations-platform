@@ -2,6 +2,8 @@ import {
   BadgeCheck,
   Building2,
   CircleOff,
+  Download,
+  FileCog,
   KeyRound,
   ShieldCheck,
   UserPlus,
@@ -20,11 +22,16 @@ import {
   setForemanMfaRequirementAction,
   updateCompanySettingsAction,
 } from "@/app/ceo/actions";
+import {
+  createDocumentTypeAction,
+  setDocumentTypeActiveAction,
+} from "@/app/ceo/workers/actions";
 import { ActionButton } from "@/components/phase2/action-button";
 import { ManagedForm } from "@/components/phase2/managed-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getSettingsData } from "@/lib/phase2/data";
+import { listDocumentTypes } from "@/lib/phase3/data";
 import type { Tables } from "@/types/database";
 
 type Category = Pick<Tables<"trades">, "id" | "is_active" | "name">;
@@ -125,7 +132,10 @@ function CategorySection({
 }
 
 export default async function SettingsPage() {
-  const data = await getSettingsData();
+  const [data, documentTypes] = await Promise.all([
+    getSettingsData(),
+    listDocumentTypes(),
+  ]);
 
   return (
     <main className="px-5 py-8 sm:px-8 lg:py-10">
@@ -147,6 +157,8 @@ export default async function SettingsPage() {
           ["Users", "#users"],
           ["Trades", "#trades"],
           ["Skills", "#skills"],
+          ["Documents", "#documents"],
+          ["Import template", "#import-template"],
           ["Company", "#company"],
         ].map(([label, href]) => (
           <a
@@ -432,6 +444,123 @@ export default async function SettingsPage() {
           renameAction={renameSkillAction}
           table="skill_levels"
         />
+      </section>
+
+      <section
+        id="documents"
+        className="mt-10 grid gap-px border border-stone-300 bg-stone-300 lg:grid-cols-[0.7fr_1.3fr]"
+      >
+        <div className="bg-stone-950 p-6 text-stone-100">
+          <FileCog className="size-5 text-amber-400" aria-hidden="true" />
+          <p className="mt-8 font-heading text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">
+            Worker files
+          </p>
+          <h2 className="mt-2 font-heading text-3xl font-semibold uppercase">
+            Document Types
+          </h2>
+          <p className="mt-4 text-sm leading-6 text-stone-400">
+            Define the labels and dates collected for private worker files.
+            Deactivating a type preserves all existing records.
+          </p>
+        </div>
+        <div className="bg-white p-5 sm:p-6">
+          <ManagedForm
+            action={createDocumentTypeAction}
+            submitLabel="Add Document Type"
+            className="border border-stone-200 bg-stone-50 p-4"
+          >
+            <label className="space-y-2 text-sm font-medium">
+              Name
+              <Input
+                name="name"
+                required
+                minLength={2}
+                maxLength={80}
+                className="mt-2 h-11 rounded-none bg-white"
+              />
+            </label>
+            <div className="flex flex-wrap gap-4">
+              <label className="flex min-h-11 items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  name="expectsIssueDate"
+                  className="size-4 accent-stone-950"
+                />
+                Collect issue date
+              </label>
+              <label className="flex min-h-11 items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  name="expectsExpiryDate"
+                  className="size-4 accent-stone-950"
+                />
+                Collect expiry date
+              </label>
+            </div>
+          </ManagedForm>
+          <div className="mt-5 divide-y divide-stone-200 border border-stone-200">
+            {documentTypes.map((type) => (
+              <div
+                key={type.id}
+                className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div>
+                  <p className="text-sm font-semibold">{type.name}</p>
+                  <p className="mt-1 text-xs text-stone-500">
+                    {[
+                      type.expects_issue_date ? "Issue date" : null,
+                      type.expects_expiry_date ? "Expiry date" : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" and ") || "No dates required"}{" "}
+                    · {type.is_active ? "Active" : "Inactive"}
+                  </p>
+                </div>
+                <ActionButton
+                  action={setDocumentTypeActiveAction.bind(
+                    null,
+                    type.id,
+                    !type.is_active,
+                  )}
+                  label={type.is_active ? "Deactivate" : "Restore"}
+                  confirmMessage={
+                    type.is_active
+                      ? `Deactivate ${type.name}? Existing worker files will be preserved.`
+                      : undefined
+                  }
+                  variant={type.is_active ? "outline" : "secondary"}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="import-template"
+        className="mt-10 flex flex-col gap-5 border border-stone-300 bg-white p-6 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <div>
+          <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
+            Data preparation
+          </p>
+          <h2 className="mt-2 font-heading text-2xl font-semibold uppercase">
+            Worker Import Template
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-stone-500">
+            Download the approved multi-sheet workbook for preparing projects,
+            workers, documents, assignments, and rates. Import execution is
+            planned for a later phase.
+          </p>
+        </div>
+        <a
+          href="/templates/worksite-import-template.xlsx"
+          download
+          className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 bg-stone-950 px-5 text-sm font-semibold text-white"
+        >
+          <Download className="size-4" aria-hidden="true" />
+          Download Template
+        </a>
       </section>
 
       <section

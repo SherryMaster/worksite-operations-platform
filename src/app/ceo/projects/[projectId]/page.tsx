@@ -6,6 +6,7 @@ import {
   HardHat,
   MapPin,
   Pencil,
+  Users,
 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -28,6 +29,7 @@ import {
   projectStatusLabel,
   type ProjectStatus,
 } from "@/lib/phase2/status";
+import { listWorkers } from "@/lib/phase3/data";
 
 const confirmation: Partial<Record<ProjectStatus, string>> = {
   ACTIVE:
@@ -47,9 +49,10 @@ export default async function ProjectDetailPage({
   params: Promise<{ projectId: string }>;
 }) {
   const { projectId } = await params;
-  const [project, foremen] = await Promise.all([
+  const [project, foremen, workers] = await Promise.all([
     getProject(projectId),
     listForemen(),
+    listWorkers({ project: projectId }),
   ]);
   if (!project) notFound();
 
@@ -125,6 +128,7 @@ export default async function ProjectDetailPage({
         {[
           ["Overview", "#overview"],
           ["Foreman", "#foreman"],
+          ["Workforce", "#workforce"],
           ["History", "#history"],
         ].map(([label, href], index) => (
           <a
@@ -187,9 +191,13 @@ export default async function ProjectDetailPage({
           <p className="mt-8 text-xs font-semibold uppercase tracking-wider text-stone-500">
             Workforce
           </p>
-          <p className="mt-2 font-heading text-5xl font-semibold">0</p>
+          <p className="mt-2 font-heading text-5xl font-semibold">
+            {workers.length}
+          </p>
           <p className="mt-2 text-sm text-stone-400">
-            Worker assignment begins in Phase 3.
+            {workers.length === 1
+              ? "Worker currently assigned."
+              : "Workers currently assigned."}
           </p>
         </aside>
       </section>
@@ -274,6 +282,53 @@ export default async function ProjectDetailPage({
             </div>
           )}
         </div>
+      </section>
+
+      <section id="workforce" className="mt-8 border border-stone-300 bg-white">
+        <div className="flex items-center justify-between gap-4 border-b border-stone-200 p-5">
+          <div>
+            <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
+              Current workforce
+            </p>
+            <h2 className="mt-1 font-heading text-2xl font-semibold uppercase">
+              Assigned Workers
+            </h2>
+          </div>
+          <Users className="size-5 text-amber-700" aria-hidden="true" />
+        </div>
+        {workers.length === 0 ? (
+          <div className="p-6">
+            <p className="text-sm text-stone-500">
+              No workers are currently assigned to this project.
+            </p>
+            <Link
+              href="/ceo/workers"
+              className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-amber-800"
+            >
+              Manage workforce
+              <ArrowUpRight className="size-4" aria-hidden="true" />
+            </Link>
+          </div>
+        ) : (
+          <div className="divide-y divide-stone-200">
+            {workers.map((worker) => (
+              <Link
+                key={worker.id}
+                href={`/ceo/workers/${worker.id}`}
+                className="flex items-center justify-between gap-4 p-5 hover:bg-stone-50"
+              >
+                <div>
+                  <p className="text-sm font-semibold">{worker.legal_name}</p>
+                  <p className="mt-1 text-xs text-stone-500">
+                    {worker.tradeName ?? "No trade"} ·{" "}
+                    {worker.skillName ?? "No skill level"}
+                  </p>
+                </div>
+                <ArrowUpRight className="size-4" aria-hidden="true" />
+              </Link>
+            ))}
+          </div>
+        )}
       </section>
 
       <section id="history" className="mt-8">

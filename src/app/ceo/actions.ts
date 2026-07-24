@@ -178,6 +178,9 @@ export async function changeProjectStatusAction(
   revalidatePath("/ceo");
   revalidatePath("/ceo/projects");
   revalidatePath(`/ceo/projects/${parsedId.data}`);
+  revalidatePath("/ceo/workers");
+  revalidatePath("/foreman");
+  revalidatePath("/foreman/workers");
   return actionSuccess(`Project moved to ${parsedStatus.data.toLowerCase()}.`);
 }
 
