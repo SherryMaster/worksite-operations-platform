@@ -21,7 +21,6 @@ export default async function CeoDashboard() {
   const actionCount =
     data.projectsWithoutForemen.length +
     data.unassignedActiveForemen.length +
-    data.pendingInvitationCount +
     (data.companyConfigured ? 0 : 1);
 
   const metrics = [
@@ -162,23 +161,6 @@ export default async function CeoDashboard() {
                       </p>
                       <p className="mt-1 text-xs text-stone-500">
                         Review users and project assignments
-                      </p>
-                    </div>
-                    <ArrowUpRight className="size-4" aria-hidden="true" />
-                  </Link>
-                ) : null}
-                {data.pendingInvitationCount > 0 ? (
-                  <Link
-                    href="/ceo/settings#users"
-                    className="flex items-center justify-between gap-4 p-5 hover:bg-stone-50"
-                  >
-                    <div>
-                      <p className="text-sm font-semibold">
-                        {data.pendingInvitationCount} pending Foreman invitation
-                        {data.pendingInvitationCount === 1 ? "" : "s"}
-                      </p>
-                      <p className="mt-1 text-xs text-stone-500">
-                        Waiting for account setup
                       </p>
                     </div>
                     <ArrowUpRight className="size-4" aria-hidden="true" />

@@ -16,7 +16,6 @@ type ClerkUserShape = {
   id: string;
   lastName: string | null;
   primaryEmailAddressId: string | null;
-  publicMetadata: Record<string, unknown>;
   twoFactorEnabled: boolean;
   username: string | null;
 };
@@ -27,6 +26,7 @@ export type ForemanSummary = {
   displayName: string;
   emailAddress: string | null;
   isActive: boolean;
+  mfaRequired: boolean;
   projectId: string | null;
   projectName: string | null;
   twoFactorEnabled: boolean;
@@ -44,21 +44,6 @@ export type ProjectDetail = ProjectSummary & {
     }
   >;
   statusHistory: Tables<"project_status_history">[];
-};
-
-export type InvitationSummary = {
-  createdAt: number;
-  emailAddress: string;
-  id: string;
-  status: string;
-};
-
-export type UnmappedForeman = {
-  clerkUserId: string;
-  displayName: string;
-  emailAddress: string | null;
-  twoFactorEnabled: boolean;
-  username: string | null;
 };
 
 function primaryEmail(user: ClerkUserShape): string | null {
@@ -156,6 +141,7 @@ export async function listForemen(): Promise<ForemanSummary[]> {
         : "Unavailable Clerk account",
       emailAddress: clerkUser ? primaryEmail(clerkUser) : null,
       isActive: user.is_active,
+      mfaRequired: user.mfa_required,
       projectId: project?.id ?? null,
       projectName: project?.name ?? null,
       twoFactorEnabled: clerkUser?.twoFactorEnabled ?? false,
@@ -260,6 +246,7 @@ export async function getProject(
           displayName: "Former Foreman",
           emailAddress: null,
           isActive: false,
+          mfaRequired: false,
           projectId: null,
           projectName: null,
           twoFactorEnabled: false,
@@ -276,17 +263,11 @@ export async function getDashboardData() {
     listForemen(),
     getCompanySettings(),
   ]);
-  const client = await clerkClient();
-  const invitations = await client.invitations.getInvitationList({
-    limit: 100,
-    status: "pending",
-  });
 
   return {
     projects,
     foremen,
     companyConfigured: Boolean(settings?.legal_name && settings.display_name),
-    pendingInvitationCount: invitations.totalCount,
     unassignedActiveForemen: foremen.filter(
       (foreman) => foreman.isActive && !foreman.projectId,
     ),
@@ -314,23 +295,11 @@ export async function getCompanySettings() {
 
 export async function getSettingsData() {
   const supabase = await createServerSupabaseClient();
-  const client = await clerkClient();
-  const [
-    foremen,
-    tradesResult,
-    skillsResult,
-    settings,
-    invitationsResult,
-    allClerkUsers,
-    mappedUsersResult,
-  ] = await Promise.all([
+  const [foremen, tradesResult, skillsResult, settings] = await Promise.all([
     listForemen(),
     supabase.from("trades").select("*").order("name"),
     supabase.from("skill_levels").select("*").order("name"),
     getCompanySettings(),
-    client.invitations.getInvitationList({ limit: 100, status: "pending" }),
-    client.users.getUserList({ limit: 100, orderBy: "-created_at" }),
-    supabase.from("application_users").select("clerk_user_id"),
   ]);
 
   if (tradesResult.error) {
@@ -339,41 +308,11 @@ export async function getSettingsData() {
   if (skillsResult.error) {
     throwQueryError("get_skill_levels", skillsResult.error);
   }
-  if (mappedUsersResult.error) {
-    throwQueryError("get_mapped_users", mappedUsersResult.error);
-  }
-
-  const mappedClerkIds = new Set(
-    mappedUsersResult.data.map((user) => user.clerk_user_id),
-  );
-  const unmappedForemen = allClerkUsers.data
-    .filter(
-      (user) =>
-        !mappedClerkIds.has(user.id) &&
-        user.publicMetadata.worksiteRole === "FOREMAN",
-    )
-    .map((user): UnmappedForeman => ({
-      clerkUserId: user.id,
-      displayName: clerkDisplayName(user as unknown as ClerkUserShape),
-      emailAddress: primaryEmail(user as unknown as ClerkUserShape),
-      twoFactorEnabled: user.twoFactorEnabled,
-      username: user.username,
-    }));
-
   return {
     foremen,
     trades: tradesResult.data,
     skills: skillsResult.data,
     settings,
-    invitations: invitationsResult.data.map(
-      (invitation): InvitationSummary => ({
-        createdAt: invitation.createdAt,
-        emailAddress: invitation.emailAddress,
-        id: invitation.id,
-        status: invitation.status,
-      }),
-    ),
-    unmappedForemen,
   };
 }
 
@@ -393,30 +332,72 @@ export async function getAuditEntries() {
     return [];
   }
 
-  const actorIds = [...new Set(data.map((entry) => entry.actor_user_id))];
-  const { data: actors, error: actorError } = await supabase
-    .from("application_users")
-    .select("id,clerk_user_id")
-    .in("id", actorIds);
+  const [usersResult, projectsResult] = await Promise.all([
+    supabase.from("application_users").select("id,clerk_user_id"),
+    supabase.from("projects").select("id,name"),
+  ]);
 
-  if (actorError) {
-    throwQueryError("get_audit_actors", actorError);
+  if (usersResult.error) {
+    throwQueryError("get_audit_users", usersResult.error);
+  }
+  if (projectsResult.error) {
+    throwQueryError("get_audit_projects", projectsResult.error);
   }
 
   const clerkUsers = await getClerkUsers(
-    actors.map((actor) => actor.clerk_user_id),
+    usersResult.data.map((user) => user.clerk_user_id),
   );
-  const actorNames = new Map(
-    actors.map((actor) => {
+  const userNames = new Map(
+    usersResult.data.map((actor) => {
       const user = clerkUsers.get(actor.clerk_user_id);
       return [actor.id, user ? clerkDisplayName(user) : "System user"];
     }),
   );
+  const projectNames = new Map(
+    projectsResult.data.map((project) => [project.id, project.name]),
+  );
 
-  return data.map((entry) => ({
-    ...entry,
-    actorName: actorNames.get(entry.actor_user_id) ?? "System user",
-  }));
+  return data.map((entry) => {
+    const before =
+      entry.before_data &&
+      typeof entry.before_data === "object" &&
+      !Array.isArray(entry.before_data)
+        ? entry.before_data
+        : {};
+    const after =
+      entry.after_data &&
+      typeof entry.after_data === "object" &&
+      !Array.isArray(entry.after_data)
+        ? entry.after_data
+        : {};
+    const foremanUserId =
+      entry.entity_type === "application_users"
+        ? entry.entity_id
+        : typeof after.foreman_user_id === "string"
+          ? after.foreman_user_id
+          : typeof before.foreman_user_id === "string"
+            ? before.foreman_user_id
+            : null;
+    const projectId =
+      entry.entity_type === "projects"
+        ? entry.entity_id
+        : typeof after.project_id === "string"
+          ? after.project_id
+          : typeof before.project_id === "string"
+            ? before.project_id
+            : null;
+
+    return {
+      ...entry,
+      actorName: userNames.get(entry.actor_user_id) ?? "System user",
+      foremanName: foremanUserId
+        ? (userNames.get(foremanUserId) ?? "Foreman account")
+        : null,
+      projectName: projectId
+        ? (projectNames.get(projectId) ?? "Project record")
+        : null,
+    };
+  });
 }
 
 export async function getForemanWorkspace() {

@@ -14,7 +14,8 @@ import {
   categorySchema,
   clerkUserIdSchema,
   companySettingsSchema,
-  foremanInvitationSchema,
+  foremanAccountSchema,
+  foremanPasswordSchema,
   projectSchema,
   projectStatusSchema,
   uuidSchema,
@@ -350,141 +351,224 @@ export async function updateCompanySettingsAction(
   return actionSuccess("Company settings saved.");
 }
 
-export async function inviteForemanAction(
+export async function createForemanAction(
   _previousState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const result = foremanInvitationSchema.safeParse({
+  const result = foremanAccountSchema.safeParse({
+    firstName: formData.get("firstName"),
+    lastName: formData.get("lastName"),
+    username: formData.get("username"),
     emailAddress: formData.get("emailAddress"),
+    initialPassword: formData.get("initialPassword"),
+    mfaRequired: formData.get("mfaRequired"),
   });
   if (!result.success) {
     return actionError(
-      "Enter a valid invitation email.",
+      "Check the Foreman account details.",
       result.error.flatten().fieldErrors,
     );
   }
 
-  const { actorId, supabase } = await getCeoContext();
+  const { supabase } = await getCeoContext();
   const client = await clerkClient();
-  let invitationId: string | null = null;
+  let createdClerkUserId: string | null = null;
 
   try {
-    const invitation = await client.invitations.createInvitation({
-      emailAddress: result.data.emailAddress,
-      redirectUrl: "/accept-invitation",
+    const clerkUser = await client.users.createUser({
+      firstName: result.data.firstName,
+      lastName: result.data.lastName ?? undefined,
+      username: result.data.username,
+      password: result.data.initialPassword,
+      emailAddress: result.data.emailAddress
+        ? [result.data.emailAddress]
+        : undefined,
       publicMetadata: { worksiteRole: "FOREMAN" },
     });
-    invitationId = invitation.id;
+    createdClerkUserId = clerkUser.id;
 
-    const { error } = await supabase.from("audit_entries").insert({
-      actor_user_id: actorId,
-      action: "users.invited",
-      module: "users",
-      entity_type: "clerk_invitation",
-      entity_id: invitation.id,
-      after_data: { emailAddress: result.data.emailAddress },
+    const { error } = await supabase.from("application_users").insert({
+      clerk_user_id: clerkUser.id,
+      role: "FOREMAN",
+      is_active: true,
+      mfa_required: result.data.mfaRequired,
     });
 
     if (error) {
-      await client.invitations.revokeInvitation(invitation.id);
+      await client.users.deleteUser(clerkUser.id);
       throw error;
     }
   } catch (error) {
-    logger.error("foreman_invitation_failed", {
-      invitationId,
+    logger.error("foreman_account_create_failed", {
+      createdClerkUserId,
       reason: error instanceof Error ? error.name : "unknown",
     });
     return actionError(
-      "The invitation could not be sent. The address may already be invited or registered.",
+      "The Foreman account could not be created. The username or email may already be in use, or the password may not meet the security rules.",
     );
   }
 
   revalidatePath("/ceo");
   revalidatePath("/ceo/settings");
-  return actionSuccess("Foreman invitation sent.");
+  return actionSuccess(
+    "Foreman account created. Share the username and initial password securely.",
+  );
 }
 
-export async function revokeInvitationAction(
-  invitationId: string,
+export async function resetForemanPasswordAction(
+  applicationUserId: string,
+  clerkUserId: string,
   _previousState: ActionState,
-  _formData: FormData,
+  formData: FormData,
 ): Promise<ActionState> {
   void _previousState;
-  void _formData;
-  if (!invitationId.startsWith("inv_")) {
-    return actionError("Invalid invitation.");
+  const parsedApplicationUserId = uuidSchema.safeParse(applicationUserId);
+  const parsedClerkUserId = clerkUserIdSchema.safeParse(clerkUserId);
+  const result = foremanPasswordSchema.safeParse({
+    newPassword: formData.get("newPassword"),
+  });
+  if (
+    !parsedApplicationUserId.success ||
+    !parsedClerkUserId.success ||
+    !result.success
+  ) {
+    return actionError(
+      "Enter a new password with at least 8 characters.",
+      result.success ? undefined : result.error.flatten().fieldErrors,
+    );
   }
 
   const { actorId, supabase } = await getCeoContext();
   const client = await clerkClient();
+  const { data: foreman, error: foremanError } = await supabase
+    .from("application_users")
+    .select("id")
+    .eq("id", parsedApplicationUserId.data)
+    .eq("clerk_user_id", parsedClerkUserId.data)
+    .eq("role", "FOREMAN")
+    .maybeSingle();
+
+  if (foremanError || !foreman) {
+    return actionError("The Foreman account could not be verified.");
+  }
 
   try {
-    await client.invitations.revokeInvitation(invitationId);
-    const { error } = await supabase.from("audit_entries").insert({
-      actor_user_id: actorId,
-      action: "users.invitation_revoked",
-      module: "users",
-      entity_type: "clerk_invitation",
-      entity_id: invitationId,
+    await client.users.updateUser(parsedClerkUserId.data, {
+      password: result.data.newPassword,
+      signOutOfOtherSessions: true,
     });
-    if (error) {
-      throw error;
+
+    const { error: auditError } = await supabase.from("audit_entries").insert({
+      actor_user_id: actorId,
+      action: "users.password_reset",
+      module: "users",
+      entity_type: "application_users",
+      entity_id: parsedApplicationUserId.data,
+      after_data: { active_sessions_revoked: true },
+    });
+    if (auditError) {
+      logger.error("foreman_password_audit_failed", {
+        code: auditError.code,
+      });
+      return actionError(
+        "The password changed, but its audit entry could not be saved. Contact support before retrying.",
+      );
     }
   } catch (error) {
-    logger.error("foreman_invitation_revoke_failed", {
-      invitationId,
+    logger.error("foreman_password_reset_failed", {
       reason: error instanceof Error ? error.name : "unknown",
     });
-    return actionError("The invitation could not be revoked.");
+    return actionError(
+      "The password could not be changed. It may not meet Clerk’s security rules.",
+    );
   }
 
   revalidatePath("/ceo/settings");
-  return actionSuccess("Invitation revoked.");
+  revalidatePath("/ceo/audit");
+  return actionSuccess(
+    "Password changed and existing account sessions were signed out.",
+  );
 }
 
-export async function activateForemanAction(
+export async function setForemanMfaRequirementAction(
+  applicationUserId: string,
   clerkUserId: string,
+  mfaRequired: boolean,
   _previousState: ActionState,
   _formData: FormData,
 ): Promise<ActionState> {
   void _previousState;
   void _formData;
-  const parsedId = clerkUserIdSchema.safeParse(clerkUserId);
-  if (!parsedId.success) {
-    return actionError("Invalid Clerk account.");
+  const parsedApplicationUserId = uuidSchema.safeParse(applicationUserId);
+  const parsedClerkUserId = clerkUserIdSchema.safeParse(clerkUserId);
+  if (!parsedApplicationUserId.success || !parsedClerkUserId.success) {
+    return actionError("Invalid Foreman account.");
   }
 
-  const { supabase } = await getCeoContext();
+  const { actorId, supabase } = await getCeoContext();
   const client = await clerkClient();
+  const { data: foreman, error: foremanError } = await supabase
+    .from("application_users")
+    .select("id, mfa_required")
+    .eq("id", parsedApplicationUserId.data)
+    .eq("clerk_user_id", parsedClerkUserId.data)
+    .eq("role", "FOREMAN")
+    .maybeSingle();
+
+  if (foremanError || !foreman) {
+    return actionError("The Foreman account could not be verified.");
+  }
+  if (foreman.mfa_required && mfaRequired) {
+    return actionSuccess("MFA is already required for this Foreman.");
+  }
+  const removingOptionalEnrollment = !mfaRequired && !foreman.mfa_required;
 
   try {
-    const clerkUser = await client.users.getUser(parsedId.data);
-    if (clerkUser.publicMetadata.worksiteRole !== "FOREMAN") {
-      return actionError(
-        "This account was not created by a Foreman invitation.",
-      );
+    if (!mfaRequired) {
+      await client.users.disableUserMFA(parsedClerkUserId.data);
     }
 
-    const { error } = await supabase.from("application_users").insert({
-      clerk_user_id: parsedId.data,
-      role: "FOREMAN",
-      is_active: true,
-    });
+    const { error } = removingOptionalEnrollment
+      ? await supabase.from("audit_entries").insert({
+          actor_user_id: actorId,
+          action: "users.mfa_disabled",
+          module: "users",
+          entity_type: "application_users",
+          entity_id: parsedApplicationUserId.data,
+          after_data: { enrolled_mfa_methods_removed: true },
+        })
+      : await supabase
+          .from("application_users")
+          .update({ mfa_required: mfaRequired })
+          .eq("id", parsedApplicationUserId.data)
+          .eq("role", "FOREMAN");
 
     if (error) {
-      logger.error("foreman_activation_failed", { code: error.code });
+      logger.error("foreman_mfa_requirement_update_failed", {
+        code: error.code,
+      });
+      if (removingOptionalEnrollment) {
+        return actionError(
+          "MFA was turned off, but its audit entry could not be saved. Contact support before retrying.",
+        );
+      }
       return actionError(databaseErrorMessage(error));
     }
   } catch (error) {
-    logger.error("foreman_clerk_lookup_failed", {
+    logger.error("foreman_mfa_management_failed", {
       reason: error instanceof Error ? error.name : "unknown",
     });
-    return actionError("The invited Clerk account could not be verified.");
+    return actionError("The Foreman MFA setting could not be changed.");
   }
 
-  revalidatePath("/ceo");
   revalidatePath("/ceo/settings");
-  return actionSuccess("Foreman account activated.");
+  revalidatePath("/ceo/audit");
+  revalidatePath("/foreman");
+  return actionSuccess(
+    mfaRequired
+      ? "MFA is now required for this Foreman."
+      : "MFA is now off for this Foreman.",
+  );
 }
 
 export async function setForemanActiveAction(

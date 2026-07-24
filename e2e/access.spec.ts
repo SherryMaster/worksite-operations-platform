@@ -28,7 +28,7 @@ test("the CEO can open the desktop application shell", async ({ page }) => {
   await expect(page.getByLabel("Access verified")).toBeVisible();
 });
 
-test("a Foreman without MFA cannot open protected workspaces", async ({
+test("a Foreman can work without MFA when the CEO leaves it off", async ({
   page,
 }) => {
   const { foremanEmailAddress, foremanMfaEnabled } =
@@ -36,21 +36,18 @@ test("a Foreman without MFA cannot open protected workspaces", async ({
 
   test.skip(
     foremanMfaEnabled,
-    "The configured Foreman has completed MFA enrollment.",
+    "The configured Clerk user already has MFA enrolled and requires a second-factor test helper.",
   );
 
   await page.goto("/sign-in");
   await clerk.signIn({ page, emailAddress: foremanEmailAddress });
   await page.goto("/ceo");
 
-  await expect(page).toHaveURL(/\/access\/mfa-required$/);
+  await expect(page).toHaveURL(/\/foreman$/);
   await expect(
-    page.getByRole("heading", { name: "Set up multi-factor access." }),
+    page.getByRole("heading", { name: "Site operations" }),
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Company dashboard" }),
   ).not.toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Sign out and verify MFA" }),
-  ).toBeVisible();
 });

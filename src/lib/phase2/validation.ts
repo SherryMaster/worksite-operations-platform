@@ -37,8 +37,32 @@ export const companySettingsSchema = z.object({
   displayName: optionalTrimmedText(120),
 });
 
-export const foremanInvitationSchema = z.object({
-  emailAddress: z.email().trim().toLowerCase(),
+export const foremanAccountSchema = z.object({
+  firstName: z.string().trim().min(1).max(80),
+  lastName: optionalTrimmedText(80),
+  username: z
+    .string()
+    .trim()
+    .min(4)
+    .max(64)
+    .regex(
+      /^[A-Za-z0-9_-]+$/,
+      "Use only letters, numbers, underscores, or hyphens.",
+    ),
+  emailAddress: z.preprocess(
+    (value) =>
+      typeof value === "string" && value.trim() === "" ? null : value,
+    z.email().trim().toLowerCase().nullable(),
+  ),
+  initialPassword: z.string().min(8).max(128),
+  mfaRequired: z.preprocess(
+    (value) => value === "on" || value === true,
+    z.boolean(),
+  ),
+});
+
+export const foremanPasswordSchema = z.object({
+  newPassword: z.string().min(8).max(128),
 });
 
 export const clerkUserIdSchema = z

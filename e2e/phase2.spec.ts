@@ -27,6 +27,16 @@ test("the CEO can create, update, and audit a project from the app", async ({
 
   await page.goto("/sign-in");
   await clerk.signIn({ page, emailAddress: ceoEmailAddress });
+  await page.goto("/ceo/settings");
+  await expect(
+    page.getByRole("heading", { name: "Create a Foreman account" }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Username")).toBeVisible();
+  await expect(page.getByLabel("Initial Password")).toBeVisible();
+  await expect(
+    page.getByLabel("Require MFA for this account"),
+  ).not.toBeChecked();
+
   await page.goto("/ceo/projects/new");
 
   await page.getByLabel("Project name").fill(projectName);
@@ -55,8 +65,15 @@ test("the CEO can create, update, and audit a project from the app", async ({
 
   await page.goto("/ceo/audit");
   await expect(
-    page.getByRole("heading", { name: "Audit", exact: true }),
+    page.getByRole("heading", { name: "Audit Log", exact: true }),
   ).toBeVisible();
-  await expect(page.getByText("projects.insert")).toBeVisible();
-  await expect(page.getByText("projects.update")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Project created" }).first(),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Project details updated" }).first(),
+  ).toBeVisible();
+  await expect(
+    page.getByText(`created the project “${projectName}”.`, { exact: false }),
+  ).toBeVisible();
 });

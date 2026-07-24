@@ -2,28 +2,28 @@ import {
   BadgeCheck,
   Building2,
   CircleOff,
-  MailPlus,
+  KeyRound,
   ShieldCheck,
+  UserPlus,
   Users,
 } from "lucide-react";
 
 import {
-  activateForemanAction,
+  createForemanAction,
   createSkillAction,
   createTradeAction,
-  inviteForemanAction,
   renameSkillAction,
   renameTradeAction,
-  revokeInvitationAction,
+  resetForemanPasswordAction,
   setCategoryActiveAction,
   setForemanActiveAction,
+  setForemanMfaRequirementAction,
   updateCompanySettingsAction,
 } from "@/app/ceo/actions";
 import { ActionButton } from "@/components/phase2/action-button";
 import { ManagedForm } from "@/components/phase2/managed-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { formatDateTime, maskEmail } from "@/lib/phase2/format";
 import { getSettingsData } from "@/lib/phase2/data";
 import type { Tables } from "@/types/database";
 
@@ -172,86 +172,115 @@ export default async function SettingsPage() {
           </div>
         </div>
 
-        <article className="grid gap-px border border-stone-300 bg-stone-300 lg:grid-cols-[0.8fr_1.2fr]">
+        <article className="grid gap-px border border-stone-300 bg-stone-300 lg:grid-cols-[0.72fr_1.28fr]">
           <div className="bg-stone-950 p-6 text-stone-100">
-            <MailPlus className="size-5 text-amber-400" aria-hidden="true" />
+            <UserPlus className="size-5 text-amber-400" aria-hidden="true" />
             <h3 className="mt-8 font-heading text-2xl font-semibold uppercase">
-              Invite a Foreman
+              Create a Foreman account
             </h3>
             <p className="mt-3 text-sm leading-6 text-stone-400">
-              Clerk sends the secure invitation. After signup, activate the
-              verified account here before assigning a project.
+              The CEO creates the sign-in details directly. Email and MFA are
+              optional. Share the initial password privately with the Foreman.
             </p>
           </div>
           <div className="bg-white p-5 sm:p-6">
             <ManagedForm
-              action={inviteForemanAction}
-              submitLabel="Send invitation"
+              action={createForemanAction}
+              submitLabel="Create Account"
             >
-              <Label htmlFor="emailAddress">Foreman email address</Label>
-              <Input
-                id="emailAddress"
-                name="emailAddress"
-                type="email"
-                required
-                autoComplete="email"
-                className="mt-2 h-11 rounded-none"
-              />
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">First Name</Label>
+                  <Input
+                    id="firstName"
+                    name="firstName"
+                    required
+                    maxLength={80}
+                    autoComplete="off"
+                    className="h-11 rounded-none"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input
+                    id="lastName"
+                    name="lastName"
+                    maxLength={80}
+                    autoComplete="off"
+                    className="h-11 rounded-none"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="username">Username</Label>
+                  <Input
+                    id="username"
+                    name="username"
+                    required
+                    minLength={4}
+                    maxLength={64}
+                    autoComplete="off"
+                    spellCheck={false}
+                    className="h-11 rounded-none"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="emailAddress">Email (Optional)</Label>
+                  <Input
+                    id="emailAddress"
+                    name="emailAddress"
+                    type="email"
+                    autoComplete="off"
+                    spellCheck={false}
+                    className="h-11 rounded-none"
+                  />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="initialPassword">Initial Password</Label>
+                  <Input
+                    id="initialPassword"
+                    name="initialPassword"
+                    type="password"
+                    required
+                    minLength={8}
+                    maxLength={128}
+                    autoComplete="new-password"
+                    className="h-11 rounded-none"
+                  />
+                  <p className="text-xs text-stone-500">
+                    Use at least 8 characters. Passwords never appear in the
+                    audit log.
+                  </p>
+                </div>
+                <label className="flex min-h-11 items-center gap-3 border border-stone-200 bg-stone-50 px-3 text-sm sm:col-span-2">
+                  <input
+                    type="checkbox"
+                    name="mfaRequired"
+                    className="size-4 accent-stone-950"
+                  />
+                  Require MFA for this account
+                </label>
+              </div>
             </ManagedForm>
           </div>
         </article>
 
-        {data.unmappedForemen.length > 0 ? (
-          <article className="border border-amber-300 bg-amber-50">
-            <div className="border-b border-amber-200 px-5 py-4">
-              <h3 className="font-heading text-xl font-semibold uppercase">
-                Ready for CEO activation
-              </h3>
-              <p className="mt-1 text-sm text-amber-900/70">
-                These invited users completed Clerk account setup.
-              </p>
-            </div>
-            <div className="divide-y divide-amber-200">
-              {data.unmappedForemen.map((user) => (
-                <div
-                  key={user.clerkUserId}
-                  className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div>
-                    <p className="font-semibold">{user.displayName}</p>
-                    <p className="mt-1 text-xs text-stone-600">
-                      {user.username ? `@${user.username} · ` : ""}
-                      {user.emailAddress}
-                    </p>
-                  </div>
-                  <ActionButton
-                    action={activateForemanAction.bind(null, user.clerkUserId)}
-                    label="Activate Foreman"
-                    variant="default"
-                  />
-                </div>
-              ))}
-            </div>
-          </article>
-        ) : null}
-
-        <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
+        <div>
           <article className="border border-stone-300 bg-white">
             <h3 className="border-b border-stone-200 px-5 py-4 font-heading text-xl font-semibold uppercase">
-              Application Foremen
+              Managed Foreman Accounts
             </h3>
             {data.foremen.length === 0 ? (
               <p className="p-6 text-sm text-stone-500">
-                No Foreman accounts are mapped.
+                No Foreman accounts have been created.
               </p>
             ) : (
               <div className="divide-y divide-stone-200">
                 {data.foremen.map((foreman) => (
                   <div
                     key={foreman.applicationUserId}
-                    className="grid gap-4 p-5 md:grid-cols-[1fr_auto] md:items-center"
+                    className="grid gap-5 p-5 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start"
                   >
-                    <div>
+                    <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="font-semibold">{foreman.displayName}</p>
                         <span
@@ -265,12 +294,12 @@ export default async function SettingsPage() {
                         </span>
                         <span
                           className={
-                            foreman.twoFactorEnabled
+                            foreman.mfaRequired || foreman.twoFactorEnabled
                               ? "inline-flex items-center gap-1 text-xs text-emerald-700"
-                              : "inline-flex items-center gap-1 text-xs text-amber-700"
+                              : "inline-flex items-center gap-1 text-xs text-stone-500"
                           }
                         >
-                          {foreman.twoFactorEnabled ? (
+                          {foreman.mfaRequired || foreman.twoFactorEnabled ? (
                             <ShieldCheck
                               className="size-3.5"
                               aria-hidden="true"
@@ -281,72 +310,100 @@ export default async function SettingsPage() {
                               aria-hidden="true"
                             />
                           )}
-                          {foreman.twoFactorEnabled
-                            ? "MFA enrolled"
-                            : "MFA required"}
+                          {foreman.mfaRequired
+                            ? foreman.twoFactorEnabled
+                              ? "MFA required and enrolled"
+                              : "MFA required — setup pending"
+                            : foreman.twoFactorEnabled
+                              ? "MFA enrolled — optional"
+                              : "MFA off"}
                         </span>
                       </div>
                       <p className="mt-1 text-xs text-stone-500">
                         {foreman.username
                           ? `@${foreman.username}`
-                          : foreman.emailAddress}
+                          : "No username"}
+                        {foreman.emailAddress
+                          ? ` · ${foreman.emailAddress}`
+                          : " · No email"}
                       </p>
                       <p className="mt-2 flex items-center gap-2 text-xs text-stone-600">
                         <Building2 className="size-3.5" aria-hidden="true" />
                         {foreman.projectName ?? "No current project"}
                       </p>
                     </div>
-                    <ActionButton
-                      action={setForemanActiveAction.bind(
-                        null,
-                        foreman.applicationUserId,
-                        !foreman.isActive,
-                      )}
-                      label={foreman.isActive ? "Deactivate" : "Reactivate"}
-                      confirmMessage={
-                        foreman.isActive
-                          ? `Deactivate ${foreman.displayName}? Access will stop immediately.`
-                          : undefined
-                      }
-                      variant={foreman.isActive ? "destructive" : "secondary"}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </article>
-
-          <article className="border border-stone-300 bg-white">
-            <h3 className="border-b border-stone-200 px-5 py-4 font-heading text-xl font-semibold uppercase">
-              Pending invitations
-            </h3>
-            {data.invitations.length === 0 ? (
-              <p className="p-6 text-sm text-stone-500">
-                No invitation is waiting for acceptance.
-              </p>
-            ) : (
-              <div className="divide-y divide-stone-200">
-                {data.invitations.map((invitation) => (
-                  <div key={invitation.id} className="p-5">
-                    <p className="text-sm font-semibold">
-                      {maskEmail(invitation.emailAddress)}
-                    </p>
-                    <p className="mt-1 text-xs text-stone-500">
-                      Sent{" "}
-                      {formatDateTime(
-                        new Date(invitation.createdAt).toISOString(),
-                      )}
-                    </p>
-                    <div className="mt-3">
+                    <div className="flex flex-wrap items-start gap-3 xl:justify-end">
                       <ActionButton
-                        action={revokeInvitationAction.bind(
+                        action={setForemanMfaRequirementAction.bind(
                           null,
-                          invitation.id,
+                          foreman.applicationUserId,
+                          foreman.clerkUserId,
+                          !(foreman.mfaRequired || foreman.twoFactorEnabled),
                         )}
-                        label="Revoke"
-                        confirmMessage="Revoke this invitation? Its existing link will stop working."
-                        variant="destructive"
+                        label={
+                          foreman.mfaRequired || foreman.twoFactorEnabled
+                            ? "Turn MFA Off"
+                            : "Require MFA"
+                        }
+                        confirmMessage={
+                          foreman.mfaRequired || foreman.twoFactorEnabled
+                            ? `Turn MFA off for ${foreman.displayName}? Existing authenticator methods and backup codes will be removed.`
+                            : undefined
+                        }
+                        variant="outline"
                       />
+                      <ActionButton
+                        action={setForemanActiveAction.bind(
+                          null,
+                          foreman.applicationUserId,
+                          !foreman.isActive,
+                        )}
+                        label={foreman.isActive ? "Deactivate" : "Reactivate"}
+                        confirmMessage={
+                          foreman.isActive
+                            ? `Deactivate ${foreman.displayName}? Access will stop immediately.`
+                            : undefined
+                        }
+                        variant={foreman.isActive ? "destructive" : "secondary"}
+                      />
+                      <details className="w-full border border-stone-200 bg-stone-50 p-3 xl:max-w-sm">
+                        <summary className="flex cursor-pointer items-center gap-2 text-sm font-semibold">
+                          <KeyRound
+                            className="size-4 text-amber-700"
+                            aria-hidden="true"
+                          />
+                          Change Password
+                        </summary>
+                        <ManagedForm
+                          action={resetForemanPasswordAction.bind(
+                            null,
+                            foreman.applicationUserId,
+                            foreman.clerkUserId,
+                          )}
+                          submitLabel="Save New Password"
+                          className="mt-4"
+                        >
+                          <Label
+                            htmlFor={`password-${foreman.applicationUserId}`}
+                          >
+                            New Password
+                          </Label>
+                          <Input
+                            id={`password-${foreman.applicationUserId}`}
+                            name="newPassword"
+                            type="password"
+                            required
+                            minLength={8}
+                            maxLength={128}
+                            autoComplete="new-password"
+                            className="h-10 rounded-none bg-white"
+                          />
+                          <p className="text-xs leading-5 text-stone-500">
+                            Existing sessions will be signed out. Share the new
+                            password securely.
+                          </p>
+                        </ManagedForm>
+                      </details>
                     </div>
                   </div>
                 ))}

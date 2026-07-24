@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { companySettingsSchema, projectSchema } from "@/lib/phase2/validation";
+import {
+  companySettingsSchema,
+  foremanAccountSchema,
+  projectSchema,
+} from "@/lib/phase2/validation";
 
 describe("Phase 2 validation", () => {
   it("normalizes optional project values", () => {
@@ -46,5 +50,22 @@ describe("Phase 2 validation", () => {
       legalName: null,
       displayName: "Worksite Operations",
     });
+  });
+
+  it("accepts CEO-created Foreman credentials with optional email and MFA", () => {
+    const result = foremanAccountSchema.safeParse({
+      firstName: "Ali",
+      lastName: "",
+      username: "ali_foreman",
+      emailAddress: "",
+      initialPassword: "Example#4821",
+      mfaRequired: undefined,
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.emailAddress).toBeNull();
+      expect(result.data.mfaRequired).toBe(false);
+    }
   });
 });

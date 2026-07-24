@@ -45,6 +45,7 @@ export type Database = {
           created_at: string;
           id: string;
           is_active: boolean;
+          mfa_required: boolean;
           role: Database["public"]["Enums"]["application_role"];
           updated_at: string;
         };
@@ -53,6 +54,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           is_active?: boolean;
+          mfa_required?: boolean;
           role: Database["public"]["Enums"]["application_role"];
           updated_at?: string;
         };
@@ -61,6 +63,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           is_active?: boolean;
+          mfa_required?: boolean;
           role?: Database["public"]["Enums"]["application_role"];
           updated_at?: string;
         };

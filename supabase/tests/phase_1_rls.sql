@@ -47,8 +47,32 @@ begin
     raise exception 'Foreman should only be able to read their own mapping';
   end if;
 
+  if not private.can_access_application() then
+    raise exception 'Foreman should be authorized while MFA is optional';
+  end if;
+end
+$$;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"user_phase1_ceo","role":"authenticated","fva":[0,-1]}',
+  true
+);
+
+update public.application_users
+set mfa_required = true
+where clerk_user_id = 'user_phase1_foreman';
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"user_phase1_foreman","role":"authenticated","fva":[0,-1]}',
+  true
+);
+
+do $$
+begin
   if private.can_access_application() then
-    raise exception 'Foreman without second-factor verification must be denied';
+    raise exception 'Foreman must be denied when required MFA is not verified';
   end if;
 end
 $$;
@@ -62,7 +86,7 @@ select set_config(
 do $$
 begin
   if not private.can_access_application() then
-    raise exception 'Active Foreman with second-factor verification should be authorized';
+    raise exception 'Foreman with required and verified MFA should be authorized';
   end if;
 end
 $$;

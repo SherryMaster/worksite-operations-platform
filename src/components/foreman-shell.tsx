@@ -1,5 +1,12 @@
-import { UserButton } from "@clerk/nextjs";
-import { CalendarDays, ClipboardList, Clock3, Users, Wifi } from "lucide-react";
+import { SignOutButton } from "@clerk/nextjs";
+import {
+  CalendarDays,
+  ClipboardList,
+  Clock3,
+  LogOut,
+  Users,
+  Wifi,
+} from "lucide-react";
 import Link from "next/link";
 
 import { BrandMark } from "@/components/brand-mark";
@@ -28,7 +35,15 @@ export function ForemanShell({
               <Wifi className="size-3.5" aria-hidden="true" />
               Online
             </span>
-            <UserButton />
+            <SignOutButton redirectUrl="/sign-in">
+              <button
+                type="button"
+                aria-label="Sign out"
+                className="grid size-8 touch-manipulation place-items-center border border-stone-700 text-stone-300 hover:border-stone-500 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+              >
+                <LogOut className="size-4" aria-hidden="true" />
+              </button>
+            </SignOutButton>
           </div>
         </div>
         <div className="mt-3 border-t border-stone-800 pt-3">
