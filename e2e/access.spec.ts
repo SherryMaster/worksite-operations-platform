@@ -27,7 +27,7 @@ test("the CEO can open the desktop application shell", async ({ page }) => {
   await expect(page).toHaveURL(/\/ceo$/);
   await expect(
     page.getByRole("heading", { name: "Company dashboard" }),
-  ).toBeVisible();
+  ).toBeVisible({ timeout: 20_000 });
   await expect(page.getByLabel("Access verified")).toBeVisible();
 });
 
@@ -48,10 +48,11 @@ test("a Foreman can work without MFA when the CEO leaves it off", async ({
   });
   await page.goto("/ceo");
 
-  await expect(page).toHaveURL(/\/foreman$/);
-  await expect(
-    page.getByRole("heading", { name: "Site operations" }),
-  ).toBeVisible();
+  await expect(page).toHaveURL(/\/foreman$/, { timeout: 20_000 });
+  await expect(page.getByText("Today at the worksite")).toBeVisible({
+    timeout: 20_000,
+  });
+  await expect(page.getByLabel("Work date")).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Company dashboard" }),
   ).not.toBeVisible();

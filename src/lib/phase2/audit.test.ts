@@ -131,4 +131,42 @@ describe("audit presentation", () => {
       { field: "Record status", from: null, to: "Active" },
     ]);
   });
+
+  it("describes an offline attendance correction for company staff", () => {
+    const result = presentAuditEntry({
+      action: "attendance.update",
+      actorName: "Foreman Ali",
+      beforeData: {
+        entered_at: "2026-07-20T00:00:00.000Z",
+        exited_at: null,
+        project_id: "project-secret-id",
+        record_status: "ACTIVE",
+        worker_id: "worker-secret-id",
+      },
+      afterData: {
+        correction_note: "Matched the signed worksite sheet",
+        entered_at: "2026-07-20T00:30:00.000Z",
+        exited_at: "2026-07-20T09:30:00.000Z",
+        project_id: "project-secret-id",
+        record_status: "ACTIVE",
+        worker_id: "worker-secret-id",
+      },
+      entityType: "attendance_sessions",
+      foremanName: null,
+      module: "attendance",
+      projectName: "Central Tower",
+      source: "OFFLINE_SYNC",
+      workerName: "Ahmad Khan",
+    });
+
+    expect(result.title).toBe("Worker exit or session details recorded");
+    expect(result.summary).toContain("Ahmad Khan");
+    expect(result.source).toBe("Synced from offline work");
+    expect(result.changes).toContainEqual({
+      field: "Correction reason",
+      from: "Not set",
+      to: "Matched the signed worksite sheet",
+    });
+    expect(JSON.stringify(result)).not.toContain("worker-secret-id");
+  });
 });

@@ -17,6 +17,7 @@ Build the **Worksite Operations Platform**, a focused internal construction-work
 - Completed features must be reachable and testable through the application UI when a frontend workflow applies.
 - Do not advance to the next phase until the current phase passes its automated checks, works against the development services, and is explicitly accepted by the user.
 - Use `npx -y clerk@latest` for Clerk CLI commands in this repository; a global `clerk` command is not assumed to exist.
+- After a phase passes its required gates, create and merge its GitHub pull request without requiring the user to perform those repository steps manually, then update the stable UAT deployment.
 
 ## Source of Truth
 

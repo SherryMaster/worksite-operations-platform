@@ -1,4 +1,4 @@
-import { formatDate, maskEmail } from "@/lib/phase2/format";
+import { formatDate, formatDateTime, maskEmail } from "@/lib/phase2/format";
 import type { Json } from "@/types/database";
 
 const hiddenFields = new Set([
@@ -25,6 +25,7 @@ const hiddenFields = new Set([
   "changed_by",
   "trade_id",
   "skill_level_id",
+  "attendance_session_id",
 ]);
 
 const fieldLabels: Record<string, string> = {
@@ -52,9 +53,17 @@ const fieldLabels: Record<string, string> = {
   reason: "Reason",
   singleton: "Company settings record",
   start_date: "Start date",
+  started_at: "Break started",
   starts_on: "Assignment effective date",
   status: "Project status",
   timezone: "Timezone",
+  day_type: "Day type",
+  entered_at: "Entered",
+  exited_at: "Exited",
+  ended_at: "Break ended",
+  correction_note: "Correction reason",
+  source: "Recorded through",
+  work_date: "Work date",
 };
 
 const areaLabels: Record<string, string> = {
@@ -67,6 +76,8 @@ const areaLabels: Record<string, string> = {
   worker_assignments: "Worker assignments",
   worker_rates: "Worker rates",
   workers: "Workers",
+  attendance: "Attendance",
+  attendance_day_types: "Attendance day types",
 };
 
 type AuditRecord = Record<string, Json | undefined>;
@@ -203,6 +214,35 @@ function describeAction(
       summary: `${actor} updated the worker document-type settings.`,
     };
   }
+  if (input.entityType === "project_days") {
+    return {
+      title: input.action.endsWith(".insert")
+        ? "Project day type confirmed"
+        : "Project day type changed",
+      summary: `${actor} set the attendance day type for “${project}”.`,
+    };
+  }
+  if (input.entityType === "attendance_sessions") {
+    const voided = after.record_status === "VOID";
+    return {
+      title: voided
+        ? "Work session replaced by a correction"
+        : input.action.endsWith(".insert")
+          ? "Worker entrance recorded"
+          : "Worker exit or session details recorded",
+      summary: voided
+        ? `${actor} replaced an earlier work session for ${worker}; the previous value remains in history.`
+        : `${actor} updated ${worker}’s attendance for “${project}”.`,
+    };
+  }
+  if (input.entityType === "break_intervals") {
+    return {
+      title: input.action.endsWith(".insert")
+        ? "Unpaid break started"
+        : "Unpaid break updated",
+      summary: `${actor} updated an unpaid break in ${worker}’s attendance.`,
+    };
+  }
 
   switch (input.action) {
     case "projects.insert":
@@ -331,6 +371,12 @@ function formatValue(
       field === "end_date")
   ) {
     return formatDate(value);
+  }
+  if (
+    typeof value === "string" &&
+    ["entered_at", "exited_at", "started_at", "ended_at"].includes(field)
+  ) {
+    return formatDateTime(value);
   }
   if (field === "status" && typeof value === "string") {
     return value.charAt(0) + value.slice(1).toLowerCase();

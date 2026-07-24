@@ -20,7 +20,11 @@ const navigation = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/ceo" },
   { label: "Projects", icon: FolderKanban, href: "/ceo/projects" },
   { label: "Workers", icon: Users, href: "/ceo/workers" },
-  { label: "Attendance", icon: CalendarCheck2 },
+  {
+    label: "Attendance",
+    icon: CalendarCheck2,
+    href: "/ceo/attendance",
+  },
   { label: "Leave", icon: ClipboardList },
   { label: "Payroll", icon: ReceiptText },
   { label: "Reports", icon: BarChart3 },

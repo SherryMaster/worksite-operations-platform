@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { Barlow_Condensed, IBM_Plex_Sans } from "next/font/google";
 
 import { cn } from "@/lib/utils";
+import { WorksiteSerwistProvider } from "@/components/phase4/serwist-provider";
 
 import "./globals.css";
 
@@ -20,11 +21,20 @@ const heading = Barlow_Condensed({
 });
 
 export const metadata: Metadata = {
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black",
+    title: "Worksite",
+  },
   title: {
     default: "Worksite Operations",
     template: "%s · Worksite Operations",
   },
   description: "Secure construction workforce operations.",
+  icons: {
+    apple: "/icons/worksite-192.png",
+  },
+  manifest: "/manifest.webmanifest",
 };
 
 export default function RootLayout({
@@ -39,7 +49,9 @@ export default function RootLayout({
         className={cn(sans.variable, heading.variable)}
         suppressHydrationWarning
       >
-        <body>{children}</body>
+        <body>
+          <WorksiteSerwistProvider>{children}</WorksiteSerwistProvider>
+        </body>
       </html>
     </ClerkProvider>
   );
