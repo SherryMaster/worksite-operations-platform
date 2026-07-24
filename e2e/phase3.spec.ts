@@ -1,7 +1,7 @@
 import { clerk } from "@clerk/testing/playwright";
 import { expect, test } from "@playwright/test";
 
-import { getPhaseOneTestUsers } from "./support/clerk-users";
+import { getPhaseOneTestUser } from "./support/clerk-users";
 import {
   cleanupPhaseThreeE2EWorkers,
   setupPhaseThreeE2EData,
@@ -20,12 +20,15 @@ test("the CEO can create, find, update, and audit a worker", async ({
   page,
 }) => {
   test.slow();
-  const { ceoEmailAddress } = await getPhaseOneTestUsers();
+  const { signInTicket } = await getPhaseOneTestUser("CEO");
   const suffix = Date.now();
   const workerName = `E2E Phase 3 Worker ${suffix}`;
 
   await page.goto("/sign-in");
-  await clerk.signIn({ page, emailAddress: ceoEmailAddress });
+  await clerk.signIn({
+    page,
+    signInParams: { strategy: "ticket", ticket: signInTicket },
+  });
   await page.goto("/ceo/workers/new");
 
   await page.getByLabel("Legal Name").fill(workerName);
@@ -50,8 +53,13 @@ test("the CEO can create, find, update, and audit a worker", async ({
     timeout: 20_000,
   });
   await expect(page.getByRole("heading", { name: workerName })).toBeVisible();
-  await expect(page.getByText("E2E Phase 3 Project")).toBeVisible();
-  await expect(page.getByText("RM 15.50")).toBeVisible();
+  await expect(
+    page
+      .getByRole("heading", { name: "Assignment History" })
+      .locator("..")
+      .getByText("E2E Phase 3 Project", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText("RM 15.50", { exact: true })).toBeVisible();
 
   await page.getByRole("link", { name: "Edit Worker" }).click();
   await page.getByLabel("Phone Number").fill("+60129876543");

@@ -1,7 +1,7 @@
 import { clerk } from "@clerk/testing/playwright";
 import { expect, test } from "@playwright/test";
 
-import { getPhaseOneTestUsers } from "./support/clerk-users";
+import { getPhaseOneTestUser } from "./support/clerk-users";
 
 test("an unauthenticated visitor is sent to company sign-in", async ({
   page,
@@ -15,10 +15,13 @@ test("an unauthenticated visitor is sent to company sign-in", async ({
 });
 
 test("the CEO can open the desktop application shell", async ({ page }) => {
-  const { ceoEmailAddress } = await getPhaseOneTestUsers();
+  const { signInTicket } = await getPhaseOneTestUser("CEO");
 
   await page.goto("/sign-in");
-  await clerk.signIn({ page, emailAddress: ceoEmailAddress });
+  await clerk.signIn({
+    page,
+    signInParams: { strategy: "ticket", ticket: signInTicket },
+  });
   await page.goto("/");
 
   await expect(page).toHaveURL(/\/ceo$/);
@@ -31,16 +34,18 @@ test("the CEO can open the desktop application shell", async ({ page }) => {
 test("a Foreman can work without MFA when the CEO leaves it off", async ({
   page,
 }) => {
-  const { foremanEmailAddress, foremanMfaEnabled } =
-    await getPhaseOneTestUsers();
+  const { signInTicket, mfaEnabled } = await getPhaseOneTestUser("FOREMAN");
 
   test.skip(
-    foremanMfaEnabled,
+    mfaEnabled,
     "The configured Clerk user already has MFA enrolled and requires a second-factor test helper.",
   );
 
   await page.goto("/sign-in");
-  await clerk.signIn({ page, emailAddress: foremanEmailAddress });
+  await clerk.signIn({
+    page,
+    signInParams: { strategy: "ticket", ticket: signInTicket },
+  });
   await page.goto("/ceo");
 
   await expect(page).toHaveURL(/\/foreman$/);

@@ -1,70 +1,132 @@
-type ClerkEmailAddress = {
-  email_address: string;
-  id: string;
-};
+import { spawnSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
 
 type ClerkUser = {
-  created_at: number;
-  email_addresses: ClerkEmailAddress[];
-  primary_email_address_id: string | null;
   two_factor_enabled: boolean;
 };
 
-export type PhaseOneTestUsers = {
-  ceoEmailAddress: string;
-  foremanEmailAddress: string;
-  foremanMfaEnabled: boolean;
+type ClerkSignInToken = {
+  token: string;
 };
 
-let usersPromise: Promise<PhaseOneTestUsers> | undefined;
+export type PhaseOneTestUser = {
+  signInTicket: string;
+  mfaEnabled: boolean;
+};
 
-function primaryEmailAddress(user: ClerkUser): string {
-  const email =
-    user.email_addresses.find(
-      (address) => address.id === user.primary_email_address_id,
-    ) ?? user.email_addresses[0];
+function getRoleClerkUserIds(role: "CEO" | "FOREMAN"): string[] {
+  const linkedPoolerPath = "supabase/.temp/pooler-url";
+  const databaseUrl =
+    process.env.SUPABASE_DB_URL ??
+    (existsSync(linkedPoolerPath)
+      ? readFileSync(linkedPoolerPath, "utf8").trim()
+      : undefined);
 
-  if (!email) {
-    throw new Error("A Phase 1 Clerk test user has no email address.");
+  if (!databaseUrl || !process.env.SUPABASE_DB_PASSWORD) {
+    throw new Error(
+      "Authenticated E2E tests require the linked database and SUPABASE_DB_PASSWORD.",
+    );
   }
 
-  return email.email_address;
+  const result = spawnSync(
+    "psql",
+    [
+      databaseUrl,
+      "--tuples-only",
+      "--no-align",
+      "--set",
+      "ON_ERROR_STOP=1",
+      "--command",
+      `select clerk_user_id
+       from public.application_users
+       where role = '${role}' and is_active
+       order by created_at;`,
+    ],
+    {
+      env: {
+        ...process.env,
+        PGPASSWORD: process.env.SUPABASE_DB_PASSWORD,
+      },
+      stdio: "pipe",
+    },
+  );
+
+  if (result.status !== 0) {
+    throw new Error(
+      `Application user lookup failed: ${result.stderr.toString().trim()}`,
+    );
+  }
+
+  return result.stdout
+    .toString()
+    .split("\n")
+    .map((value) => value.trim())
+    .filter(Boolean);
 }
 
-export function getPhaseOneTestUsers(): Promise<PhaseOneTestUsers> {
-  usersPromise ??= (async () => {
-    const secretKey = process.env.CLERK_SECRET_KEY;
+async function clerkRequest(
+  path: string,
+  secretKey: string,
+  init?: RequestInit,
+): Promise<Response> {
+  return fetch(`https://api.clerk.com/v1${path}`, {
+    ...init,
+    headers: {
+      Authorization: `Bearer ${secretKey}`,
+      "Content-Type": "application/json",
+      ...init?.headers,
+    },
+  });
+}
 
-    if (!secretKey) {
+export async function getPhaseOneTestUser(
+  role: "CEO" | "FOREMAN",
+): Promise<PhaseOneTestUser> {
+  const secretKey = process.env.CLERK_SECRET_KEY;
+
+  if (!secretKey) {
+    throw new Error(
+      "CLERK_SECRET_KEY is required for authenticated E2E tests.",
+    );
+  }
+
+  const clerkUserIds = getRoleClerkUserIds(role);
+
+  for (const clerkUserId of clerkUserIds) {
+    const userResponse = await clerkRequest(`/users/${clerkUserId}`, secretKey);
+
+    if (userResponse.status === 404) continue;
+
+    if (!userResponse.ok) {
       throw new Error(
-        "CLERK_SECRET_KEY is required for authenticated E2E tests.",
+        `Clerk ${role} lookup failed with status ${userResponse.status}.`,
       );
     }
 
-    const response = await fetch("https://api.clerk.com/v1/users?limit=10", {
-      headers: { Authorization: `Bearer ${secretKey}` },
+    const clerkUser = (await userResponse.json()) as ClerkUser;
+    const tokenResponse = await clerkRequest("/sign_in_tokens", secretKey, {
+      method: "POST",
+      body: JSON.stringify({
+        user_id: clerkUserId,
+        expires_in_seconds: 300,
+      }),
     });
 
-    if (!response.ok) {
+    if (!tokenResponse.ok) {
       throw new Error(
-        `Clerk user lookup failed with status ${response.status}.`,
+        `Clerk ${role} sign-in token creation failed with status ${tokenResponse.status}.`,
       );
     }
 
-    const users = ((await response.json()) as ClerkUser[]).sort(
-      (left, right) => left.created_at - right.created_at,
-    );
-
-    if (users.length < 2) {
-      throw new Error("Phase 1 E2E tests require a CEO and a Foreman user.");
-    }
+    const token = (await tokenResponse.json()) as ClerkSignInToken;
 
     return {
-      ceoEmailAddress: primaryEmailAddress(users[0]),
-      foremanEmailAddress: primaryEmailAddress(users.at(-1)!),
-      foremanMfaEnabled: users.at(-1)!.two_factor_enabled,
+      signInTicket: token.token,
+      mfaEnabled: clerkUser.two_factor_enabled,
     };
-  })();
+  }
 
-  return usersPromise;
+  throw new Error(
+    `Authenticated E2E tests require an active ${role} linked to an existing Clerk user.`,
+  );
 }
