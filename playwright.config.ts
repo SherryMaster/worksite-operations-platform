@@ -46,7 +46,7 @@ export default defineConfig({
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined
     : {
-        command: "npm run dev",
+        command: process.env.CI ? "npm run start" : "npm run dev",
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,
         url: "http://localhost:3000/sign-in",
