@@ -2,12 +2,15 @@
 
 begin;
 
+set local session_replication_role = replica;
+
 insert into public.application_users (clerk_user_id, role, is_active)
 values
   ('user_phase1_ceo', 'CEO', true),
   ('user_phase1_foreman', 'FOREMAN', true),
   ('user_phase1_inactive', 'FOREMAN', false);
 
+set local session_replication_role = origin;
 set local role authenticated;
 
 select set_config(
@@ -80,13 +83,13 @@ begin
     raise exception 'Inactive application user must be denied';
   end if;
 
-  if has_table_privilege(
-    'authenticated',
-    'public.application_users',
-    'INSERT'
-  ) then
-    raise exception 'Authenticated users must not be able to create access mappings';
-  end if;
+  begin
+    insert into public.application_users (clerk_user_id, role)
+    values ('user_phase1_unauthorized', 'FOREMAN');
+    raise exception 'Inactive users must not be able to create access mappings';
+  exception
+    when insufficient_privilege then null;
+  end;
 end
 $$;
 

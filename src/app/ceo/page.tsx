@@ -1,114 +1,230 @@
 import {
   ArrowUpRight,
-  CheckCircle2,
-  DatabaseZap,
-  FolderPlus,
-  LockKeyhole,
+  Building2,
+  CircleAlert,
+  HardHat,
+  Settings,
+  UserRoundCheck,
 } from "lucide-react";
+import Link from "next/link";
 
-const controls = [
-  {
-    title: "Identity mapping",
-    text: "Clerk identities resolve to active application roles.",
-    icon: CheckCircle2,
-  },
-  {
-    title: "Route authorization",
-    text: "CEO and Foreman workspaces are checked on the server.",
-    icon: LockKeyhole,
-  },
-  {
-    title: "Database policies",
-    text: "Row-level security limits access at the data boundary.",
-    icon: DatabaseZap,
-  },
-];
+import { getDashboardData } from "@/lib/phase2/data";
 
-export default function CeoDashboard() {
+export default async function CeoDashboard() {
+  const data = await getDashboardData();
+  const activeProjects = data.projects.filter(
+    (project) => project.status === "ACTIVE",
+  ).length;
+  const activeForemen = data.foremen.filter(
+    (foreman) => foreman.isActive,
+  ).length;
+  const actionCount =
+    data.projectsWithoutForemen.length +
+    data.unassignedActiveForemen.length +
+    data.pendingInvitationCount +
+    (data.companyConfigured ? 0 : 1);
+
+  const metrics = [
+    {
+      label: "Active projects",
+      value: activeProjects,
+      detail: `${data.projects.length} total project${data.projects.length === 1 ? "" : "s"}`,
+      icon: Building2,
+      href: "/ceo/projects?status=ACTIVE",
+    },
+    {
+      label: "Active Foremen",
+      value: activeForemen,
+      detail: `${data.unassignedActiveForemen.length} awaiting assignment`,
+      icon: HardHat,
+      href: "/ceo/settings#users",
+    },
+    {
+      label: "Action required",
+      value: actionCount,
+      detail: "Operating-structure checks",
+      icon: CircleAlert,
+      href: "#action-required",
+    },
+  ];
+
   return (
     <main className="px-5 py-8 sm:px-8 lg:py-10">
-      <div className="flex flex-col gap-4 border-b border-stone-300 pb-8 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-5 border-b border-stone-300 pb-8 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="font-heading text-xs font-semibold uppercase tracking-[0.23em] text-amber-700">
-            Friday · Operational overview
+            Operating structure
           </p>
           <h1 className="mt-3 font-heading text-5xl font-semibold uppercase leading-none tracking-tight sm:text-6xl">
             Company dashboard
           </h1>
           <p className="mt-4 max-w-2xl text-sm leading-6 text-stone-600">
-            The secure foundation is active. Operational records begin in Phase
-            2, so no project or workforce totals are shown yet.
+            Projects, Foremen, and setup exceptions are shown from the live
+            development database.
           </p>
         </div>
-        <div className="flex items-center gap-2 border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-emerald-800">
-          <span className="size-2 rounded-full bg-emerald-500" />
-          Foundation healthy
-        </div>
+        <Link
+          href="/ceo/projects/new"
+          className="inline-flex min-h-11 items-center justify-center gap-2 bg-stone-950 px-5 text-sm font-semibold text-white hover:bg-stone-800"
+        >
+          Create project
+          <ArrowUpRight className="size-4" aria-hidden="true" />
+        </Link>
       </div>
 
-      <section className="mt-8 grid gap-px border border-stone-300 bg-stone-300 lg:grid-cols-3">
-        {controls.map(({ title, text, icon: Icon }, index) => (
-          <article key={title} className="bg-white p-6">
+      <section
+        aria-label="Company summary"
+        className="mt-8 grid gap-px border border-stone-300 bg-stone-300 lg:grid-cols-3"
+      >
+        {metrics.map(({ label, value, detail, icon: Icon, href }) => (
+          <Link
+            key={label}
+            href={href}
+            className="group bg-white p-6 transition-colors hover:bg-amber-50"
+          >
             <div className="flex items-start justify-between">
               <Icon className="size-5 text-amber-700" aria-hidden="true" />
-              <span className="font-heading text-2xl font-semibold text-stone-300">
-                0{index + 1}
-              </span>
+              <ArrowUpRight
+                className="size-4 text-stone-300 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-stone-700"
+                aria-hidden="true"
+              />
             </div>
-            <h2 className="mt-8 font-heading text-xl font-semibold uppercase">
-              {title}
+            <p className="mt-8 font-heading text-5xl font-semibold">{value}</p>
+            <h2 className="mt-2 font-heading text-lg font-semibold uppercase">
+              {label}
             </h2>
-            <p className="mt-2 text-sm leading-6 text-stone-600">{text}</p>
-          </article>
+            <p className="mt-1 text-xs text-stone-500">{detail}</p>
+          </Link>
         ))}
       </section>
 
-      <section className="mt-8 grid gap-6 xl:grid-cols-[1.45fr_0.55fr]">
+      <section
+        id="action-required"
+        className="mt-8 grid gap-6 xl:grid-cols-[1.4fr_0.6fr]"
+      >
         <article className="border border-stone-300 bg-white">
           <div className="flex items-center justify-between border-b border-stone-200 px-5 py-4">
             <div>
-              <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">
-                Projects
+              <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
+                Action required
               </p>
               <h2 className="mt-1 font-heading text-2xl font-semibold uppercase">
-                No active projects
+                Setup queue
               </h2>
             </div>
-            <span className="grid size-10 place-items-center bg-stone-100 text-stone-500">
-              <FolderPlus className="size-5" aria-hidden="true" />
+            <span className="font-heading text-3xl font-semibold text-stone-300">
+              {String(actionCount).padStart(2, "0")}
             </span>
           </div>
-          <div className="p-5 sm:p-8">
-            <div className="border border-dashed border-stone-300 bg-stone-50 px-5 py-12 text-center">
-              <p className="font-heading text-xl font-semibold uppercase">
-                Project setup opens in Phase 2
-              </p>
-              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-stone-500">
-                The next usable increment adds project, Foreman, and settings
-                management without changing this access foundation.
-              </p>
-            </div>
+          <div className="divide-y divide-stone-200">
+            {actionCount === 0 ? (
+              <div className="flex items-start gap-4 p-6">
+                <UserRoundCheck
+                  className="mt-0.5 size-5 text-emerald-600"
+                  aria-hidden="true"
+                />
+                <div>
+                  <p className="font-semibold">Operating structure is ready</p>
+                  <p className="mt-1 text-sm text-stone-500">
+                    No Phase 2 setup exceptions need attention.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <>
+                {data.projectsWithoutForemen.map((project) => (
+                  <Link
+                    key={project.id}
+                    href={`/ceo/projects/${project.id}`}
+                    className="flex items-center justify-between gap-4 p-5 hover:bg-stone-50"
+                  >
+                    <div>
+                      <p className="text-sm font-semibold">{project.name}</p>
+                      <p className="mt-1 text-xs text-stone-500">
+                        Needs a current Foreman
+                      </p>
+                    </div>
+                    <ArrowUpRight className="size-4" aria-hidden="true" />
+                  </Link>
+                ))}
+                {data.unassignedActiveForemen.length > 0 ? (
+                  <Link
+                    href="/ceo/settings#users"
+                    className="flex items-center justify-between gap-4 p-5 hover:bg-stone-50"
+                  >
+                    <div>
+                      <p className="text-sm font-semibold">
+                        {data.unassignedActiveForemen.length} active{" "}
+                        {data.unassignedActiveForemen.length === 1
+                          ? "Foreman"
+                          : "Foremen"}{" "}
+                        awaiting assignment
+                      </p>
+                      <p className="mt-1 text-xs text-stone-500">
+                        Review users and project assignments
+                      </p>
+                    </div>
+                    <ArrowUpRight className="size-4" aria-hidden="true" />
+                  </Link>
+                ) : null}
+                {data.pendingInvitationCount > 0 ? (
+                  <Link
+                    href="/ceo/settings#users"
+                    className="flex items-center justify-between gap-4 p-5 hover:bg-stone-50"
+                  >
+                    <div>
+                      <p className="text-sm font-semibold">
+                        {data.pendingInvitationCount} pending Foreman invitation
+                        {data.pendingInvitationCount === 1 ? "" : "s"}
+                      </p>
+                      <p className="mt-1 text-xs text-stone-500">
+                        Waiting for account setup
+                      </p>
+                    </div>
+                    <ArrowUpRight className="size-4" aria-hidden="true" />
+                  </Link>
+                ) : null}
+                {!data.companyConfigured ? (
+                  <Link
+                    href="/ceo/settings#company"
+                    className="flex items-center justify-between gap-4 p-5 hover:bg-stone-50"
+                  >
+                    <div>
+                      <p className="text-sm font-semibold">
+                        Company identity is incomplete
+                      </p>
+                      <p className="mt-1 text-xs text-stone-500">
+                        Add legal and display names
+                      </p>
+                    </div>
+                    <ArrowUpRight className="size-4" aria-hidden="true" />
+                  </Link>
+                ) : null}
+              </>
+            )}
           </div>
         </article>
 
-        <article className="border border-stone-800 bg-stone-950 p-6 text-stone-100">
-          <p className="font-heading text-xs font-semibold uppercase tracking-[0.22em] text-amber-400">
-            Phase status
+        <aside className="border border-stone-800 bg-stone-950 p-6 text-stone-100">
+          <Settings className="size-5 text-amber-400" aria-hidden="true" />
+          <p className="mt-8 font-heading text-xs font-semibold uppercase tracking-[0.22em] text-stone-500">
+            Phase 2
           </p>
-          <p className="mt-5 font-heading text-5xl font-semibold uppercase leading-none">
-            01
+          <h2 className="mt-2 font-heading text-3xl font-semibold uppercase">
+            Structure before workforce
+          </h2>
+          <p className="mt-4 text-sm leading-6 text-stone-400">
+            Configure projects, Foremen, trades, skills, and company identity
+            before worker records arrive in Phase 3.
           </p>
-          <p className="mt-2 font-heading text-2xl font-semibold uppercase">
-            Access foundation
-          </p>
-          <div className="mt-8 h-1 bg-stone-800">
-            <div className="h-full w-full bg-amber-400" />
-          </div>
-          <div className="mt-4 flex items-center justify-between text-xs text-stone-500">
-            <span>Implementation complete</span>
+          <Link
+            href="/ceo/settings"
+            className="mt-8 inline-flex items-center gap-2 border border-stone-700 px-4 py-3 text-sm font-semibold hover:border-amber-400 hover:text-amber-300"
+          >
+            Open settings
             <ArrowUpRight className="size-4" aria-hidden="true" />
-          </div>
-        </article>
+          </Link>
+        </aside>
       </section>
     </main>
   );

@@ -1,4 +1,4 @@
-name: Phase 1 checks
+name: Phase checks
 
 on:
   pull_request:
@@ -7,7 +7,7 @@ on:
       - main
 
 concurrency:
-  group: phase-1-${{ github.workflow }}-${{ github.ref }}
+  group: phase-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
