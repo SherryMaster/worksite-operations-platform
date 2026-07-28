@@ -263,4 +263,26 @@ describe("audit presentation", () => {
     });
     expect(JSON.stringify(result)).not.toContain("secret");
   });
+
+  it("describes migration commits in plain English", () => {
+    const result = presentAuditEntry({
+      action: "imports.commit",
+      actorName: "Sherry",
+      afterData: {
+        file_name: "workers-july.xlsx",
+        workers: 20,
+      },
+      beforeData: null,
+      entityType: "migration_batches",
+      foremanName: null,
+      module: "imports",
+      projectName: null,
+      source: "IMPORT",
+    });
+
+    expect(result.title).toBe("Import workbook committed");
+    expect(result.area).toBe("Data imports");
+    expect(result.source).toBe("Imported");
+    expect(result.summary).toContain("reconciliation totals");
+  });
 });

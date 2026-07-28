@@ -100,6 +100,11 @@ const fieldLabels: Record<string, string> = {
   approved_at: "Approval time",
   paid_at: "Payment recorded",
   statement_number: "Statement number",
+  file_name: "Workbook",
+  issue_count: "Issues found",
+  report_id: "Report",
+  row_count: "Rows exported",
+  summary: "Reconciliation totals",
 };
 
 const areaLabels: Record<string, string> = {
@@ -116,6 +121,8 @@ const areaLabels: Record<string, string> = {
   attendance_day_types: "Attendance day types",
   leave: "Leave",
   payroll: "Payroll & payments",
+  exports: "Report exports",
+  imports: "Data imports",
 };
 
 type AuditRecord = Record<string, Json | undefined>;
@@ -370,6 +377,21 @@ function describeAction(
   }
 
   switch (input.action) {
+    case "exports.report":
+      return {
+        title: "Report exported to Excel",
+        summary: `${actor} downloaded a filtered operational report.`,
+      };
+    case "imports.preview":
+      return {
+        title: "Import workbook previewed",
+        summary: `${actor} checked a workbook for row errors and duplicates. No company records changed during preview.`,
+      };
+    case "imports.commit":
+      return {
+        title: "Import workbook committed",
+        summary: `${actor} imported a validated workbook and recorded its reconciliation totals.`,
+      };
     case "projects.insert":
       return {
         title: "Project created",

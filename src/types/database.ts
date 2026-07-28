@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5";
   };
+  graphql_public: {
+    Tables: {
+      [_ in never]: never;
+    };
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json;
+          operationName?: string;
+          query?: string;
+          variables?: Json;
+        };
+        Returns: Json;
+      };
+    };
+    Enums: {
+      [_ in never]: never;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
+    };
+  };
   public: {
     Tables: {
       application_users: {
@@ -621,6 +646,53 @@ export type Database = {
           {
             foreignKeyName: "leave_types_updated_by_fkey";
             columns: ["updated_by"];
+            isOneToOne: false;
+            referencedRelation: "application_users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      migration_batches: {
+        Row: {
+          committed_at: string | null;
+          created_at: string;
+          created_by: string;
+          file_checksum: string;
+          file_name: string;
+          id: string;
+          issues: Json;
+          payload: Json;
+          status: Database["public"]["Enums"]["migration_batch_status"];
+          summary: Json;
+        };
+        Insert: {
+          committed_at?: string | null;
+          created_at?: string;
+          created_by?: string;
+          file_checksum: string;
+          file_name: string;
+          id?: string;
+          issues?: Json;
+          payload: Json;
+          status?: Database["public"]["Enums"]["migration_batch_status"];
+          summary?: Json;
+        };
+        Update: {
+          committed_at?: string | null;
+          created_at?: string;
+          created_by?: string;
+          file_checksum?: string;
+          file_name?: string;
+          id?: string;
+          issues?: Json;
+          payload?: Json;
+          status?: Database["public"]["Enums"]["migration_batch_status"];
+          summary?: Json;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "migration_batches_created_by_fkey";
+            columns: ["created_by"];
             isOneToOne: false;
             referencedRelation: "application_users";
             referencedColumns: ["id"];
@@ -2006,6 +2078,7 @@ export type Database = {
         };
         Returns: string;
       };
+      commit_migration_batch: { Args: { p_batch_id: string }; Returns: Json };
       create_worker: {
         Args: {
           p_address: string;
@@ -2197,6 +2270,7 @@ export type Database = {
       attendance_sync_status: "SYNCED" | "FAILED" | "CONFLICT";
       audit_source: "ONLINE" | "IMPORT" | "OFFLINE_SYNC";
       leave_request_status: "PENDING" | "APPROVED" | "REJECTED";
+      migration_batch_status: "PREVIEWED" | "COMMITTED";
       payroll_adjustment_kind: "ADDITION" | "DEDUCTION";
       payroll_adjustment_source: "MANUAL" | "CORRECTION";
       payroll_adjustment_status: "PENDING" | "APPLIED" | "SETTLED";
@@ -2343,6 +2417,9 @@ export type CompositeTypes<
     : never;
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       application_role: ["CEO", "FOREMAN"],
@@ -2351,6 +2428,7 @@ export const Constants = {
       attendance_sync_status: ["SYNCED", "FAILED", "CONFLICT"],
       audit_source: ["ONLINE", "IMPORT", "OFFLINE_SYNC"],
       leave_request_status: ["PENDING", "APPROVED", "REJECTED"],
+      migration_batch_status: ["PREVIEWED", "COMMITTED"],
       payroll_adjustment_kind: ["ADDITION", "DEDUCTION"],
       payroll_adjustment_source: ["MANUAL", "CORRECTION"],
       payroll_adjustment_status: ["PENDING", "APPLIED", "SETTLED"],
