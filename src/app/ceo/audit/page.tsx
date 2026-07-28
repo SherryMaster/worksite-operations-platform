@@ -146,6 +146,7 @@ export default async function AuditPage({
               <option value="attendance">Attendance</option>
               <option value="attendance_day_types">Attendance day types</option>
               <option value="leave">Leave</option>
+              <option value="payroll">Payroll & payments</option>
             </select>
             <ChevronDown
               className="pointer-events-none absolute right-3 top-3.5 size-4 text-stone-500"

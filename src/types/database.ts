@@ -627,6 +627,579 @@ export type Database = {
           },
         ];
       };
+      payroll_adjustments: {
+        Row: {
+          amount_sen: number;
+          created_at: string;
+          created_by: string;
+          id: string;
+          kind: Database["public"]["Enums"]["payroll_adjustment_kind"];
+          payroll_month: string;
+          reason: string;
+          settled_at: string | null;
+          source: Database["public"]["Enums"]["payroll_adjustment_source"];
+          source_payroll_worker_id: string | null;
+          status: Database["public"]["Enums"]["payroll_adjustment_status"];
+          target_payroll_worker_id: string | null;
+          updated_at: string;
+          worker_id: string;
+        };
+        Insert: {
+          amount_sen: number;
+          created_at?: string;
+          created_by?: string;
+          id?: string;
+          kind: Database["public"]["Enums"]["payroll_adjustment_kind"];
+          payroll_month: string;
+          reason: string;
+          settled_at?: string | null;
+          source?: Database["public"]["Enums"]["payroll_adjustment_source"];
+          source_payroll_worker_id?: string | null;
+          status?: Database["public"]["Enums"]["payroll_adjustment_status"];
+          target_payroll_worker_id?: string | null;
+          updated_at?: string;
+          worker_id: string;
+        };
+        Update: {
+          amount_sen?: number;
+          created_at?: string;
+          created_by?: string;
+          id?: string;
+          kind?: Database["public"]["Enums"]["payroll_adjustment_kind"];
+          payroll_month?: string;
+          reason?: string;
+          settled_at?: string | null;
+          source?: Database["public"]["Enums"]["payroll_adjustment_source"];
+          source_payroll_worker_id?: string | null;
+          status?: Database["public"]["Enums"]["payroll_adjustment_status"];
+          target_payroll_worker_id?: string | null;
+          updated_at?: string;
+          worker_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "payroll_adjustments_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "application_users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "payroll_adjustments_source_payroll_worker_id_fkey";
+            columns: ["source_payroll_worker_id"];
+            isOneToOne: false;
+            referencedRelation: "payroll_workers";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "payroll_adjustments_target_payroll_worker_id_fkey";
+            columns: ["target_payroll_worker_id"];
+            isOneToOne: false;
+            referencedRelation: "payroll_workers";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "payroll_adjustments_worker_id_fkey";
+            columns: ["worker_id"];
+            isOneToOne: false;
+            referencedRelation: "workers";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      payroll_approval_revisions: {
+        Row: {
+          approved_at: string;
+          approved_by: string;
+          id: string;
+          payroll_run_id: string;
+          revision: number;
+          snapshot: Json;
+        };
+        Insert: {
+          approved_at?: string;
+          approved_by: string;
+          id?: string;
+          payroll_run_id: string;
+          revision: number;
+          snapshot: Json;
+        };
+        Update: {
+          approved_at?: string;
+          approved_by?: string;
+          id?: string;
+          payroll_run_id?: string;
+          revision?: number;
+          snapshot?: Json;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "payroll_approval_revisions_approved_by_fkey";
+            columns: ["approved_by"];
+            isOneToOne: false;
+            referencedRelation: "application_users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "payroll_approval_revisions_payroll_run_id_fkey";
+            columns: ["payroll_run_id"];
+            isOneToOne: false;
+            referencedRelation: "payroll_runs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      payroll_earning_buckets: {
+        Row: {
+          amount_sen: number;
+          category: Database["public"]["Enums"]["payroll_earning_category"];
+          created_at: string;
+          hourly_rate_sen: number;
+          id: string;
+          minutes: number;
+          multiplier_basis_points: number;
+          payroll_worker_id: string;
+          project_id: string;
+          rate_period_id: string;
+        };
+        Insert: {
+          amount_sen: number;
+          category: Database["public"]["Enums"]["payroll_earning_category"];
+          created_at?: string;
+          hourly_rate_sen: number;
+          id?: string;
+          minutes: number;
+          multiplier_basis_points: number;
+          payroll_worker_id: string;
+          project_id: string;
+          rate_period_id: string;
+        };
+        Update: {
+          amount_sen?: number;
+          category?: Database["public"]["Enums"]["payroll_earning_category"];
+          created_at?: string;
+          hourly_rate_sen?: number;
+          id?: string;
+          minutes?: number;
+          multiplier_basis_points?: number;
+          payroll_worker_id?: string;
+          project_id?: string;
+          rate_period_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "payroll_earning_buckets_payroll_worker_id_fkey";
+            columns: ["payroll_worker_id"];
+            isOneToOne: false;
+            referencedRelation: "payroll_workers";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "payroll_earning_buckets_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "payroll_earning_buckets_rate_period_id_fkey";
+            columns: ["rate_period_id"];
+            isOneToOne: false;
+            referencedRelation: "worker_rate_periods";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      payroll_exceptions: {
+        Row: {
+          blocking: boolean;
+          created_at: string;
+          exception_type: Database["public"]["Enums"]["payroll_exception_type"];
+          id: string;
+          message: string;
+          payroll_worker_id: string;
+          project_id: string | null;
+          work_date: string | null;
+        };
+        Insert: {
+          blocking?: boolean;
+          created_at?: string;
+          exception_type: Database["public"]["Enums"]["payroll_exception_type"];
+          id?: string;
+          message: string;
+          payroll_worker_id: string;
+          project_id?: string | null;
+          work_date?: string | null;
+        };
+        Update: {
+          blocking?: boolean;
+          created_at?: string;
+          exception_type?: Database["public"]["Enums"]["payroll_exception_type"];
+          id?: string;
+          message?: string;
+          payroll_worker_id?: string;
+          project_id?: string | null;
+          work_date?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "payroll_exceptions_payroll_worker_id_fkey";
+            columns: ["payroll_worker_id"];
+            isOneToOne: false;
+            referencedRelation: "payroll_workers";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "payroll_exceptions_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      payroll_payments: {
+        Row: {
+          amount_sen: number;
+          approval_revision_id: string;
+          id: string;
+          method: Database["public"]["Enums"]["payroll_payment_method"];
+          notes: string | null;
+          paid_at: string;
+          paid_by: string;
+          payment_date: string;
+          payroll_worker_id: string;
+          reference: string | null;
+        };
+        Insert: {
+          amount_sen: number;
+          approval_revision_id: string;
+          id?: string;
+          method: Database["public"]["Enums"]["payroll_payment_method"];
+          notes?: string | null;
+          paid_at?: string;
+          paid_by?: string;
+          payment_date: string;
+          payroll_worker_id: string;
+          reference?: string | null;
+        };
+        Update: {
+          amount_sen?: number;
+          approval_revision_id?: string;
+          id?: string;
+          method?: Database["public"]["Enums"]["payroll_payment_method"];
+          notes?: string | null;
+          paid_at?: string;
+          paid_by?: string;
+          payment_date?: string;
+          payroll_worker_id?: string;
+          reference?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "payroll_payments_approval_revision_id_fkey";
+            columns: ["approval_revision_id"];
+            isOneToOne: false;
+            referencedRelation: "payroll_approval_revisions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "payroll_payments_paid_by_fkey";
+            columns: ["paid_by"];
+            isOneToOne: false;
+            referencedRelation: "application_users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "payroll_payments_payroll_worker_id_fkey";
+            columns: ["payroll_worker_id"];
+            isOneToOne: true;
+            referencedRelation: "payroll_workers";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      payroll_runs: {
+        Row: {
+          additions_sen: number;
+          approved_at: string | null;
+          approved_by: string | null;
+          blocking_exception_count: number;
+          calculation_revision: number;
+          created_at: string;
+          deductions_sen: number;
+          food_deductions_sen: number;
+          generated_at: string;
+          generated_by: string;
+          gross_earnings_sen: number;
+          id: string;
+          net_payroll_sen: number;
+          payroll_month: string;
+          period_end: string;
+          period_start: string;
+          status: Database["public"]["Enums"]["payroll_run_status"];
+          updated_at: string;
+          worker_count: number;
+        };
+        Insert: {
+          additions_sen?: number;
+          approved_at?: string | null;
+          approved_by?: string | null;
+          blocking_exception_count?: number;
+          calculation_revision?: number;
+          created_at?: string;
+          deductions_sen?: number;
+          food_deductions_sen?: number;
+          generated_at?: string;
+          generated_by?: string;
+          gross_earnings_sen?: number;
+          id?: string;
+          net_payroll_sen?: number;
+          payroll_month: string;
+          period_end: string;
+          period_start: string;
+          status?: Database["public"]["Enums"]["payroll_run_status"];
+          updated_at?: string;
+          worker_count?: number;
+        };
+        Update: {
+          additions_sen?: number;
+          approved_at?: string | null;
+          approved_by?: string | null;
+          blocking_exception_count?: number;
+          calculation_revision?: number;
+          created_at?: string;
+          deductions_sen?: number;
+          food_deductions_sen?: number;
+          generated_at?: string;
+          generated_by?: string;
+          gross_earnings_sen?: number;
+          id?: string;
+          net_payroll_sen?: number;
+          payroll_month?: string;
+          period_end?: string;
+          period_start?: string;
+          status?: Database["public"]["Enums"]["payroll_run_status"];
+          updated_at?: string;
+          worker_count?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "payroll_runs_approved_by_fkey";
+            columns: ["approved_by"];
+            isOneToOne: false;
+            referencedRelation: "application_users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "payroll_runs_generated_by_fkey";
+            columns: ["generated_by"];
+            isOneToOne: false;
+            referencedRelation: "application_users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      payroll_source_days: {
+        Row: {
+          approved_leave: boolean;
+          created_at: string;
+          day_type: Database["public"]["Enums"]["attendance_day_type"];
+          id: string;
+          leave_type_name: string | null;
+          normal_minutes: number;
+          overtime_minutes: number;
+          payroll_worker_id: string;
+          project_id: string;
+          public_holiday_minutes: number;
+          sunday_minutes: number;
+          work_date: string;
+        };
+        Insert: {
+          approved_leave?: boolean;
+          created_at?: string;
+          day_type: Database["public"]["Enums"]["attendance_day_type"];
+          id?: string;
+          leave_type_name?: string | null;
+          normal_minutes?: number;
+          overtime_minutes?: number;
+          payroll_worker_id: string;
+          project_id: string;
+          public_holiday_minutes?: number;
+          sunday_minutes?: number;
+          work_date: string;
+        };
+        Update: {
+          approved_leave?: boolean;
+          created_at?: string;
+          day_type?: Database["public"]["Enums"]["attendance_day_type"];
+          id?: string;
+          leave_type_name?: string | null;
+          normal_minutes?: number;
+          overtime_minutes?: number;
+          payroll_worker_id?: string;
+          project_id?: string;
+          public_holiday_minutes?: number;
+          sunday_minutes?: number;
+          work_date?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "payroll_source_days_payroll_worker_id_fkey";
+            columns: ["payroll_worker_id"];
+            isOneToOne: false;
+            referencedRelation: "payroll_workers";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "payroll_source_days_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      payroll_statements: {
+        Row: {
+          approval_revision_id: string;
+          generated_at: string;
+          generated_by: string;
+          id: string;
+          payroll_worker_id: string;
+          snapshot: Json;
+          statement_number: string;
+        };
+        Insert: {
+          approval_revision_id: string;
+          generated_at?: string;
+          generated_by?: string;
+          id?: string;
+          payroll_worker_id: string;
+          snapshot: Json;
+          statement_number: string;
+        };
+        Update: {
+          approval_revision_id?: string;
+          generated_at?: string;
+          generated_by?: string;
+          id?: string;
+          payroll_worker_id?: string;
+          snapshot?: Json;
+          statement_number?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "payroll_statements_approval_revision_id_fkey";
+            columns: ["approval_revision_id"];
+            isOneToOne: false;
+            referencedRelation: "payroll_approval_revisions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "payroll_statements_generated_by_fkey";
+            columns: ["generated_by"];
+            isOneToOne: false;
+            referencedRelation: "application_users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "payroll_statements_payroll_worker_id_fkey";
+            columns: ["payroll_worker_id"];
+            isOneToOne: false;
+            referencedRelation: "payroll_workers";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      payroll_workers: {
+        Row: {
+          additions_sen: number;
+          calculated_at: string;
+          calculation_revision: number;
+          created_at: string;
+          deductions_sen: number;
+          food_deduction_sen: number;
+          gross_earnings_sen: number;
+          id: string;
+          net_pay_sen: number;
+          normal_minutes: number;
+          overtime_minutes: number;
+          payment_status: Database["public"]["Enums"]["payroll_payment_status"];
+          payroll_run_id: string;
+          primary_project_id: string | null;
+          public_holiday_minutes: number;
+          sunday_minutes: number;
+          updated_at: string;
+          worker_id: string;
+          worker_name: string;
+        };
+        Insert: {
+          additions_sen?: number;
+          calculated_at?: string;
+          calculation_revision?: number;
+          created_at?: string;
+          deductions_sen?: number;
+          food_deduction_sen?: number;
+          gross_earnings_sen?: number;
+          id?: string;
+          net_pay_sen?: number;
+          normal_minutes?: number;
+          overtime_minutes?: number;
+          payment_status?: Database["public"]["Enums"]["payroll_payment_status"];
+          payroll_run_id: string;
+          primary_project_id?: string | null;
+          public_holiday_minutes?: number;
+          sunday_minutes?: number;
+          updated_at?: string;
+          worker_id: string;
+          worker_name: string;
+        };
+        Update: {
+          additions_sen?: number;
+          calculated_at?: string;
+          calculation_revision?: number;
+          created_at?: string;
+          deductions_sen?: number;
+          food_deduction_sen?: number;
+          gross_earnings_sen?: number;
+          id?: string;
+          net_pay_sen?: number;
+          normal_minutes?: number;
+          overtime_minutes?: number;
+          payment_status?: Database["public"]["Enums"]["payroll_payment_status"];
+          payroll_run_id?: string;
+          primary_project_id?: string | null;
+          public_holiday_minutes?: number;
+          sunday_minutes?: number;
+          updated_at?: string;
+          worker_id?: string;
+          worker_name?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "payroll_workers_payroll_run_id_fkey";
+            columns: ["payroll_run_id"];
+            isOneToOne: false;
+            referencedRelation: "payroll_runs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "payroll_workers_primary_project_id_fkey";
+            columns: ["primary_project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "payroll_workers_worker_id_fkey";
+            columns: ["worker_id"];
+            isOneToOne: false;
+            referencedRelation: "workers";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       project_days: {
         Row: {
           correction_note: string | null;
@@ -1405,6 +1978,16 @@ export type Database = {
       };
     };
     Functions: {
+      add_payroll_adjustment: {
+        Args: {
+          p_amount_sen: number;
+          p_kind: Database["public"]["Enums"]["payroll_adjustment_kind"];
+          p_payroll_run_id: string;
+          p_reason: string;
+          p_worker_id: string;
+        };
+        Returns: string;
+      };
       apply_attendance_action: {
         Args: {
           p_action_type: string;
@@ -1414,6 +1997,7 @@ export type Database = {
         };
         Returns: Json;
       };
+      approve_payroll: { Args: { p_payroll_run_id: string }; Returns: string };
       assign_foreman: {
         Args: {
           foreman_user_id: string;
@@ -1500,6 +2084,7 @@ export type Database = {
         };
         Returns: undefined;
       };
+      generate_payroll: { Args: { p_payroll_month: string }; Returns: string };
       move_worker: {
         Args: {
           p_project_id: string;
@@ -1507,6 +2092,16 @@ export type Database = {
           p_worker_id: string;
         };
         Returns: undefined;
+      };
+      record_payroll_payment: {
+        Args: {
+          p_method: Database["public"]["Enums"]["payroll_payment_method"];
+          p_notes?: string;
+          p_payment_date: string;
+          p_payroll_worker_id: string;
+          p_reference?: string;
+        };
+        Returns: string;
       };
       register_worker_file: {
         Args: {
@@ -1524,6 +2119,10 @@ export type Database = {
           p_replace_document_id: string;
           p_worker_id: string;
         };
+        Returns: undefined;
+      };
+      remove_payroll_adjustment: {
+        Args: { p_adjustment_id: string };
         Returns: undefined;
       };
       remove_worker_file: {
@@ -1598,6 +2197,21 @@ export type Database = {
       attendance_sync_status: "SYNCED" | "FAILED" | "CONFLICT";
       audit_source: "ONLINE" | "IMPORT" | "OFFLINE_SYNC";
       leave_request_status: "PENDING" | "APPROVED" | "REJECTED";
+      payroll_adjustment_kind: "ADDITION" | "DEDUCTION";
+      payroll_adjustment_source: "MANUAL" | "CORRECTION";
+      payroll_adjustment_status: "PENDING" | "APPLIED" | "SETTLED";
+      payroll_earning_category:
+        "NORMAL" | "OVERTIME" | "SUNDAY" | "PUBLIC_HOLIDAY";
+      payroll_exception_type:
+        | "INCOMPLETE_ATTENDANCE"
+        | "OPEN_OR_INVALID_BREAK"
+        | "MISSING_RATE"
+        | "ATTENDANCE_LEAVE_CONFLICT"
+        | "NEGATIVE_NET_PAY"
+        | "CALCULATION_FAILURE";
+      payroll_payment_method: "CASH" | "BANK_TRANSFER";
+      payroll_payment_status: "UNPAID" | "PAID";
+      payroll_run_status: "DRAFT" | "NEEDS_REVIEW" | "APPROVED";
       project_status:
         "PLANNED" | "ACTIVE" | "COMPLETED" | "CANCELLED" | "ARCHIVED";
       worker_document_status: "ACTIVE" | "REPLACED" | "REMOVED";
@@ -1737,6 +2351,26 @@ export const Constants = {
       attendance_sync_status: ["SYNCED", "FAILED", "CONFLICT"],
       audit_source: ["ONLINE", "IMPORT", "OFFLINE_SYNC"],
       leave_request_status: ["PENDING", "APPROVED", "REJECTED"],
+      payroll_adjustment_kind: ["ADDITION", "DEDUCTION"],
+      payroll_adjustment_source: ["MANUAL", "CORRECTION"],
+      payroll_adjustment_status: ["PENDING", "APPLIED", "SETTLED"],
+      payroll_earning_category: [
+        "NORMAL",
+        "OVERTIME",
+        "SUNDAY",
+        "PUBLIC_HOLIDAY",
+      ],
+      payroll_exception_type: [
+        "INCOMPLETE_ATTENDANCE",
+        "OPEN_OR_INVALID_BREAK",
+        "MISSING_RATE",
+        "ATTENDANCE_LEAVE_CONFLICT",
+        "NEGATIVE_NET_PAY",
+        "CALCULATION_FAILURE",
+      ],
+      payroll_payment_method: ["CASH", "BANK_TRANSFER"],
+      payroll_payment_status: ["UNPAID", "PAID"],
+      payroll_run_status: ["DRAFT", "NEEDS_REVIEW", "APPROVED"],
       project_status: [
         "PLANNED",
         "ACTIVE",

@@ -202,4 +202,65 @@ describe("audit presentation", () => {
     expect(result.area).toBe("Leave");
     expect(JSON.stringify(result)).not.toContain("secret");
   });
+
+  it("describes payroll approval in plain English", () => {
+    const result = presentAuditEntry({
+      action: "payroll_runs.update",
+      actorName: "Sherry",
+      beforeData: { status: "DRAFT" },
+      afterData: {
+        approved_by: "user-secret",
+        net_payroll_sen: 125000,
+        status: "APPROVED",
+      },
+      entityType: "payroll_runs",
+      foremanName: null,
+      module: "payroll",
+      projectName: null,
+      source: "ONLINE",
+    });
+
+    expect(result.title).toBe("Monthly payroll approved");
+    expect(result.summary).toBe(
+      "Sherry approved the complete company payroll and created worker statements.",
+    );
+    expect(result.area).toBe("Payroll & payments");
+    expect(result.changes).toContainEqual({
+      field: "Net payroll",
+      from: "Not set",
+      to: "RM 1,250.00",
+    });
+    expect(JSON.stringify(result)).not.toContain("user-secret");
+  });
+
+  it("describes a recorded payroll payment without internal identifiers", () => {
+    const result = presentAuditEntry({
+      action: "payroll_payments.insert",
+      actorName: "Sherry",
+      beforeData: null,
+      afterData: {
+        amount_sen: 8050,
+        payroll_worker_id: "payroll-worker-secret",
+        method: "BANK_TRANSFER",
+        payment_date: "2026-07-28",
+      },
+      entityType: "payroll_payments",
+      foremanName: null,
+      module: "payroll",
+      projectName: null,
+      source: "ONLINE",
+      workerName: "Ahmad Khan",
+    });
+
+    expect(result.title).toBe("Worker payroll paid in full");
+    expect(result.summary).toBe(
+      "Sherry recorded one complete worker payroll payment.",
+    );
+    expect(result.changes).toContainEqual({
+      field: "Amount",
+      from: null,
+      to: "RM 80.50",
+    });
+    expect(JSON.stringify(result)).not.toContain("secret");
+  });
 });
