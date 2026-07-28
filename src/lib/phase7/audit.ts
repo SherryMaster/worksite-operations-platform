@@ -1,0 +1,29 @@
+import "server-only";
+
+import { logger } from "@/lib/server/logger";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+import type { Json } from "@/types/database";
+
+export async function recordPhase7AuditEvent(input: {
+  action: "exports.report" | "imports.commit" | "imports.preview";
+  afterData: Json;
+  entityId: string;
+  module: "exports" | "imports";
+}) {
+  const supabase = await createServerSupabaseClient();
+  const response = await supabase.from("audit_entries").insert({
+    action: input.action,
+    after_data: input.afterData,
+    entity_id: input.entityId,
+    entity_type: input.module === "exports" ? "reports" : "migration_batches",
+    module: input.module,
+    source: "ONLINE",
+  });
+  if (response.error) {
+    logger.error("phase_7_audit_write_failed", {
+      code: response.error.code,
+      module: input.module,
+    });
+    throw new Error("The operation could not be audited.");
+  }
+}

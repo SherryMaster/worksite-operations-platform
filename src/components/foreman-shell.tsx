@@ -1,4 +1,10 @@
-import { CalendarDays, ClipboardList, Clock3, Users } from "lucide-react";
+import {
+  BarChart3,
+  CalendarDays,
+  ClipboardList,
+  Clock3,
+  Users,
+} from "lucide-react";
 import Link from "next/link";
 
 import { BrandMark } from "@/components/brand-mark";
@@ -12,6 +18,7 @@ const navigation = [
   { label: "Attendance", icon: CalendarDays, href: "/foreman/attendance" },
   { label: "Workers", icon: Users, href: "/foreman/workers" },
   { label: "Leave", icon: ClipboardList, href: "/foreman/leave" },
+  { label: "Reports", icon: BarChart3, href: "/foreman/reports" },
 ];
 
 export function ForemanShell({
@@ -43,7 +50,7 @@ export function ForemanShell({
       </header>
       {children}
       <nav
-        className="fixed inset-x-0 bottom-0 z-10 mx-auto grid max-w-xl grid-cols-4 border-t border-stone-300 bg-white"
+        className="fixed inset-x-0 bottom-0 z-10 mx-auto grid max-w-xl grid-cols-5 border-t border-stone-300 bg-white"
         aria-label="Foreman navigation"
       >
         {navigation.map(({ label, icon: Icon, href }) => {

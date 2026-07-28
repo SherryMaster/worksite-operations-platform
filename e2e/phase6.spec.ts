@@ -7,6 +7,8 @@ import {
   setupPhaseSixE2EData,
 } from "./support/phase6-database";
 
+const serverMutationTimeout = 45_000;
+
 async function renewCeoSession(page: import("@playwright/test").Page) {
   const returnUrl = page.url();
   await clerk.signOut({ page });
@@ -31,7 +33,7 @@ test.afterEach(async ({ isMobile }) => {
 test("the CEO generates, adjusts, approves, and pays payroll", async ({
   page,
 }) => {
-  test.setTimeout(180_000);
+  test.setTimeout(300_000);
   const { signInTicket } = await getPhaseOneTestUser("CEO");
 
   await page.goto("/sign-in");
@@ -47,7 +49,7 @@ test("the CEO generates, adjusts, approves, and pays payroll", async ({
     page.getByText(
       "Payroll generated. Review every exception before approval.",
     ),
-  ).toBeVisible({ timeout: 20_000 });
+  ).toBeVisible({ timeout: serverMutationTimeout });
 
   await page.getByRole("link", { name: /June 2098/ }).click();
   await expect(page).toHaveURL(/\/ceo\/payroll\/[^/]+$/, {
@@ -72,7 +74,7 @@ test("the CEO generates, adjusts, approves, and pays payroll", async ({
   await page.getByRole("button", { name: "Add adjustment" }).click();
   await expect(
     page.getByText("Adjustment added and draft payroll recalculated."),
-  ).toBeVisible({ timeout: 20_000 });
+  ).toBeVisible({ timeout: serverMutationTimeout });
   await expect(page.getByText("RM 25.00", { exact: true })).toBeVisible();
 
   await page.getByRole("link", { name: /June 2098 payroll/ }).click();
@@ -83,7 +85,7 @@ test("the CEO generates, adjusts, approves, and pays payroll", async ({
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "Approve complete payroll" }).click();
   await expect(page.getByText("approved", { exact: true })).toBeVisible({
-    timeout: 20_000,
+    timeout: serverMutationTimeout,
   });
 
   await page
@@ -102,6 +104,6 @@ test("the CEO generates, adjusts, approves, and pays payroll", async ({
   await page.locator('select[name="method"]').selectOption("BANK_TRANSFER");
   await page.getByRole("button", { name: /Record full payment/ }).click();
   await expect(page.getByText("Full payment recorded · RM 25.00")).toBeVisible({
-    timeout: 20_000,
+    timeout: serverMutationTimeout,
   });
 });

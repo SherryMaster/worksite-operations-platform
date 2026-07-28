@@ -40,7 +40,7 @@ export default async function AuditPage({
   const params = await searchParams;
   const query = params.query?.trim().toLowerCase();
   const actor = params.actor?.trim().toLowerCase();
-  const allEntries = (await getAuditEntries()).map((entry) => ({
+  const allEntries = (await getAuditEntries(1000)).map((entry) => ({
     ...entry,
     presentation: presentAuditEntry({
       action: entry.action,
@@ -147,6 +147,8 @@ export default async function AuditPage({
               <option value="attendance_day_types">Attendance day types</option>
               <option value="leave">Leave</option>
               <option value="payroll">Payroll & payments</option>
+              <option value="exports">Report exports</option>
+              <option value="imports">Data imports</option>
             </select>
             <ChevronDown
               className="pointer-events-none absolute right-3 top-3.5 size-4 text-stone-500"

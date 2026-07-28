@@ -316,13 +316,13 @@ export async function getSettingsData() {
   };
 }
 
-export async function getAuditEntries() {
+export async function getAuditEntries(limit = 100) {
   const supabase = await createServerSupabaseClient();
   const { data, error } = await supabase
     .from("audit_entries")
     .select("*")
     .order("occurred_at", { ascending: false })
-    .limit(100);
+    .limit(Math.min(Math.max(limit, 1), 5000));
 
   if (error) {
     throwQueryError("get_audit_entries", error);
