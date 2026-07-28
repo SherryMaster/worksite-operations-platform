@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { FormSubmitButton } from "@/components/form-submit-button";
 import { presentAuditEntry } from "@/lib/phase2/audit";
 import { getAuditEntries } from "@/lib/phase2/data";
 import { formatDateTime } from "@/lib/phase2/format";
@@ -167,13 +168,13 @@ export default async function AuditPage({
           </span>
         </label>
         <div className="flex items-end gap-2">
-          <button
-            type="submit"
+          <FormSubmitButton
+            pendingLabel="Applying…"
             className="inline-flex h-11 flex-1 touch-manipulation items-center justify-center gap-2 bg-stone-950 px-5 text-sm font-semibold text-white hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2"
           >
             <Filter className="size-4" aria-hidden="true" />
             Apply Filters
-          </button>
+          </FormSubmitButton>
           {filtersActive ? (
             <Link
               href="/ceo/audit"

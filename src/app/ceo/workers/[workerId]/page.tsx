@@ -20,6 +20,7 @@ import {
   changeWorkerRateAction,
   transferWorkerAction,
 } from "@/app/ceo/workers/actions";
+import { FormSubmitButton } from "@/components/form-submit-button";
 import { ManagedForm } from "@/components/phase2/managed-form";
 import { ConfirmSubmitButton } from "@/components/phase3/confirm-submit-button";
 import { formatDate, malaysiaDateInputValue } from "@/lib/phase2/format";
@@ -511,12 +512,12 @@ export default async function WorkerDetailPage({
                   className="block w-full border border-stone-300 p-3 text-sm"
                 />
               </label>
-              <button
-                type="submit"
+              <FormSubmitButton
+                pendingLabel="Saving photo…"
                 className="mt-4 min-h-11 bg-stone-950 px-5 text-sm font-semibold text-white"
               >
                 Save Photo
-              </button>
+              </FormSubmitButton>
             </form>
 
             <form
@@ -582,12 +583,12 @@ export default async function WorkerDetailPage({
                   />
                 </label>
               </div>
-              <button
-                type="submit"
+              <FormSubmitButton
+                pendingLabel="Uploading document…"
                 className="mt-4 min-h-11 bg-stone-950 px-5 text-sm font-semibold text-white"
               >
                 Upload Document
-              </button>
+              </FormSubmitButton>
             </form>
           </div>
         )}
@@ -709,12 +710,12 @@ export default async function WorkerDetailPage({
                           aria-label="Replacement file"
                           className="border border-stone-300 p-3 text-sm sm:col-span-2"
                         />
-                        <button
-                          type="submit"
+                        <FormSubmitButton
+                          pendingLabel="Replacing document…"
                           className="min-h-10 bg-stone-950 px-4 text-sm font-semibold text-white"
                         >
                           Replace Document
-                        </button>
+                        </FormSubmitButton>
                       </form>
                     </details>
                   ) : null}

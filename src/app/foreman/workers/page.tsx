@@ -1,6 +1,7 @@
 import { AlertTriangle, ArrowUpRight, Search, Users } from "lucide-react";
 import Link from "next/link";
 
+import { FormSubmitButton } from "@/components/form-submit-button";
 import { listWorkers } from "@/lib/phase3/data";
 import { maskIdentifier } from "@/lib/phase3/format";
 
@@ -38,12 +39,12 @@ export default async function ForemanWorkersPage({
             className="h-12 w-full border border-stone-300 bg-white pl-10 pr-24 text-sm"
           />
         </label>
-        <button
-          type="submit"
+        <FormSubmitButton
+          pendingLabel="Searching…"
           className="absolute right-1 top-1 h-10 bg-stone-950 px-4 text-sm font-semibold text-white"
         >
           Search
-        </button>
+        </FormSubmitButton>
       </form>
 
       {workers.length === 0 ? (

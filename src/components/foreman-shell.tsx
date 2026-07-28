@@ -2,6 +2,7 @@ import { CalendarDays, ClipboardList, Clock3, Users } from "lucide-react";
 import Link from "next/link";
 
 import { BrandMark } from "@/components/brand-mark";
+import { NavigationPendingIndicator } from "@/components/navigation-pending-indicator";
 import { ConnectionIndicator } from "@/components/phase4/connection-indicator";
 import { DeviceSignOutButton } from "@/components/phase4/device-sign-out-button";
 import { InstallAppButton } from "@/components/phase4/install-app-button";
@@ -57,9 +58,10 @@ export function ForemanShell({
             <Link
               key={label}
               href={href}
-              className="flex min-h-16 flex-col items-center justify-center gap-1 border-t-2 border-transparent text-stone-700 hover:border-amber-500"
+              className="relative flex min-h-16 flex-col items-center justify-center gap-1 border-t-2 border-transparent text-stone-700 hover:border-amber-500"
             >
               {content}
+              <NavigationPendingIndicator className="absolute right-2 top-2 ml-0" />
             </Link>
           ) : (
             <div

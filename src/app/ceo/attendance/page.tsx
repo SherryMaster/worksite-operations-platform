@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { FormSubmitButton } from "@/components/form-submit-button";
 import { AttendanceWorkspace } from "@/components/phase4/attendance-workspace";
 import { malaysiaDateInputValue } from "@/lib/phase2/format";
 import { formatMinutes } from "@/lib/phase4/calculations";
@@ -106,12 +107,12 @@ export default async function CeoAttendancePage({
               className="mt-2 h-11 w-full border border-stone-300 px-3 text-sm font-medium normal-case tracking-normal"
             />
           </label>
-          <button
-            type="submit"
+          <FormSubmitButton
+            pendingLabel="Loading attendance…"
             className="min-h-11 self-end bg-stone-950 px-5 text-sm font-semibold text-white"
           >
             Show attendance
-          </button>
+          </FormSubmitButton>
         </form>
 
         <div className="mt-3 flex gap-2">

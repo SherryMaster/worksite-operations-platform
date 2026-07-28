@@ -5,6 +5,7 @@ import {
   CalendarDays,
   Check,
   Coffee,
+  LoaderCircle,
   LogIn,
   LogOut,
   Pencil,
@@ -18,6 +19,8 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { AppPageSkeleton } from "@/components/app-page-skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { calculateAttendance, formatMinutes } from "@/lib/phase4/calculations";
 import { applyLocalAttendanceAction } from "@/lib/phase4/local-actions";
@@ -45,6 +48,9 @@ type WorkerFilter =
   | "EXITED"
   | "INCOMPLETE"
   | "INVALID";
+
+const SYNC_REQUEST_TIMEOUT_MS = 15_000;
+const SYNC_RETRY_DELAY_MS = 5_000;
 
 function malaysiaTime(timestamp: string | null) {
   if (!timestamp) return "—";
@@ -104,6 +110,54 @@ function actionStateLabel(action: AttendanceQueueAction) {
   if (action.state === "SYNCING") return "Syncing";
   if (action.state === "SYNCED") return "Synced";
   return "Needs attention";
+}
+
+function actionWorkerId(
+  action: AttendanceQueueAction,
+  snapshot: AttendanceSnapshot,
+) {
+  if (typeof action.payload.workerId === "string") {
+    return action.payload.workerId;
+  }
+
+  if (typeof action.payload.sessionId === "string") {
+    return snapshot.sessions.find(
+      (session) => session.id === action.payload.sessionId,
+    )?.workerId;
+  }
+
+  if (typeof action.payload.breakId === "string") {
+    return snapshot.sessions.find((session) =>
+      session.breaks.some(
+        (attendanceBreak) => attendanceBreak.id === action.payload.breakId,
+      ),
+    )?.workerId;
+  }
+
+  return undefined;
+}
+
+function AttendanceListSkeleton() {
+  return (
+    <div className="space-y-3" aria-label="Loading attendance" aria-busy="true">
+      {[0, 1, 2].map((item) => (
+        <div key={item} className="border border-stone-300 bg-white p-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-3 w-28" />
+            </div>
+            <Skeleton className="h-7 w-20" />
+          </div>
+          <Skeleton className="mt-5 h-12 w-full" />
+          <Skeleton className="mt-2 h-11 w-full" />
+        </div>
+      ))}
+      <span className="sr-only" role="status">
+        Loading attendance for the selected date.
+      </span>
+    </div>
+  );
 }
 
 type EditableBreak = {
@@ -415,7 +469,14 @@ export function AttendanceWorkspace({
   const [message, setMessage] = useState<string | null>(null);
   const [correctingWorker, setCorrectingWorker] =
     useState<AttendanceWorker | null>(null);
+  const [hydratingDevice, setHydratingDevice] = useState(!initialSnapshot);
+  const [loadingDate, setLoadingDate] = useState(false);
+  const [selectedWorkDate, setSelectedWorkDate] = useState(
+    initialSnapshot?.workDate ?? "",
+  );
+  const [syncingNow, setSyncingNow] = useState(false);
   const synchronizing = useRef(false);
+  const retryTimer = useRef<number | null>(null);
   const snapshotRef = useRef(snapshot);
 
   useEffect(() => {
@@ -433,7 +494,9 @@ export function AttendanceWorkspace({
         `/api/attendance/bootstrap?date=${encodeURIComponent(workDate)}&project=${encodeURIComponent(projectId)}`,
         { cache: "no-store" },
       );
-      if (!response.ok) return;
+      if (!response.ok) {
+        throw new Error("Attendance could not be refreshed.");
+      }
       const data = (await response.json()) as {
         snapshot: AttendanceSnapshot | null;
       };
@@ -449,6 +512,8 @@ export function AttendanceWorkspace({
             data.snapshot,
           );
         setSnapshot(updatedSnapshot);
+        setSelectedWorkDate(updatedSnapshot.workDate);
+        snapshotRef.current = updatedSnapshot;
         await saveAttendanceSnapshot(updatedSnapshot);
       }
     },
@@ -459,21 +524,43 @@ export function AttendanceWorkspace({
     async (projectId: string, workDate: string) => {
       if (synchronizing.current || !navigator.onLine) return;
       synchronizing.current = true;
+      setSyncingNow(true);
+      let retryAfterMs: number | null = null;
+      let requestTimeout: number | null = null;
       try {
         const stored = await listAttendanceActions(projectId);
-        const pending = stored.filter((action) => action.state === "PENDING");
+        const pending = stored.filter(
+          (action) => action.state === "PENDING" || action.state === "SYNCING",
+        );
         if (pending.length === 0) return;
 
-        await Promise.all(
-          pending.map((action) =>
-            saveAttendanceAction({ ...action, state: "SYNCING" }),
+        const pendingIds = new Set(
+          pending.map((action) => action.clientActionId),
+        );
+        setActions((current) =>
+          current.map((action) =>
+            pendingIds.has(action.clientActionId)
+              ? { ...action, message: null, state: "SYNCING" }
+              : action,
           ),
         );
-        await reloadActions(projectId);
+        await Promise.all(
+          pending.map((action) =>
+            saveAttendanceAction({
+              ...action,
+              message: null,
+              state: "SYNCING",
+            }),
+          ),
+        );
 
-        let response: Response;
+        const controller = new AbortController();
+        requestTimeout = window.setTimeout(
+          () => controller.abort(),
+          SYNC_REQUEST_TIMEOUT_MS,
+        );
         try {
-          response = await fetch("/api/attendance/sync", {
+          const response = await fetch("/api/attendance/sync", {
             body: JSON.stringify({
               actions: pending.map((action) => ({
                 actionType: action.actionType,
@@ -484,67 +571,99 @@ export function AttendanceWorkspace({
             }),
             headers: { "Content-Type": "application/json" },
             method: "POST",
+            signal: controller.signal,
           });
+
+          if (!response.ok) {
+            if (response.status >= 500) {
+              throw new Error("The attendance service is temporarily busy.");
+            }
+            await Promise.all(
+              pending.map((action) =>
+                saveAttendanceAction({
+                  ...action,
+                  message: "Sign in again or retry when access is available.",
+                  state: "NEEDS_ATTENTION",
+                }),
+              ),
+            );
+            setMessage(
+              "Attendance needs attention before it can synchronize. Use Retry sync after checking your access.",
+            );
+            return;
+          }
+
+          const body = (await response.json()) as {
+            results: Array<{
+              clientActionId: string;
+              result: {
+                message: string;
+                status: "CONFLICT" | "FAILED" | "SYNCED";
+              };
+            }>;
+          };
+          const results = new Map(
+            body.results.map((result) => [
+              result.clientActionId,
+              result.result,
+            ]),
+          );
+          await Promise.all(
+            pending.map((action) => {
+              const result = results.get(action.clientActionId);
+              return saveAttendanceAction({
+                ...action,
+                message: result?.message ?? "No server response was received.",
+                state:
+                  result?.status === "SYNCED" ? "SYNCED" : "NEEDS_ATTENTION",
+              });
+            }),
+          );
+          setMessage("Attendance synchronized with the server.");
+          try {
+            await refreshSnapshot(projectId, workDate);
+          } catch {
+            setMessage(
+              "Attendance synchronized, but the latest view could not be refreshed.",
+            );
+          }
         } catch {
           await Promise.all(
             pending.map((action) =>
               saveAttendanceAction({
                 ...action,
-                message: "Waiting for a network connection.",
+                message: "Sync paused. It will retry automatically.",
                 state: "PENDING",
               }),
             ),
           );
-          return;
-        }
-
-        if (!response.ok) {
-          await Promise.all(
-            pending.map((action) =>
-              saveAttendanceAction({
-                ...action,
-                message: "Sign in again or retry when access is available.",
-                state: "NEEDS_ATTENTION",
-              }),
-            ),
+          setMessage(
+            "Sync paused. Your attendance is safe on this device and will retry automatically.",
           );
-          return;
+          retryAfterMs = SYNC_RETRY_DELAY_MS;
+        } finally {
+          if (requestTimeout !== null) {
+            window.clearTimeout(requestTimeout);
+          }
         }
-
-        const body = (await response.json()) as {
-          results: Array<{
-            clientActionId: string;
-            result: {
-              message: string;
-              status: "CONFLICT" | "FAILED" | "SYNCED";
-            };
-          }>;
-        };
-        const results = new Map(
-          body.results.map((result) => [result.clientActionId, result.result]),
-        );
-        await Promise.all(
-          pending.map((action) => {
-            const result = results.get(action.clientActionId);
-            return saveAttendanceAction({
-              ...action,
-              message: result?.message ?? "No server response was received.",
-              state: result?.status === "SYNCED" ? "SYNCED" : "NEEDS_ATTENTION",
-            });
-          }),
-        );
-        await refreshSnapshot(projectId, workDate);
       } finally {
         synchronizing.current = false;
+        setSyncingNow(false);
         await reloadActions(projectId);
         const remaining = await listAttendanceActions(projectId);
         if (
           navigator.onLine &&
-          remaining.some((action) => action.state === "PENDING")
+          remaining.some(
+            (action) =>
+              action.state === "PENDING" || action.state === "SYNCING",
+          )
         ) {
-          window.setTimeout(() => {
+          if (retryTimer.current !== null) {
+            window.clearTimeout(retryTimer.current);
+          }
+          retryTimer.current = window.setTimeout(() => {
             void synchronize(projectId, workDate);
-          }, 0);
+          }, retryAfterMs ?? 0);
         }
       }
     },
@@ -555,16 +674,26 @@ export function AttendanceWorkspace({
     const current = initialSnapshot;
 
     async function initialize() {
-      if (current) {
-        await saveAttendanceSnapshot(current);
-        await reloadActions(current.projectId);
-        if (navigator.onLine) {
-          await synchronize(current.projectId, current.workDate);
+      try {
+        if (current) {
+          await saveAttendanceSnapshot(current);
+          await reloadActions(current.projectId);
+          if (navigator.onLine) {
+            await synchronize(current.projectId, current.workDate);
+          }
+        } else {
+          const cached = await loadLatestAttendanceSnapshot();
+          setSnapshot(cached);
+          setSelectedWorkDate(cached?.workDate ?? "");
+          snapshotRef.current = cached;
+          await reloadActions(cached?.projectId);
         }
-      } else {
-        const cached = await loadLatestAttendanceSnapshot();
-        setSnapshot(cached);
-        await reloadActions(cached?.projectId);
+      } catch {
+        setMessage(
+          "Saved attendance could not be opened on this device. Reload the page to try again.",
+        );
+      } finally {
+        setHydratingDevice(false);
       }
     }
     void initialize();
@@ -578,6 +707,9 @@ export function AttendanceWorkspace({
     window.addEventListener("online", onlineHandler);
     return () => {
       window.removeEventListener("online", onlineHandler);
+      if (retryTimer.current !== null) {
+        window.clearTimeout(retryTimer.current);
+      }
     };
     // The initial cache hydration should run once for this mounted workspace.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -588,7 +720,8 @@ export function AttendanceWorkspace({
       actionType: AttendanceActionType,
       payload: Record<string, unknown>,
     ) => {
-      if (!snapshot) return;
+      const currentSnapshot = snapshotRef.current;
+      if (!currentSnapshot) return;
       const action: AttendanceQueueAction = {
         actionType,
         clientActionId: crypto.randomUUID(),
@@ -598,40 +731,69 @@ export function AttendanceWorkspace({
           ...payload,
           capturedOffline: !navigator.onLine,
         },
-        projectId: snapshot.projectId,
+        projectId: currentSnapshot.projectId,
         state: "PENDING",
       };
-      const next = applyLocalAttendanceAction(snapshot, action);
+      const next = applyLocalAttendanceAction(currentSnapshot, action);
+      snapshotRef.current = next;
       setSnapshot(next);
+      setActions((current) => [...current, action]);
       setMessage(
         navigator.onLine
           ? "Saved. Synchronizing with the server."
           : "Saved on this device. It will synchronize when the connection returns.",
       );
-      await Promise.all([
-        saveAttendanceAction(action),
-        saveAttendanceSnapshot(next),
-      ]);
-      await reloadActions(snapshot.projectId);
-      if (navigator.onLine) {
-        await synchronize(snapshot.projectId, snapshot.workDate);
+      try {
+        await Promise.all([
+          saveAttendanceAction(action),
+          saveAttendanceSnapshot(next),
+        ]);
+        if (navigator.onLine) {
+          void synchronize(currentSnapshot.projectId, currentSnapshot.workDate);
+        }
+      } catch {
+        setActions((current) =>
+          current.map((item) =>
+            item.clientActionId === action.clientActionId
+              ? {
+                  ...item,
+                  message: "This action could not be saved on this device.",
+                  state: "NEEDS_ATTENTION",
+                }
+              : item,
+          ),
+        );
+        setMessage(
+          "This action could not be saved on this device. Check device storage and try again.",
+        );
       }
     },
-    [reloadActions, snapshot, synchronize],
+    [synchronize],
   );
 
   async function changeDate(workDate: string) {
     if (!snapshot) return;
-    if (navigator.onLine) {
-      await refreshSnapshot(snapshot.projectId, workDate);
-      return;
-    }
-    const cached = await loadAttendanceSnapshot(snapshot.projectId, workDate);
-    if (cached) {
-      setSnapshot(cached);
-      setMessage("Showing the saved attendance copy for this date.");
-    } else {
-      setMessage("This date is not saved on the device yet.");
+    setSelectedWorkDate(workDate);
+    setLoadingDate(true);
+    try {
+      if (navigator.onLine) {
+        await refreshSnapshot(snapshot.projectId, workDate);
+        return;
+      }
+      const cached = await loadAttendanceSnapshot(snapshot.projectId, workDate);
+      if (cached) {
+        setSnapshot(cached);
+        snapshotRef.current = cached;
+        setMessage("Showing the saved attendance copy for this date.");
+      } else {
+        setSelectedWorkDate(snapshot.workDate);
+        setMessage("This date is not saved on the device yet.");
+      }
+    } catch {
+      setSelectedWorkDate(snapshot.workDate);
+      setMessage("Attendance for this date could not be loaded. Try again.");
+    } finally {
+      setLoadingDate(false);
     }
   }
 
@@ -649,7 +811,15 @@ export function AttendanceWorkspace({
           snapshot.dayType,
           snapshot.workDate,
         );
-        return { calculation, sessions, state, worker };
+        const localAction = [...actions]
+          .reverse()
+          .find(
+            (action) =>
+              action.projectId === snapshot.projectId &&
+              action.state !== "SYNCED" &&
+              actionWorkerId(action, snapshot) === worker.id,
+          );
+        return { calculation, localAction, sessions, state, worker };
       })
       .filter(({ calculation, state, worker }) => {
         const searchable = [
@@ -673,7 +843,7 @@ export function AttendanceWorkspace({
           filterMatches
         );
       });
-  }, [filter, query, snapshot]);
+  }, [actions, filter, query, snapshot]);
 
   const projectActions = snapshot
     ? actions.filter((action) => action.projectId === snapshot.projectId)
@@ -684,6 +854,10 @@ export function AttendanceWorkspace({
   const attentionCount = projectActions.filter(
     (action) => action.state === "NEEDS_ATTENTION",
   ).length;
+
+  if (!snapshot && hydratingDevice) {
+    return <AppPageSkeleton compact />;
+  }
 
   if (!snapshot) {
     return (
@@ -747,7 +921,8 @@ export function AttendanceWorkspace({
             Work date
             <input
               type="date"
-              value={snapshot.workDate}
+              disabled={loadingDate}
+              value={selectedWorkDate}
               onChange={(event) => void changeDate(event.target.value)}
               className="mt-2 h-12 w-full border border-stone-300 bg-white px-3 text-base font-medium normal-case tracking-normal"
             />
@@ -755,6 +930,7 @@ export function AttendanceWorkspace({
           <label className="text-xs font-semibold uppercase tracking-wider text-stone-600">
             Day type
             <select
+              disabled={loadingDate}
               value={snapshot.dayType}
               onChange={(event) =>
                 void enqueue("SET_DAY_TYPE", {
@@ -772,10 +948,21 @@ export function AttendanceWorkspace({
         </div>
         <div className="flex flex-wrap items-center gap-2 border-t border-stone-200 px-4 py-3 text-xs">
           <span className="inline-flex items-center gap-1.5 font-semibold text-stone-700">
-            <Check className="size-3.5 text-emerald-600" aria-hidden="true" />
-            {pendingCount === 0
-              ? "All actions synchronized"
-              : `${pendingCount} waiting to synchronize`}
+            {syncingNow ? (
+              <LoaderCircle
+                className="size-3.5 animate-spin text-amber-700"
+                aria-hidden="true"
+              />
+            ) : (
+              <Check className="size-3.5 text-emerald-600" aria-hidden="true" />
+            )}
+            <span aria-live="polite">
+              {syncingNow
+                ? `Synchronizing ${pendingCount} ${pendingCount === 1 ? "action" : "actions"}`
+                : pendingCount === 0
+                  ? "All actions synchronized"
+                  : `${pendingCount} waiting to synchronize`}
+            </span>
           </span>
           {attentionCount > 0 ? (
             <span className="inline-flex items-center gap-1.5 font-semibold text-red-700">
@@ -785,7 +972,7 @@ export function AttendanceWorkspace({
           ) : null}
           <button
             type="button"
-            disabled={!online}
+            disabled={!online || syncingNow}
             onClick={async () => {
               const retryable = projectActions.filter(
                 (action) => action.state === "NEEDS_ATTENTION",
@@ -799,12 +986,23 @@ export function AttendanceWorkspace({
                   }),
                 ),
               );
+              setActions((current) =>
+                current.map((action) =>
+                  action.projectId === snapshot.projectId &&
+                  action.state === "NEEDS_ATTENTION"
+                    ? { ...action, message: null, state: "PENDING" }
+                    : action,
+                ),
+              );
               await synchronize(snapshot.projectId, snapshot.workDate);
             }}
             className="ml-auto inline-flex min-h-10 items-center gap-2 px-2 font-semibold text-amber-800 disabled:text-stone-400"
           >
-            <RefreshCw className="size-3.5" aria-hidden="true" />
-            Retry sync
+            <RefreshCw
+              className={cn("size-3.5", syncingNow && "animate-spin")}
+              aria-hidden="true"
+            />
+            {syncingNow ? "Syncing…" : "Retry sync"}
           </button>
         </div>
       </section>
@@ -862,7 +1060,9 @@ export function AttendanceWorkspace({
       </section>
 
       <section className="mt-4 space-y-3" aria-label="Worker attendance">
-        {workerViews.length === 0 ? (
+        {loadingDate ? (
+          <AttendanceListSkeleton />
+        ) : workerViews.length === 0 ? (
           <div className="border border-dashed border-stone-300 bg-white p-8 text-center">
             <CalendarDays
               className="mx-auto size-7 text-stone-400"
@@ -874,7 +1074,7 @@ export function AttendanceWorkspace({
             </p>
           </div>
         ) : (
-          workerViews.map(({ calculation, state, worker }) => (
+          workerViews.map(({ calculation, localAction, state, worker }) => (
             <article
               key={worker.id}
               className="border border-stone-300 bg-white p-4"
@@ -930,6 +1130,30 @@ export function AttendanceWorkspace({
                   />
                   <span>{calculation.exceptions[0].message}</span>
                 </div>
+              ) : null}
+
+              {localAction ? (
+                <p
+                  role="status"
+                  className={cn(
+                    "mt-3 inline-flex items-center gap-1.5 text-xs font-semibold",
+                    localAction.state === "NEEDS_ATTENTION"
+                      ? "text-red-700"
+                      : "text-amber-800",
+                  )}
+                >
+                  {localAction.state === "SYNCING" ? (
+                    <LoaderCircle
+                      className="size-3.5 animate-spin"
+                      aria-hidden="true"
+                    />
+                  ) : localAction.state === "NEEDS_ATTENTION" ? (
+                    <AlertTriangle className="size-3.5" aria-hidden="true" />
+                  ) : (
+                    <Check className="size-3.5" aria-hidden="true" />
+                  )}
+                  {actionStateLabel(localAction)}
+                </p>
               ) : null}
 
               <div className="mt-4 grid grid-cols-2 gap-2">
