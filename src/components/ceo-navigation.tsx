@@ -26,7 +26,7 @@ const navigation = [
     icon: CalendarCheck2,
     href: "/ceo/attendance",
   },
-  { label: "Leave", icon: ClipboardList },
+  { label: "Leave", icon: ClipboardList, href: "/ceo/leave" },
   { label: "Payroll", icon: ReceiptText },
   { label: "Reports", icon: BarChart3 },
   { label: "Settings", icon: Settings, href: "/ceo/settings" },

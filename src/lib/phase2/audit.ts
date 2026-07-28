@@ -26,6 +26,10 @@ const hiddenFields = new Set([
   "trade_id",
   "skill_level_id",
   "attendance_session_id",
+  "leave_request_id",
+  "leave_type_id",
+  "submitted_by",
+  "decided_by",
 ]);
 
 const fieldLabels: Record<string, string> = {
@@ -64,6 +68,8 @@ const fieldLabels: Record<string, string> = {
   correction_note: "Correction reason",
   source: "Recorded through",
   work_date: "Work date",
+  decision_note: "CEO decision note",
+  decided_at: "Decision time",
 };
 
 const areaLabels: Record<string, string> = {
@@ -78,6 +84,7 @@ const areaLabels: Record<string, string> = {
   workers: "Workers",
   attendance: "Attendance",
   attendance_day_types: "Attendance day types",
+  leave: "Leave",
 };
 
 type AuditRecord = Record<string, Json | undefined>;
@@ -241,6 +248,44 @@ function describeAction(
         ? "Unpaid break started"
         : "Unpaid break updated",
       summary: `${actor} updated an unpaid break in ${worker}’s attendance.`,
+    };
+  }
+  if (input.entityType === "leave_types") {
+    const name = typeof after.name === "string" ? ` “${after.name}”` : "";
+    const activated =
+      before.is_active !== after.is_active && after.is_active === true;
+    const deactivated =
+      before.is_active !== after.is_active && after.is_active === false;
+    return {
+      title: input.action.endsWith(".insert")
+        ? "Leave type added"
+        : activated
+          ? "Leave type restored"
+          : deactivated
+            ? "Leave type deactivated"
+            : "Leave type updated",
+      summary: `${actor} ${input.action.endsWith(".insert") ? "added" : activated ? "restored" : deactivated ? "deactivated" : "updated"} the leave type${name}.`,
+    };
+  }
+  if (input.entityType === "leave_requests") {
+    const statusChanged = before.status !== after.status;
+    const status =
+      typeof after.status === "string" ? after.status.toLowerCase() : null;
+    return {
+      title: statusChanged
+        ? status === "approved"
+          ? "Leave approved"
+          : "Leave rejected"
+        : "Leave request submitted",
+      summary: statusChanged
+        ? `${actor} ${status} full-day unpaid leave for ${worker}.`
+        : `${actor} submitted full-day leave for ${worker} on “${project}”.`,
+    };
+  }
+  if (input.entityType === "leave_request_documents") {
+    return {
+      title: "Leave supporting file attached",
+      summary: `${actor} attached a private supporting file to ${worker}’s leave request. File contents and names are not shown here.`,
     };
   }
 

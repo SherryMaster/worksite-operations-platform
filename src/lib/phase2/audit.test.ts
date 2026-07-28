@@ -169,4 +169,37 @@ describe("audit presentation", () => {
     });
     expect(JSON.stringify(result)).not.toContain("worker-secret-id");
   });
+
+  it("describes a leave approval without exposing implementation IDs", () => {
+    const result = presentAuditEntry({
+      action: "leave.update",
+      actorName: "Sherry",
+      beforeData: {
+        leave_type_id: "leave-type-secret",
+        project_id: "project-secret",
+        status: "PENDING",
+        worker_id: "worker-secret",
+      },
+      afterData: {
+        decided_by: "user-secret",
+        leave_type_id: "leave-type-secret",
+        project_id: "project-secret",
+        status: "APPROVED",
+        worker_id: "worker-secret",
+      },
+      entityType: "leave_requests",
+      foremanName: null,
+      module: "leave",
+      projectName: "Central Tower",
+      source: "ONLINE",
+      workerName: "Ahmad Khan",
+    });
+
+    expect(result.title).toBe("Leave approved");
+    expect(result.summary).toBe(
+      "Sherry approved full-day unpaid leave for Ahmad Khan.",
+    );
+    expect(result.area).toBe("Leave");
+    expect(JSON.stringify(result)).not.toContain("secret");
+  });
 });

@@ -11,7 +11,7 @@ const navigation = [
   { label: "Today", icon: Clock3, href: "/foreman" },
   { label: "Attendance", icon: CalendarDays, href: "/foreman/attendance" },
   { label: "Workers", icon: Users, href: "/foreman/workers" },
-  { label: "Leave", icon: ClipboardList, href: null },
+  { label: "Leave", icon: ClipboardList, href: "/foreman/leave" },
 ];
 
 export function ForemanShell({

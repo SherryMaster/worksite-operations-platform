@@ -2,6 +2,7 @@ import {
   ArrowUpRight,
   Building2,
   CircleAlert,
+  ClipboardList,
   FileWarning,
   HardHat,
   Settings,
@@ -12,11 +13,13 @@ import Link from "next/link";
 
 import { getDashboardData } from "@/lib/phase2/data";
 import { getWorkerDashboardSummary } from "@/lib/phase3/data";
+import { getPendingLeaveCount } from "@/lib/phase5/data";
 
 export default async function CeoDashboard() {
-  const [data, workforce] = await Promise.all([
+  const [data, workforce, pendingLeave] = await Promise.all([
     getDashboardData(),
     getWorkerDashboardSummary(),
+    getPendingLeaveCount(),
   ]);
   const activeProjects = data.projects.filter(
     (project) => project.status === "ACTIVE",
@@ -29,6 +32,7 @@ export default async function CeoDashboard() {
     data.unassignedActiveForemen.length +
     workforce.awaitingAssignment +
     workforce.documentAlerts +
+    pendingLeave +
     (data.companyConfigured ? 0 : 1);
 
   const metrics = [
@@ -161,6 +165,23 @@ export default async function CeoDashboard() {
                     <ArrowUpRight className="size-4" aria-hidden="true" />
                   </Link>
                 ))}
+                {pendingLeave > 0 ? (
+                  <Link
+                    href="/ceo/leave?status=PENDING"
+                    className="flex items-center justify-between gap-4 p-5 hover:bg-stone-50"
+                  >
+                    <div>
+                      <p className="text-sm font-semibold">
+                        {pendingLeave} pending leave{" "}
+                        {pendingLeave === 1 ? "request" : "requests"}
+                      </p>
+                      <p className="mt-1 text-xs text-stone-500">
+                        Review attendance conflicts, then approve or reject
+                      </p>
+                    </div>
+                    <ClipboardList className="size-4" aria-hidden="true" />
+                  </Link>
+                ) : null}
                 {data.unassignedActiveForemen.length > 0 ? (
                   <Link
                     href="/ceo/settings#users"

@@ -93,6 +93,8 @@ export async function getAttendanceSnapshot(
     projectDayResult,
     tradeResult,
     skillResult,
+    leaveDaysResult,
+    leaveTypesResult,
   ] = await Promise.all([
     supabase
       .from("projects")
@@ -124,6 +126,12 @@ export async function getAttendanceSnapshot(
       .maybeSingle(),
     supabase.from("trades").select("id,name"),
     supabase.from("skill_levels").select("id,name"),
+    supabase
+      .from("approved_leave_days")
+      .select("worker_id,leave_type_id")
+      .eq("project_id", projectId)
+      .eq("leave_date", workDate),
+    supabase.from("leave_types").select("id,name"),
   ]);
 
   for (const [operation, result] of [
@@ -135,6 +143,8 @@ export async function getAttendanceSnapshot(
     ["attendance_project_day", projectDayResult],
     ["attendance_trades", tradeResult],
     ["attendance_skills", skillResult],
+    ["attendance_leave_days", leaveDaysResult],
+    ["attendance_leave_types", leaveTypesResult],
   ] as const) {
     if (result.error) throwQueryError(operation, result.error);
   }
@@ -174,6 +184,20 @@ export async function getAttendanceSnapshot(
 
   const tradeNames = new Map(tradeRows.map((trade) => [trade.id, trade.name]));
   const skillNames = new Map(skillRows.map((skill) => [skill.id, skill.name]));
+  const leaveTypeNames = new Map(
+    (leaveTypesResult.data ?? []).map((leaveType) => [
+      leaveType.id,
+      leaveType.name,
+    ]),
+  );
+  const leaveByWorker = new Map(
+    (leaveDaysResult.data ?? []).map((leaveDay) => [
+      leaveDay.worker_id,
+      leaveDay.leave_type_id
+        ? (leaveTypeNames.get(leaveDay.leave_type_id) ?? "Approved leave")
+        : "Approved leave",
+    ]),
+  );
   const classifications = new Map(
     classificationRows
       .filter((row) => effective(row, workDate))
@@ -182,6 +206,7 @@ export async function getAttendanceSnapshot(
   const workers: AttendanceWorker[] = workerResult.data.map((worker) => {
     const classification = classifications.get(worker.id);
     return {
+      approvedLeaveType: leaveByWorker.get(worker.id) ?? null,
       id: worker.id,
       legalName: worker.legal_name,
       skillName: classification
@@ -246,7 +271,8 @@ export type AttendanceMonthRow = {
   normalMinutes: number;
   overtimeMinutes: number;
   publicHolidayMinutes: number;
-  status: ReturnType<typeof calculateAttendance>["status"];
+  leaveTypeName: string | null;
+  status: ReturnType<typeof calculateAttendance>["status"] | "LEAVE";
   sundayMinutes: number;
   totalMinutes: number;
   workerId: string;
@@ -263,7 +289,13 @@ export async function getAttendanceMonthRows(
     .toISOString()
     .slice(0, 10);
   const supabase = await createServerSupabaseClient();
-  const [sessionsResult, daysResult, workersResult] = await Promise.all([
+  const [
+    sessionsResult,
+    daysResult,
+    workersResult,
+    leaveDaysResult,
+    leaveTypesResult,
+  ] = await Promise.all([
     supabase
       .from("attendance_sessions")
       .select("*")
@@ -280,6 +312,13 @@ export async function getAttendanceMonthRows(
       .gte("work_date", startDate)
       .lte("work_date", endDate),
     supabase.from("workers").select("id,legal_name").order("legal_name"),
+    supabase
+      .from("approved_leave_days")
+      .select("worker_id,leave_type_id,leave_date")
+      .eq("project_id", projectId)
+      .gte("leave_date", startDate)
+      .lte("leave_date", endDate),
+    supabase.from("leave_types").select("id,name"),
   ]);
   if (sessionsResult.error) {
     throwQueryError("attendance_month_sessions", sessionsResult.error);
@@ -289,6 +328,12 @@ export async function getAttendanceMonthRows(
   }
   if (workersResult.error) {
     throwQueryError("attendance_month_workers", workersResult.error);
+  }
+  if (leaveDaysResult.error) {
+    throwQueryError("attendance_month_leave", leaveDaysResult.error);
+  }
+  if (leaveTypesResult.error) {
+    throwQueryError("attendance_month_leave_types", leaveTypesResult.error);
   }
 
   const breakRows = await loadBreaks(
@@ -301,12 +346,24 @@ export async function getAttendanceMonthRows(
   const workerNames = new Map(
     workersResult.data.map((worker) => [worker.id, worker.legal_name]),
   );
-  const dayWorkerKeys = new Set(
-    sessions.map((session) => {
+  const leaveTypeNames = new Map(
+    leaveTypesResult.data.map((leaveType) => [leaveType.id, leaveType.name]),
+  );
+  const leaveByKey = new Map(
+    leaveDaysResult.data.map((leaveDay) => [
+      `${leaveDay.leave_date}:${leaveDay.worker_id}`,
+      leaveDay.leave_type_id
+        ? (leaveTypeNames.get(leaveDay.leave_type_id) ?? "Approved leave")
+        : "Approved leave",
+    ]),
+  );
+  const dayWorkerKeys = new Set([
+    ...sessions.map((session) => {
       const row = sessionsResult.data.find((item) => item.id === session.id);
       return `${row?.work_date}:${session.workerId}`;
     }),
-  );
+    ...leaveByKey.keys(),
+  ]);
 
   return [...dayWorkerKeys]
     .map((key) => {
@@ -320,15 +377,19 @@ export async function getAttendanceMonthRows(
         days.get(date) ?? defaultDayType(date),
         date,
       );
+      const leaveTypeName = leaveByKey.get(key) ?? null;
       return {
         date,
-        exceptionCount: calculation.exceptions.length,
-        normalMinutes: calculation.normalMinutes,
-        overtimeMinutes: calculation.overtimeMinutes,
-        publicHolidayMinutes: calculation.publicHolidayMinutes,
-        status: calculation.status,
-        sundayMinutes: calculation.sundayMinutes,
-        totalMinutes: calculation.totalPayableMinutes,
+        exceptionCount: leaveTypeName ? 0 : calculation.exceptions.length,
+        leaveTypeName,
+        normalMinutes: leaveTypeName ? 0 : calculation.normalMinutes,
+        overtimeMinutes: leaveTypeName ? 0 : calculation.overtimeMinutes,
+        publicHolidayMinutes: leaveTypeName
+          ? 0
+          : calculation.publicHolidayMinutes,
+        status: leaveTypeName ? ("LEAVE" as const) : calculation.status,
+        sundayMinutes: leaveTypeName ? 0 : calculation.sundayMinutes,
+        totalMinutes: leaveTypeName ? 0 : calculation.totalPayableMinutes,
         workerId,
         workerName: workerNames.get(workerId) ?? "Worker record",
       };

@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5";
   };
-  graphql_public: {
-    Tables: {
-      [_ in never]: never;
-    };
-    Views: {
-      [_ in never]: never;
-    };
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json;
-          operationName?: string;
-          query?: string;
-          variables?: Json;
-        };
-        Returns: Json;
-      };
-    };
-    Enums: {
-      [_ in never]: never;
-    };
-    CompositeTypes: {
-      [_ in never]: never;
-    };
-  };
   public: {
     Tables: {
       application_users: {
@@ -455,6 +430,199 @@ export type Database = {
             columns: ["project_id"];
             isOneToOne: false;
             referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      leave_request_documents: {
+        Row: {
+          bucket_id: string;
+          created_at: string;
+          id: string;
+          leave_request_id: string;
+          mime_type: string;
+          object_path: string;
+          original_filename: string;
+          size_bytes: number;
+          uploaded_by: string;
+        };
+        Insert: {
+          bucket_id?: string;
+          created_at?: string;
+          id?: string;
+          leave_request_id: string;
+          mime_type: string;
+          object_path: string;
+          original_filename: string;
+          size_bytes: number;
+          uploaded_by?: string;
+        };
+        Update: {
+          bucket_id?: string;
+          created_at?: string;
+          id?: string;
+          leave_request_id?: string;
+          mime_type?: string;
+          object_path?: string;
+          original_filename?: string;
+          size_bytes?: number;
+          uploaded_by?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "leave_request_documents_leave_request_id_fkey";
+            columns: ["leave_request_id"];
+            isOneToOne: true;
+            referencedRelation: "approved_leave_days";
+            referencedColumns: ["leave_request_id"];
+          },
+          {
+            foreignKeyName: "leave_request_documents_leave_request_id_fkey";
+            columns: ["leave_request_id"];
+            isOneToOne: true;
+            referencedRelation: "leave_requests";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "leave_request_documents_uploaded_by_fkey";
+            columns: ["uploaded_by"];
+            isOneToOne: false;
+            referencedRelation: "application_users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      leave_requests: {
+        Row: {
+          created_at: string;
+          decided_at: string | null;
+          decided_by: string | null;
+          decision_note: string | null;
+          ends_on: string;
+          id: string;
+          leave_type_id: string;
+          notes: string | null;
+          project_id: string;
+          reason: string | null;
+          starts_on: string;
+          status: Database["public"]["Enums"]["leave_request_status"];
+          submitted_by: string;
+          updated_at: string;
+          worker_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          decision_note?: string | null;
+          ends_on: string;
+          id?: string;
+          leave_type_id: string;
+          notes?: string | null;
+          project_id: string;
+          reason?: string | null;
+          starts_on: string;
+          status?: Database["public"]["Enums"]["leave_request_status"];
+          submitted_by?: string;
+          updated_at?: string;
+          worker_id: string;
+        };
+        Update: {
+          created_at?: string;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          decision_note?: string | null;
+          ends_on?: string;
+          id?: string;
+          leave_type_id?: string;
+          notes?: string | null;
+          project_id?: string;
+          reason?: string | null;
+          starts_on?: string;
+          status?: Database["public"]["Enums"]["leave_request_status"];
+          submitted_by?: string;
+          updated_at?: string;
+          worker_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "leave_requests_decided_by_fkey";
+            columns: ["decided_by"];
+            isOneToOne: false;
+            referencedRelation: "application_users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "leave_requests_leave_type_id_fkey";
+            columns: ["leave_type_id"];
+            isOneToOne: false;
+            referencedRelation: "leave_types";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "leave_requests_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "leave_requests_submitted_by_fkey";
+            columns: ["submitted_by"];
+            isOneToOne: false;
+            referencedRelation: "application_users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "leave_requests_worker_id_fkey";
+            columns: ["worker_id"];
+            isOneToOne: false;
+            referencedRelation: "workers";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      leave_types: {
+        Row: {
+          created_at: string;
+          created_by: string;
+          id: string;
+          is_active: boolean;
+          name: string;
+          updated_at: string;
+          updated_by: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by?: string;
+          id?: string;
+          is_active?: boolean;
+          name: string;
+          updated_at?: string;
+          updated_by?: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string;
+          id?: string;
+          is_active?: boolean;
+          name?: string;
+          updated_at?: string;
+          updated_by?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "leave_types_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "application_users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "leave_types_updated_by_fkey";
+            columns: ["updated_by"];
+            isOneToOne: false;
+            referencedRelation: "application_users";
             referencedColumns: ["id"];
           },
         ];
@@ -1202,7 +1370,39 @@ export type Database = {
       };
     };
     Views: {
-      [_ in never]: never;
+      approved_leave_days: {
+        Row: {
+          leave_date: string | null;
+          leave_request_id: string | null;
+          leave_type_id: string | null;
+          payable_minutes: number | null;
+          project_id: string | null;
+          worker_id: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "leave_requests_leave_type_id_fkey";
+            columns: ["leave_type_id"];
+            isOneToOne: false;
+            referencedRelation: "leave_types";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "leave_requests_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "leave_requests_worker_id_fkey";
+            columns: ["worker_id"];
+            isOneToOne: false;
+            referencedRelation: "workers";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Functions: {
       apply_attendance_action: {
@@ -1271,6 +1471,14 @@ export type Database = {
           p_work_permit_number: string;
         };
         Returns: string;
+      };
+      decide_leave_request: {
+        Args: {
+          p_decision: Database["public"]["Enums"]["leave_request_status"];
+          p_decision_note?: string;
+          p_leave_request_id: string;
+        };
+        Returns: undefined;
       };
       edit_worker_profile: {
         Args: {
@@ -1342,6 +1550,18 @@ export type Database = {
         };
         Returns: undefined;
       };
+      submit_leave_request: {
+        Args: {
+          p_ends_on: string;
+          p_leave_type_id: string;
+          p_notes?: string;
+          p_project_id: string;
+          p_reason?: string;
+          p_starts_on: string;
+          p_worker_id: string;
+        };
+        Returns: string;
+      };
       transfer_worker: {
         Args: {
           p_project_id: string;
@@ -1377,6 +1597,7 @@ export type Database = {
       attendance_record_status: "ACTIVE" | "VOID";
       attendance_sync_status: "SYNCED" | "FAILED" | "CONFLICT";
       audit_source: "ONLINE" | "IMPORT" | "OFFLINE_SYNC";
+      leave_request_status: "PENDING" | "APPROVED" | "REJECTED";
       project_status:
         "PLANNED" | "ACTIVE" | "COMPLETED" | "CANCELLED" | "ARCHIVED";
       worker_document_status: "ACTIVE" | "REPLACED" | "REMOVED";
@@ -1508,9 +1729,6 @@ export type CompositeTypes<
     : never;
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       application_role: ["CEO", "FOREMAN"],
@@ -1518,6 +1736,7 @@ export const Constants = {
       attendance_record_status: ["ACTIVE", "VOID"],
       attendance_sync_status: ["SYNCED", "FAILED", "CONFLICT"],
       audit_source: ["ONLINE", "IMPORT", "OFFLINE_SYNC"],
+      leave_request_status: ["PENDING", "APPROVED", "REJECTED"],
       project_status: [
         "PLANNED",
         "ACTIVE",
