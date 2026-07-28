@@ -28,6 +28,11 @@ import { formatDate, malaysiaDateInputValue } from "@/lib/phase2/format";
 import { getWorker, getWorkerOptions } from "@/lib/phase3/data";
 import { formatSen, maskIdentifier } from "@/lib/phase3/format";
 import { listLeaveRequests } from "@/lib/phase5/data";
+import {
+  formatSen as formatPayrollSen,
+  payrollMonthLabel,
+} from "@/lib/phase6/calculations";
+import { getWorkerPayrollHistory } from "@/lib/phase6/data";
 
 function employmentLabel(status: string | undefined) {
   return status
@@ -65,10 +70,11 @@ export default async function WorkerDetailPage({
 }) {
   const { workerId } = await params;
   const query = await searchParams;
-  const [worker, options, leaveRequests] = await Promise.all([
+  const [worker, options, leaveRequests, payrollHistory] = await Promise.all([
     getWorker(workerId),
     getWorkerOptions(),
     listLeaveRequests({ workerId }),
+    getWorkerPayrollHistory(workerId),
   ]);
   if (!worker) notFound();
 
@@ -151,6 +157,7 @@ export default async function WorkerDetailPage({
           ["Rates", "#rates"],
           ["Documents", "#documents"],
           ["Leave", "#leave"],
+          ["Payroll", "#payroll"],
           ["Audit", "#audit"],
         ].map(([label, href], index) => (
           <a
@@ -761,6 +768,62 @@ export default async function WorkerDetailPage({
           </h2>
         </div>
         <LeaveRequestList requests={leaveRequests} />
+      </section>
+
+      <section id="payroll" className="mt-8">
+        <div className="mb-4">
+          <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
+            CEO-only financial history
+          </p>
+          <h2 className="mt-1 font-heading text-3xl font-semibold uppercase">
+            Payroll and payments
+          </h2>
+        </div>
+        {payrollHistory.length === 0 ? (
+          <p className="border border-stone-300 bg-white p-5 text-sm text-stone-500">
+            This worker has no generated payroll history.
+          </p>
+        ) : (
+          <div className="divide-y divide-stone-200 border border-stone-300 bg-white">
+            {payrollHistory.map((payroll) => (
+              <article
+                key={payroll.id}
+                className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div>
+                  <p className="font-semibold">
+                    {payroll.run
+                      ? payrollMonthLabel(payroll.run.payroll_month)
+                      : "Payroll month"}
+                  </p>
+                  <p className="mt-1 text-sm text-stone-500">
+                    {payroll.run?.status === "APPROVED"
+                      ? payroll.payment
+                        ? "Paid in full"
+                        : "Approved · unpaid"
+                      : payroll.run?.status === "NEEDS_REVIEW"
+                        ? "Needs CEO review"
+                        : "Draft"}
+                  </p>
+                </div>
+                <div className="sm:text-right">
+                  <p className="font-heading text-2xl font-semibold">
+                    {formatPayrollSen(payroll.net_pay_sen)}
+                  </p>
+                  {payroll.run ? (
+                    <Link
+                      href={`/ceo/payroll/${payroll.run.id}/workers/${payroll.id}`}
+                      className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-amber-800"
+                    >
+                      Review calculation
+                      <ArrowUpRight className="size-3.5" aria-hidden="true" />
+                    </Link>
+                  ) : null}
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
       </section>
 
       <section

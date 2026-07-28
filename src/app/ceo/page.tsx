@@ -5,6 +5,7 @@ import {
   ClipboardList,
   FileWarning,
   HardHat,
+  ReceiptText,
   Settings,
   UserRoundCheck,
   Users,
@@ -14,12 +15,14 @@ import Link from "next/link";
 import { getDashboardData } from "@/lib/phase2/data";
 import { getWorkerDashboardSummary } from "@/lib/phase3/data";
 import { getPendingLeaveCount } from "@/lib/phase5/data";
+import { getPayrollDashboardSummary } from "@/lib/phase6/data";
 
 export default async function CeoDashboard() {
-  const [data, workforce, pendingLeave] = await Promise.all([
+  const [data, workforce, pendingLeave, payroll] = await Promise.all([
     getDashboardData(),
     getWorkerDashboardSummary(),
     getPendingLeaveCount(),
+    getPayrollDashboardSummary(),
   ]);
   const activeProjects = data.projects.filter(
     (project) => project.status === "ACTIVE",
@@ -33,6 +36,9 @@ export default async function CeoDashboard() {
     workforce.awaitingAssignment +
     workforce.documentAlerts +
     pendingLeave +
+    payroll.openRuns +
+    payroll.blockingExceptions +
+    payroll.unpaidWorkers +
     (data.companyConfigured ? 0 : 1);
 
   const metrics = [
@@ -180,6 +186,31 @@ export default async function CeoDashboard() {
                       </p>
                     </div>
                     <ClipboardList className="size-4" aria-hidden="true" />
+                  </Link>
+                ) : null}
+                {payroll.openRuns > 0 ||
+                payroll.blockingExceptions > 0 ||
+                payroll.unpaidWorkers > 0 ? (
+                  <Link
+                    href="/ceo/payroll"
+                    className="flex items-center justify-between gap-4 p-5 hover:bg-stone-50"
+                  >
+                    <div>
+                      <p className="text-sm font-semibold">
+                        Payroll needs attention
+                      </p>
+                      <p className="mt-1 text-xs text-stone-500">
+                        {payroll.openRuns} open{" "}
+                        {payroll.openRuns === 1 ? "run" : "runs"} ·{" "}
+                        {payroll.blockingExceptions} blocking{" "}
+                        {payroll.blockingExceptions === 1
+                          ? "exception"
+                          : "exceptions"}{" "}
+                        · {payroll.unpaidWorkers} unpaid{" "}
+                        {payroll.unpaidWorkers === 1 ? "worker" : "workers"}
+                      </p>
+                    </div>
+                    <ReceiptText className="size-4" aria-hidden="true" />
                   </Link>
                 ) : null}
                 {data.unassignedActiveForemen.length > 0 ? (
