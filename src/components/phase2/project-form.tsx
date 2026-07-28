@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { initialActionState, type ActionState } from "@/lib/phase2/validation";
 
@@ -154,8 +155,10 @@ export function ProjectForm({
           type="submit"
           size="lg"
           disabled={pending}
+          aria-busy={pending}
           className="rounded-none bg-stone-950 px-6 text-stone-100"
         >
+          {pending ? <Spinner aria-hidden="true" /> : null}
           {pending ? "Saving project…" : submitLabel}
         </Button>
         {state.message ? (

@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { initialActionState, type ActionState } from "@/lib/phase2/validation";
 
 type ServerAction = (
@@ -42,8 +43,10 @@ export function ActionButton({
         type="submit"
         variant={variant}
         disabled={pending}
+        aria-busy={pending}
         className="rounded-none"
       >
+        {pending ? <Spinner aria-hidden="true" /> : null}
         {pending ? pendingLabel : label}
       </Button>
       {state.message ? (

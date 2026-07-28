@@ -14,6 +14,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { NavigationPendingIndicator } from "@/components/navigation-pending-indicator";
 import { cn } from "@/lib/utils";
 
 const navigation = [
@@ -65,6 +66,7 @@ export function CeoNavigation({ mobile = false }: { mobile?: boolean }) {
               >
                 <Icon className="size-3.5" aria-hidden="true" />
                 {label}
+                <NavigationPendingIndicator />
               </Link>
             );
           })}
@@ -100,6 +102,7 @@ export function CeoNavigation({ mobile = false }: { mobile?: boolean }) {
             className={className}
           >
             {content}
+            <NavigationPendingIndicator />
           </Link>
         ) : (
           <div key={label} className={className} aria-disabled="true">

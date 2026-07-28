@@ -3,6 +3,7 @@
 import { useActionState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { initialActionState, type ActionState } from "@/lib/phase2/validation";
 import { cn } from "@/lib/utils";
 
@@ -35,8 +36,10 @@ export function ManagedForm({
           type="submit"
           size="lg"
           disabled={pending}
+          aria-busy={pending}
           className="rounded-none bg-stone-950 px-5 text-stone-100"
         >
+          {pending ? <Spinner aria-hidden="true" /> : null}
           {pending ? "Saving…" : submitLabel}
         </Button>
         {state.message ? (

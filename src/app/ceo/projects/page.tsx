@@ -1,6 +1,7 @@
 import { ArrowUpRight, FolderPlus, MapPin, Search } from "lucide-react";
 import Link from "next/link";
 
+import { FormSubmitButton } from "@/components/form-submit-button";
 import { StatusBadge } from "@/components/phase2/status-badge";
 import { formatDate } from "@/lib/phase2/format";
 import { listProjects } from "@/lib/phase2/data";
@@ -102,12 +103,12 @@ export default async function ProjectsPage({
             ))}
           </select>
         </label>
-        <button
-          type="submit"
+        <FormSubmitButton
+          pendingLabel="Applying…"
           className="h-11 bg-stone-950 px-5 text-sm font-semibold text-white"
         >
           Apply filters
-        </button>
+        </FormSubmitButton>
       </form>
 
       {projects.length === 0 ? (

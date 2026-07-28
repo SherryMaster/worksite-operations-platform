@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { FormSubmitButton } from "@/components/form-submit-button";
 import { getWorkerOptions, listWorkers } from "@/lib/phase3/data";
 import { maskIdentifier } from "@/lib/phase3/format";
 
@@ -152,12 +153,12 @@ export default async function WorkersPage({
           <option value="LEFT_COMPANY">Left Company</option>
           <option value="ARCHIVED">Archived</option>
         </select>
-        <button
-          type="submit"
+        <FormSubmitButton
+          pendingLabel="Filtering…"
           className="h-11 bg-stone-950 px-5 text-sm font-semibold text-white"
         >
           Filter
-        </button>
+        </FormSubmitButton>
       </form>
 
       <div className="mt-6 flex items-center justify-between">
