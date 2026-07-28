@@ -18,6 +18,7 @@ import {
 import { ActionButton } from "@/components/phase2/action-button";
 import { ManagedForm } from "@/components/phase2/managed-form";
 import { StatusBadge } from "@/components/phase2/status-badge";
+import { LeaveRequestList } from "@/components/phase5/leave-request-list";
 import { getProject, listForemen } from "@/lib/phase2/data";
 import {
   formatDate,
@@ -30,6 +31,7 @@ import {
   type ProjectStatus,
 } from "@/lib/phase2/status";
 import { listWorkers } from "@/lib/phase3/data";
+import { listLeaveRequests } from "@/lib/phase5/data";
 
 const confirmation: Partial<Record<ProjectStatus, string>> = {
   ACTIVE:
@@ -49,10 +51,11 @@ export default async function ProjectDetailPage({
   params: Promise<{ projectId: string }>;
 }) {
   const { projectId } = await params;
-  const [project, foremen, workers] = await Promise.all([
+  const [project, foremen, workers, leaveRequests] = await Promise.all([
     getProject(projectId),
     listForemen(),
     listWorkers({ project: projectId }),
+    listLeaveRequests({ projectId }),
   ]);
   if (!project) notFound();
 
@@ -129,6 +132,7 @@ export default async function ProjectDetailPage({
           ["Overview", "#overview"],
           ["Foreman", "#foreman"],
           ["Workforce", "#workforce"],
+          ["Leave", "#leave"],
           ["History", "#history"],
         ].map(([label, href], index) => (
           <a
@@ -329,6 +333,18 @@ export default async function ProjectDetailPage({
             ))}
           </div>
         )}
+      </section>
+
+      <section id="leave" className="mt-8">
+        <div className="mb-4">
+          <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
+            Project leave
+          </p>
+          <h2 className="mt-1 font-heading text-3xl font-semibold uppercase">
+            Worker leave history
+          </h2>
+        </div>
+        <LeaveRequestList requests={leaveRequests} />
       </section>
 
       <section id="history" className="mt-8">

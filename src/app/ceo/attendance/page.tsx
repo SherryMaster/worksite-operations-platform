@@ -275,14 +275,18 @@ export default async function CeoAttendancePage({
                       <span
                         className={cn(
                           "inline-flex border px-2 py-1 text-xs font-semibold",
-                          row.exceptionCount > 0
-                            ? "border-red-200 bg-red-50 text-red-800"
-                            : "border-emerald-200 bg-emerald-50 text-emerald-800",
+                          row.status === "LEAVE"
+                            ? "border-blue-200 bg-blue-50 text-blue-800"
+                            : row.exceptionCount > 0
+                              ? "border-red-200 bg-red-50 text-red-800"
+                              : "border-emerald-200 bg-emerald-50 text-emerald-800",
                         )}
                       >
-                        {row.exceptionCount > 0
-                          ? "Needs correction"
-                          : "Complete"}
+                        {row.status === "LEAVE"
+                          ? `Approved leave · ${row.leaveTypeName}`
+                          : row.exceptionCount > 0
+                            ? "Needs correction"
+                            : "Complete"}
                       </span>
                     </td>
                     <td className="px-4 py-3">

@@ -23,9 +23,11 @@ import {
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { ManagedForm } from "@/components/phase2/managed-form";
 import { ConfirmSubmitButton } from "@/components/phase3/confirm-submit-button";
+import { LeaveRequestList } from "@/components/phase5/leave-request-list";
 import { formatDate, malaysiaDateInputValue } from "@/lib/phase2/format";
 import { getWorker, getWorkerOptions } from "@/lib/phase3/data";
 import { formatSen, maskIdentifier } from "@/lib/phase3/format";
+import { listLeaveRequests } from "@/lib/phase5/data";
 
 function employmentLabel(status: string | undefined) {
   return status
@@ -63,9 +65,10 @@ export default async function WorkerDetailPage({
 }) {
   const { workerId } = await params;
   const query = await searchParams;
-  const [worker, options] = await Promise.all([
+  const [worker, options, leaveRequests] = await Promise.all([
     getWorker(workerId),
     getWorkerOptions(),
+    listLeaveRequests({ workerId }),
   ]);
   if (!worker) notFound();
 
@@ -147,6 +150,7 @@ export default async function WorkerDetailPage({
           ["Assignments", "#assignments"],
           ["Rates", "#rates"],
           ["Documents", "#documents"],
+          ["Leave", "#leave"],
           ["Audit", "#audit"],
         ].map(([label, href], index) => (
           <a
@@ -745,6 +749,18 @@ export default async function WorkerDetailPage({
             </ol>
           </details>
         ) : null}
+      </section>
+
+      <section id="leave" className="mt-8">
+        <div className="mb-4">
+          <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
+            Full-day unpaid leave
+          </p>
+          <h2 className="mt-1 font-heading text-3xl font-semibold uppercase">
+            Leave history
+          </h2>
+        </div>
+        <LeaveRequestList requests={leaveRequests} />
       </section>
 
       <section

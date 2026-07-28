@@ -15,6 +15,7 @@ export type AttendanceSession = {
 };
 
 export type AttendanceWorker = {
+  approvedLeaveType?: string | null;
   id: string;
   legalName: string;
   skillName: string | null;

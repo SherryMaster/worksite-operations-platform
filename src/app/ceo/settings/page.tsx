@@ -28,10 +28,12 @@ import {
 } from "@/app/ceo/workers/actions";
 import { ActionButton } from "@/components/phase2/action-button";
 import { ManagedForm } from "@/components/phase2/managed-form";
+import { LeaveTypeSettings } from "@/components/phase5/leave-type-settings";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getSettingsData } from "@/lib/phase2/data";
 import { listDocumentTypes } from "@/lib/phase3/data";
+import { listLeaveTypes } from "@/lib/phase5/data";
 import type { Tables } from "@/types/database";
 
 type Category = Pick<Tables<"trades">, "id" | "is_active" | "name">;
@@ -132,9 +134,10 @@ function CategorySection({
 }
 
 export default async function SettingsPage() {
-  const [data, documentTypes] = await Promise.all([
+  const [data, documentTypes, leaveTypes] = await Promise.all([
     getSettingsData(),
     listDocumentTypes(),
+    listLeaveTypes(true),
   ]);
 
   return (
@@ -158,6 +161,7 @@ export default async function SettingsPage() {
           ["Trades", "#trades"],
           ["Skills", "#skills"],
           ["Documents", "#documents"],
+          ["Leave types", "#leave-types"],
           ["Import template", "#import-template"],
           ["Company", "#company"],
         ].map(([label, href]) => (
@@ -445,6 +449,8 @@ export default async function SettingsPage() {
           table="skill_levels"
         />
       </section>
+
+      <LeaveTypeSettings leaveTypes={leaveTypes} />
 
       <section
         id="documents"

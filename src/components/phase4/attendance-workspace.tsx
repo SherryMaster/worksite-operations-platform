@@ -46,6 +46,7 @@ type WorkerFilter =
   | "ON_SITE"
   | "ON_BREAK"
   | "EXITED"
+  | "LEAVE"
   | "INCOMPLETE"
   | "INVALID";
 
@@ -836,6 +837,7 @@ export function AttendanceWorkspace({
           (filter === "ON_SITE" && state.label === "On site") ||
           (filter === "ON_BREAK" && state.label === "On break") ||
           (filter === "EXITED" && state.label === "Exited") ||
+          (filter === "LEAVE" && Boolean(worker.approvedLeaveType)) ||
           (filter === "INCOMPLETE" && calculation.status === "INCOMPLETE") ||
           (filter === "INVALID" && calculation.status === "INVALID");
         return (
@@ -1038,6 +1040,7 @@ export function AttendanceWorkspace({
               ["ON_SITE", "On site"],
               ["ON_BREAK", "On break"],
               ["EXITED", "Exited"],
+              ["LEAVE", "Approved leave"],
               ["INCOMPLETE", "Incomplete"],
               ["INVALID", "Invalid"],
             ] as const
@@ -1098,7 +1101,7 @@ export function AttendanceWorkspace({
                         : "border-stone-200 bg-stone-50 text-stone-700",
                   )}
                 >
-                  {state.label}
+                  {worker.approvedLeaveType ? "Approved leave" : state.label}
                 </span>
               </div>
 
@@ -1156,77 +1159,87 @@ export function AttendanceWorkspace({
                 </p>
               ) : null}
 
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                {!state.openSession ? (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      void enqueue("ENTER", {
-                        occurredAt: new Date().toISOString(),
-                        sessionId: crypto.randomUUID(),
-                        workerId: worker.id,
-                        workDate: snapshot.workDate,
-                      })
-                    }
-                    className="col-span-2 inline-flex min-h-12 items-center justify-center gap-2 bg-emerald-700 px-4 font-semibold text-white"
-                  >
-                    <LogIn className="size-5" aria-hidden="true" />
-                    Enter
-                  </button>
-                ) : state.openBreak ? (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      void enqueue("END_BREAK", {
-                        breakId: state.openBreak?.id,
-                        occurredAt: new Date().toISOString(),
-                      })
-                    }
-                    className="col-span-2 inline-flex min-h-12 items-center justify-center gap-2 bg-amber-600 px-4 font-semibold text-stone-950"
-                  >
-                    <Coffee className="size-5" aria-hidden="true" />
-                    End break
-                  </button>
-                ) : (
-                  <>
+              {worker.approvedLeaveType ? (
+                <div className="mt-4 border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950">
+                  <p className="font-semibold">{worker.approvedLeaveType}</p>
+                  <p className="mt-1">
+                    Full-day unpaid leave · 0 payable hours. Attendance entry is
+                    blocked for this date.
+                  </p>
+                </div>
+              ) : (
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  {!state.openSession ? (
                     <button
                       type="button"
                       onClick={() =>
-                        void enqueue("START_BREAK", {
-                          breakId: crypto.randomUUID(),
+                        void enqueue("ENTER", {
                           occurredAt: new Date().toISOString(),
-                          sessionId: state.openSession?.id,
+                          sessionId: crypto.randomUUID(),
+                          workerId: worker.id,
+                          workDate: snapshot.workDate,
                         })
                       }
-                      className="inline-flex min-h-12 items-center justify-center gap-2 border border-amber-500 bg-amber-50 px-3 font-semibold text-amber-950"
+                      className="col-span-2 inline-flex min-h-12 items-center justify-center gap-2 bg-emerald-700 px-4 font-semibold text-white"
+                    >
+                      <LogIn className="size-5" aria-hidden="true" />
+                      Enter
+                    </button>
+                  ) : state.openBreak ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        void enqueue("END_BREAK", {
+                          breakId: state.openBreak?.id,
+                          occurredAt: new Date().toISOString(),
+                        })
+                      }
+                      className="col-span-2 inline-flex min-h-12 items-center justify-center gap-2 bg-amber-600 px-4 font-semibold text-stone-950"
                     >
                       <Coffee className="size-5" aria-hidden="true" />
-                      Start break
+                      End break
                     </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        void enqueue("EXIT", {
-                          occurredAt: new Date().toISOString(),
-                          sessionId: state.openSession?.id,
-                        })
-                      }
-                      className="inline-flex min-h-12 items-center justify-center gap-2 bg-stone-950 px-3 font-semibold text-white"
-                    >
-                      <LogOut className="size-5" aria-hidden="true" />
-                      Exit
-                    </button>
-                  </>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setCorrectingWorker(worker)}
-                  className="col-span-2 inline-flex min-h-11 items-center justify-center gap-2 border border-stone-300 px-4 text-sm font-semibold"
-                >
-                  <Pencil className="size-4" aria-hidden="true" />
-                  Correct times
-                </button>
-              </div>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void enqueue("START_BREAK", {
+                            breakId: crypto.randomUUID(),
+                            occurredAt: new Date().toISOString(),
+                            sessionId: state.openSession?.id,
+                          })
+                        }
+                        className="inline-flex min-h-12 items-center justify-center gap-2 border border-amber-500 bg-amber-50 px-3 font-semibold text-amber-950"
+                      >
+                        <Coffee className="size-5" aria-hidden="true" />
+                        Start break
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void enqueue("EXIT", {
+                            occurredAt: new Date().toISOString(),
+                            sessionId: state.openSession?.id,
+                          })
+                        }
+                        className="inline-flex min-h-12 items-center justify-center gap-2 bg-stone-950 px-3 font-semibold text-white"
+                      >
+                        <LogOut className="size-5" aria-hidden="true" />
+                        Exit
+                      </button>
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setCorrectingWorker(worker)}
+                    className="col-span-2 inline-flex min-h-11 items-center justify-center gap-2 border border-stone-300 px-4 text-sm font-semibold"
+                  >
+                    <Pencil className="size-4" aria-hidden="true" />
+                    Correct times
+                  </button>
+                </div>
+              )}
             </article>
           ))
         )}
