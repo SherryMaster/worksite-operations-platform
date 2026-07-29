@@ -48,10 +48,21 @@ test("the CEO submits and approves full-day unpaid leave", async ({ page }) => {
     .getByRole("listitem")
     .filter({ hasText: "E2E Phase 5 Worker" });
   await expect(request.getByText("pending", { exact: true })).toBeVisible();
+  await request.getByText("View request details").click();
   page.once("dialog", (dialog) => dialog.accept());
   await request
     .getByRole("button", { name: "Approve full-day unpaid leave" })
     .click();
+  await expect(request.getByText("approved", { exact: true })).toBeVisible({
+    timeout: 20_000,
+  });
+  if (
+    !(await request
+      .locator("details")
+      .evaluate((details: HTMLDetailsElement) => details.open))
+  ) {
+    await request.getByText("View request details").click();
+  }
   await expect(
     request.getByText("Approved full-day unpaid leave · 0 payable hours"),
   ).toBeVisible({ timeout: 20_000 });

@@ -16,6 +16,7 @@ import { StatusChip } from "@/components/operations/status-chip";
 import { presentAuditEntry } from "@/lib/phase2/audit";
 import {
   findAuditActorIds,
+  findAuditEntityIds,
   getAuditEntries,
   getAuditEntryCount,
 } from "@/lib/phase2/data";
@@ -40,10 +41,14 @@ export default async function AuditPage({
   const requestedPage = Number(params.page ?? "1");
   const page =
     Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
-  const actorIds = await findAuditActorIds(params.actor);
+  const [actorIds, entityIds] = await Promise.all([
+    findAuditActorIds(params.actor),
+    findAuditEntityIds(params.query),
+  ]);
   const databaseFilters = {
     actorIds,
     date: params.date,
+    entityIds,
     module: params.area,
     query: params.query,
   };

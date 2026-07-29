@@ -39,6 +39,7 @@ test("the CEO can open the responsive application shell", async ({
 });
 
 test("an active Foreman can open the assigned responsive workspace", async ({
+  isMobile,
   page,
 }) => {
   const { signInTicket } = await getPhaseOneTestUser("FOREMAN");
@@ -56,7 +57,9 @@ test("an active Foreman can open the assigned responsive workspace", async ({
   });
   await expect(page.getByLabel("Work date")).toBeVisible();
   await expect(
-    page.getByRole("navigation", { name: "Foreman navigation" }),
+    page.getByRole("navigation", {
+      name: isMobile ? "Foreman mobile navigation" : "Foreman navigation",
+    }),
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Company dashboard" }),

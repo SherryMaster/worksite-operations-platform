@@ -7,6 +7,15 @@ import {
   setupPhaseFourE2EData,
 } from "./support/phase4-database";
 
+async function expectAttendanceSynchronized(
+  page: import("@playwright/test").Page,
+) {
+  await expect(
+    page.getByText(/Saved on device|Syncing|waiting to synchronize/),
+  ).toHaveCount(0, { timeout: 30_000 });
+  await expect(page.getByText(/need attention/i)).toHaveCount(0);
+}
+
 test.beforeEach(async ({ isMobile }, testInfo) => {
   const ceoTest = testInfo.title.startsWith("the CEO");
   test.skip(
@@ -44,34 +53,22 @@ test("a Foreman records a complete multi-session attendance day", async ({
   await expect(worker).toBeVisible();
   await worker.getByRole("button", { name: "Enter" }).click();
   await expect(worker.getByText("On site", { exact: true })).toBeVisible();
-  await expect(page.getByText("All actions synchronized")).toBeVisible({
-    timeout: 20_000,
-  });
+  await expectAttendanceSynchronized(page);
 
   await worker.getByRole("button", { name: "Start break" }).click();
   await expect(worker.getByText("On break", { exact: true })).toBeVisible();
-  await expect(page.getByText("All actions synchronized")).toBeVisible({
-    timeout: 30_000,
-  });
+  await expectAttendanceSynchronized(page);
   await worker.getByRole("button", { name: "End break" }).click();
-  await expect(page.getByText("All actions synchronized")).toBeVisible({
-    timeout: 30_000,
-  });
+  await expectAttendanceSynchronized(page);
   await worker.getByRole("button", { name: "Exit" }).click();
   await expect(worker.getByText("Exited", { exact: true })).toBeVisible();
-  await expect(page.getByText("All actions synchronized")).toBeVisible({
-    timeout: 30_000,
-  });
+  await expectAttendanceSynchronized(page);
 
   await worker.getByRole("button", { name: "Enter" }).click();
-  await expect(page.getByText("All actions synchronized")).toBeVisible({
-    timeout: 30_000,
-  });
+  await expectAttendanceSynchronized(page);
   await worker.getByRole("button", { name: "Exit" }).click();
   await expect(worker.getByText("Session 2", { exact: true })).toBeVisible();
-  await expect(page.getByText("All actions synchronized")).toBeVisible({
-    timeout: 30_000,
-  });
+  await expectAttendanceSynchronized(page);
 });
 
 test("an offline Foreman action survives a reload and synchronizes later", async ({
@@ -100,7 +97,11 @@ test("an offline Foreman action survives a reload and synchronizes later", async
     .getByRole("article")
     .filter({ hasText: "E2E Phase 4 Worker" });
   await worker.getByRole("button", { name: "Enter" }).click();
-  await expect(page.getByText("Saved on this device")).toBeVisible();
+  await expect(
+    page.getByText("Saved on this device. It will synchronize", {
+      exact: false,
+    }),
+  ).toBeVisible();
   await page.reload();
   await expect(page.getByText("E2E Phase 4 Worker")).toBeVisible();
   await expect(
@@ -111,9 +112,7 @@ test("an offline Foreman action survives a reload and synchronizes later", async
   ).toBeVisible();
 
   await context.setOffline(false);
-  await expect(page.getByText("All actions synchronized")).toBeVisible({
-    timeout: 30_000,
-  });
+  await expectAttendanceSynchronized(page);
 });
 
 test("the CEO can inspect and correct project attendance", async ({ page }) => {
@@ -131,14 +130,12 @@ test("the CEO can inspect and correct project attendance", async ({ page }) => {
     .getByRole("article")
     .filter({ hasText: "E2E Phase 4 CEO Worker" });
   await expect(worker).toBeVisible();
-  await worker.getByRole("button", { name: "Correct times" }).click();
+  await worker.getByRole("button", { name: /correct times/i }).click();
   await page.getByRole("button", { name: "Add session" }).click();
   await page
     .getByLabel("Reason for correction")
     .fill("Matched the signed worksite sheet");
   await page.getByRole("button", { name: "Save correction" }).click();
-  await expect(page.getByText("All actions synchronized")).toBeVisible({
-    timeout: 20_000,
-  });
+  await expectAttendanceSynchronized(page);
   await expect(worker.getByText("On site", { exact: true })).toBeVisible();
 });

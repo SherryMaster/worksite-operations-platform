@@ -312,6 +312,7 @@ export async function getSettingsData() {
 type AuditQueryOptions = {
   actorIds?: string[];
   date?: string;
+  entityIds?: string[];
   module?: string;
   offset?: number;
   query?: string;
@@ -337,9 +338,15 @@ export async function getAuditEntryCount(
   const normalizedQuery = options.query?.trim().replace(/[%_,]/g, "");
   if (normalizedQuery) {
     const pattern = `%${normalizedQuery}%`;
-    query = query.or(
-      `action.ilike.${pattern},entity_type.ilike.${pattern},module.ilike.${pattern}`,
-    );
+    const clauses = [
+      `action.ilike.${pattern}`,
+      `entity_type.ilike.${pattern}`,
+      `module.ilike.${pattern}`,
+    ];
+    if (options.entityIds?.length) {
+      clauses.push(`entity_id.in.(${options.entityIds.join(",")})`);
+    }
+    query = query.or(clauses.join(","));
   }
   if (options.date) {
     const range = auditDateRange(options.date);
@@ -367,9 +374,15 @@ export async function getAuditEntries(
   const normalizedQuery = options.query?.trim().replace(/[%_,]/g, "");
   if (normalizedQuery) {
     const pattern = `%${normalizedQuery}%`;
-    query = query.or(
-      `action.ilike.${pattern},entity_type.ilike.${pattern},module.ilike.${pattern}`,
-    );
+    const clauses = [
+      `action.ilike.${pattern}`,
+      `entity_type.ilike.${pattern}`,
+      `module.ilike.${pattern}`,
+    ];
+    if (options.entityIds?.length) {
+      clauses.push(`entity_id.in.(${options.entityIds.join(",")})`);
+    }
+    query = query.or(clauses.join(","));
   }
   if (options.date) {
     const range = auditDateRange(options.date);
@@ -492,6 +505,25 @@ export async function findAuditActorIds(actorQuery: string | undefined) {
         : false;
     })
     .map((user) => user.id);
+}
+
+export async function findAuditEntityIds(searchQuery: string | undefined) {
+  const normalized = searchQuery?.trim().replace(/[%_,]/g, "");
+  if (!normalized) return undefined;
+
+  const supabase = await createServerSupabaseClient();
+  const pattern = `%${normalized}%`;
+  const [workers, projects] = await Promise.all([
+    supabase.from("workers").select("id").ilike("legal_name", pattern),
+    supabase.from("projects").select("id").ilike("name", pattern),
+  ]);
+  if (workers.error) throwQueryError("find_audit_workers", workers.error);
+  if (projects.error) throwQueryError("find_audit_projects", projects.error);
+
+  return [
+    ...workers.data.map((worker) => worker.id),
+    ...projects.data.map((project) => project.id),
+  ];
 }
 
 export async function getForemanWorkspace() {
