@@ -43,7 +43,12 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider appearance={{ theme: shadcn }}>
-      <html lang="en" className={cn(sans.variable)} suppressHydrationWarning>
+      <html
+        lang="en"
+        className={cn(sans.variable)}
+        data-scroll-behavior="smooth"
+        suppressHydrationWarning
+      >
         <body>
           <WorksiteSerwistProvider>{children}</WorksiteSerwistProvider>
         </body>

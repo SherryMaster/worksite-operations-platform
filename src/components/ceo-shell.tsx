@@ -43,14 +43,9 @@ export function CeoShell({ children }: { children: React.ReactNode }) {
             <span className="sr-only" aria-label="Access verified">
               Access verified
             </span>
-            <UserButton
-              appearance={{
-                elements: {
-                  userButtonTrigger:
-                    "size-11 rounded-xl focus-visible:ring-2 focus-visible:ring-violet-500",
-                },
-              }}
-            />
+            <div className="[&_.cl-userButtonTrigger]:size-11 [&_.cl-userButtonTrigger]:rounded-xl [&_.cl-userButtonTrigger]:focus-visible:ring-2 [&_.cl-userButtonTrigger]:focus-visible:ring-violet-500">
+              <UserButton />
+            </div>
           </div>
         </header>
         <div id="main-content">{children}</div>
