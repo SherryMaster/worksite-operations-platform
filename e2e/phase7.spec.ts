@@ -39,7 +39,10 @@ test("the CEO filters reports, exports Excel, and previews an invalid import", a
     /^current-workforce-and-assignments-\d{4}-\d{2}-\d{2}\.xlsx$/,
   );
 
-  await page.getByRole("link", { name: "Import center" }).click();
+  await page
+    .locator("#main-content")
+    .getByRole("link", { name: "Import center" })
+    .click();
   await expect(
     page.getByRole("heading", { name: "Import center" }),
   ).toBeVisible({ timeout: 30_000 });
