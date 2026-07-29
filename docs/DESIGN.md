@@ -490,7 +490,7 @@ Each report exposes only relevant filters such as project, worker, trade, skill,
 
 Settings are grouped into:
 
-- **Users** — Foreman invitations, activation, MFA state, project assignment
+- **Users** — Foreman account creation, activation, password reset, project assignment
 - **Trades and Skills**
 - **Document Types**
 - **Leave Types**

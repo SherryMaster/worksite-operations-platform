@@ -364,7 +364,6 @@ export async function createForemanAction(
     username: formData.get("username"),
     emailAddress: formData.get("emailAddress"),
     initialPassword: formData.get("initialPassword"),
-    mfaRequired: formData.get("mfaRequired"),
   });
   if (!result.success) {
     return actionError(
@@ -394,7 +393,6 @@ export async function createForemanAction(
       clerk_user_id: clerkUser.id,
       role: "FOREMAN",
       is_active: true,
-      mfa_required: result.data.mfaRequired,
     });
 
     if (error) {
@@ -490,87 +488,6 @@ export async function resetForemanPasswordAction(
   revalidatePath("/ceo/audit");
   return actionSuccess(
     "Password changed and existing account sessions were signed out.",
-  );
-}
-
-export async function setForemanMfaRequirementAction(
-  applicationUserId: string,
-  clerkUserId: string,
-  mfaRequired: boolean,
-  _previousState: ActionState,
-  _formData: FormData,
-): Promise<ActionState> {
-  void _previousState;
-  void _formData;
-  const parsedApplicationUserId = uuidSchema.safeParse(applicationUserId);
-  const parsedClerkUserId = clerkUserIdSchema.safeParse(clerkUserId);
-  if (!parsedApplicationUserId.success || !parsedClerkUserId.success) {
-    return actionError("Invalid Foreman account.");
-  }
-
-  const { actorId, supabase } = await getCeoContext();
-  const client = await clerkClient();
-  const { data: foreman, error: foremanError } = await supabase
-    .from("application_users")
-    .select("id, mfa_required")
-    .eq("id", parsedApplicationUserId.data)
-    .eq("clerk_user_id", parsedClerkUserId.data)
-    .eq("role", "FOREMAN")
-    .maybeSingle();
-
-  if (foremanError || !foreman) {
-    return actionError("The Foreman account could not be verified.");
-  }
-  if (foreman.mfa_required && mfaRequired) {
-    return actionSuccess("MFA is already required for this Foreman.");
-  }
-  const removingOptionalEnrollment = !mfaRequired && !foreman.mfa_required;
-
-  try {
-    if (!mfaRequired) {
-      await client.users.disableUserMFA(parsedClerkUserId.data);
-    }
-
-    const { error } = removingOptionalEnrollment
-      ? await supabase.from("audit_entries").insert({
-          actor_user_id: actorId,
-          action: "users.mfa_disabled",
-          module: "users",
-          entity_type: "application_users",
-          entity_id: parsedApplicationUserId.data,
-          after_data: { enrolled_mfa_methods_removed: true },
-        })
-      : await supabase
-          .from("application_users")
-          .update({ mfa_required: mfaRequired })
-          .eq("id", parsedApplicationUserId.data)
-          .eq("role", "FOREMAN");
-
-    if (error) {
-      logger.error("foreman_mfa_requirement_update_failed", {
-        code: error.code,
-      });
-      if (removingOptionalEnrollment) {
-        return actionError(
-          "MFA was turned off, but its audit entry could not be saved. Contact support before retrying.",
-        );
-      }
-      return actionError(databaseErrorMessage(error));
-    }
-  } catch (error) {
-    logger.error("foreman_mfa_management_failed", {
-      reason: error instanceof Error ? error.name : "unknown",
-    });
-    return actionError("The Foreman MFA setting could not be changed.");
-  }
-
-  revalidatePath("/ceo/settings");
-  revalidatePath("/ceo/audit");
-  revalidatePath("/foreman");
-  return actionSuccess(
-    mfaRequired
-      ? "MFA is now required for this Foreman."
-      : "MFA is now off for this Foreman.",
   );
 }
 

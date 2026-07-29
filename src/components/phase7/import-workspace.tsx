@@ -213,17 +213,17 @@ export function ImportWorkspace() {
   const pending = state === "previewing" || state === "committing";
 
   return (
-    <section className="mt-6 border border-stone-300 bg-white p-5 sm:p-6">
+    <section className="mt-6 border border-violet-100 bg-white p-5 sm:p-6">
       <div className="flex items-start gap-3">
         <FileSpreadsheet
-          className="mt-1 size-6 shrink-0 text-amber-700"
+          className="mt-1 size-6 shrink-0 text-violet-700"
           aria-hidden="true"
         />
         <div>
           <h2 className="font-heading text-2xl font-semibold uppercase">
             Preview a fixed-template workbook
           </h2>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-stone-600">
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
             Preview never changes company records. If the WorkerDocuments sheet
             contains rows, attach the matching PDF, JPEG, or PNG files using the
             exact file names written in the sheet.
@@ -233,9 +233,9 @@ export function ImportWorkspace() {
 
       <form
         onSubmit={previewWorkbook}
-        className="mt-5 grid gap-4 border-t border-stone-200 pt-5 lg:grid-cols-2"
+        className="mt-5 grid gap-4 border-t border-slate-200 pt-5 lg:grid-cols-2"
       >
-        <label className="text-xs font-semibold uppercase tracking-wider text-stone-600">
+        <label className="text-xs font-semibold uppercase tracking-wider text-slate-600">
           Import workbook (.xlsx)
           <input
             name="workbook"
@@ -243,10 +243,10 @@ export function ImportWorkspace() {
             accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             required
             disabled={pending}
-            className="mt-2 block min-h-11 w-full border border-stone-300 bg-stone-50 p-2 text-sm file:mr-3 file:border-0 file:bg-stone-950 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white"
+            className="mt-2 block min-h-11 w-full border border-violet-100 bg-slate-50 p-2 text-sm file:mr-3 file:border-0 file:bg-violet-700 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white"
           />
         </label>
-        <label className="text-xs font-semibold uppercase tracking-wider text-stone-600">
+        <label className="text-xs font-semibold uppercase tracking-wider text-slate-600">
           Matching document files (when listed)
           <input
             name="documents"
@@ -254,13 +254,13 @@ export function ImportWorkspace() {
             accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
             multiple
             disabled={pending}
-            className="mt-2 block min-h-11 w-full border border-stone-300 bg-stone-50 p-2 text-sm file:mr-3 file:border-0 file:bg-stone-950 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white"
+            className="mt-2 block min-h-11 w-full border border-violet-100 bg-slate-50 p-2 text-sm file:mr-3 file:border-0 file:bg-violet-700 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white"
           />
         </label>
         <button
           type="submit"
           disabled={pending}
-          className="inline-flex min-h-11 items-center justify-center gap-2 bg-stone-950 px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 lg:col-span-2 lg:w-fit"
+          className="inline-flex min-h-11 items-center justify-center gap-2 bg-violet-700 px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 lg:col-span-2 lg:w-fit"
         >
           {state === "previewing" ? (
             <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
@@ -307,11 +307,11 @@ export function ImportWorkspace() {
         <div className="mt-5">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
             {summaryLabels.map(([key, label]) => (
-              <div key={key} className="border border-stone-200 p-3">
+              <div key={key} className="border border-slate-200 p-3">
                 <p className="text-2xl font-semibold tabular-nums">
                   {preview.summary[key]}
                 </p>
-                <p className="mt-1 text-[0.65rem] font-semibold uppercase tracking-wider text-stone-500">
+                <p className="mt-1 text-[0.65rem] font-semibold uppercase tracking-wider text-slate-500">
                   {label}
                 </p>
               </div>
@@ -323,9 +323,34 @@ export function ImportWorkspace() {
               <h3 className="font-heading text-xl font-semibold uppercase">
                 Rows to correct ({preview.issues.length})
               </h3>
-              <div className="mt-3 overflow-x-auto border border-stone-300">
+              <ol className="mt-3 space-y-3 md:hidden">
+                {preview.issues.map((issue, index) => (
+                  <li
+                    key={`${issue.sheet}-${issue.row}-${index}`}
+                    className="rounded-xl border border-red-200 bg-red-50 p-4"
+                  >
+                    <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
+                      <span className="rounded-full bg-white px-2.5 py-1 text-slate-700">
+                        {issue.sheet}
+                      </span>
+                      <span className="rounded-full bg-white px-2.5 py-1 tabular-nums text-slate-700">
+                        Row {issue.row || "—"}
+                      </span>
+                      {issue.field ? (
+                        <span className="rounded-full bg-white px-2.5 py-1 text-slate-700">
+                          {issue.field}
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-3 text-sm leading-6 text-red-950">
+                      {issue.message}
+                    </p>
+                  </li>
+                ))}
+              </ol>
+              <div className="mt-3 hidden overflow-x-auto border border-violet-100 md:block">
                 <table className="w-full min-w-[42rem] text-left text-sm">
-                  <thead className="bg-stone-950 text-white">
+                  <thead className="bg-violet-950 text-white">
                     <tr>
                       <th className="px-3 py-3">Sheet</th>
                       <th className="px-3 py-3">Row</th>
@@ -333,7 +358,7 @@ export function ImportWorkspace() {
                       <th className="px-3 py-3">What to fix</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-stone-200">
+                  <tbody className="divide-y divide-slate-200">
                     {preview.issues.map((issue, index) => (
                       <tr key={`${issue.sheet}-${issue.row}-${index}`}>
                         <td className="px-3 py-3 font-medium">{issue.sheet}</td>
@@ -341,7 +366,7 @@ export function ImportWorkspace() {
                           {issue.row || "—"}
                         </td>
                         <td className="px-3 py-3">{issue.field ?? "—"}</td>
-                        <td className="px-3 py-3 text-stone-600">
+                        <td className="px-3 py-3 text-slate-600">
                           {issue.message}
                         </td>
                       </tr>

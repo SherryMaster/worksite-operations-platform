@@ -1,14 +1,14 @@
 export default function Loading() {
   return (
     <main
-      className="grid min-h-screen place-items-center bg-stone-950 text-stone-100"
+      className="grid min-h-screen place-items-center bg-violet-950 text-white"
       aria-live="polite"
       aria-busy="true"
     >
       <div className="text-center">
-        <div className="mx-auto size-10 animate-pulse border border-amber-400 bg-amber-400/10" />
-        <p className="mt-5 font-heading text-sm font-semibold uppercase tracking-[0.24em] text-stone-400">
-          Verifying access
+        <div className="mx-auto size-10 animate-pulse rounded-xl border border-violet-300 bg-violet-300/10" />
+        <p className="mt-5 font-heading text-sm font-semibold uppercase tracking-[0.24em] text-slate-400">
+          Opening your workspace…
         </p>
       </div>
     </main>

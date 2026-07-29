@@ -16,7 +16,6 @@ type ClerkUserShape = {
   id: string;
   lastName: string | null;
   primaryEmailAddressId: string | null;
-  twoFactorEnabled: boolean;
   username: string | null;
 };
 
@@ -26,10 +25,8 @@ export type ForemanSummary = {
   displayName: string;
   emailAddress: string | null;
   isActive: boolean;
-  mfaRequired: boolean;
   projectId: string | null;
   projectName: string | null;
-  twoFactorEnabled: boolean;
   username: string | null;
 };
 
@@ -141,10 +138,8 @@ export async function listForemen(): Promise<ForemanSummary[]> {
         : "Unavailable Clerk account",
       emailAddress: clerkUser ? primaryEmail(clerkUser) : null,
       isActive: user.is_active,
-      mfaRequired: user.mfa_required,
       projectId: project?.id ?? null,
       projectName: project?.name ?? null,
-      twoFactorEnabled: clerkUser?.twoFactorEnabled ?? false,
       username: clerkUser?.username ?? null,
     };
   });
@@ -246,10 +241,8 @@ export async function getProject(
           displayName: "Former Foreman",
           emailAddress: null,
           isActive: false,
-          mfaRequired: false,
           projectId: null,
           projectName: null,
-          twoFactorEnabled: false,
           username: null,
         } satisfies ForemanSummary),
     })),

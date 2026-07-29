@@ -15,7 +15,7 @@ set local role authenticated;
 
 select set_config(
   'request.jwt.claims',
-  '{"sub":"user_phase2_ceo","role":"authenticated","fva":[0,-1]}',
+  '{"sub":"user_phase2_ceo","role":"authenticated"}',
   true
 );
 
@@ -102,7 +102,7 @@ $$;
 
 select set_config(
   'request.jwt.claims',
-  '{"sub":"user_phase2_foreman_a","role":"authenticated","fva":[0,0]}',
+  '{"sub":"user_phase2_foreman_a","role":"authenticated"}',
   true
 );
 
@@ -139,7 +139,7 @@ $$;
 
 select set_config(
   'request.jwt.claims',
-  '{"sub":"user_phase2_ceo","role":"authenticated","fva":[0,-1]}',
+  '{"sub":"user_phase2_ceo","role":"authenticated"}',
   true
 );
 
@@ -151,7 +151,7 @@ select public.assign_foreman(
 
 select set_config(
   'request.jwt.claims',
-  '{"sub":"user_phase2_foreman_a","role":"authenticated","fva":[0,0]}',
+  '{"sub":"user_phase2_foreman_a","role":"authenticated"}',
   true
 );
 
@@ -165,7 +165,7 @@ $$;
 
 select set_config(
   'request.jwt.claims',
-  '{"sub":"user_phase2_foreman_b","role":"authenticated","fva":[0,0]}',
+  '{"sub":"user_phase2_foreman_b","role":"authenticated"}',
   true
 );
 

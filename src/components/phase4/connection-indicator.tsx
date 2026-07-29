@@ -11,8 +11,8 @@ export function ConnectionIndicator() {
     <span
       className={
         online
-          ? "flex items-center gap-1.5 text-xs text-emerald-400"
-          : "flex items-center gap-1.5 text-xs text-amber-300"
+          ? "flex min-h-9 items-center gap-1.5 rounded-full bg-emerald-50 px-3 text-xs font-semibold text-emerald-700"
+          : "flex min-h-9 items-center gap-1.5 rounded-full bg-amber-50 px-3 text-xs font-semibold text-amber-800"
       }
     >
       {online ? (

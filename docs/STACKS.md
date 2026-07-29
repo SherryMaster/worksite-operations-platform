@@ -90,7 +90,6 @@ Clerk manages:
 - sign-out;
 - sessions;
 - password and account security;
-- required multi-factor authentication for Foreman accounts;
 - CEO-created or CEO-invited Foreman accounts.
 
 There is no public registration.
@@ -358,9 +357,9 @@ The repository commits `package-lock.json`. CI and production builds use `npm ci
 
 ## 14. Foreman Account Security
 
-Multi-factor authentication is required for every active Foreman account at launch. Clerk enforces enrollment and sign-in verification. A Foreman who has not completed the required setup cannot access project or worker data.
-
-The CEO account should also use multi-factor authentication, although the mandatory Version 1 rule specifically applies to Foremen. Recovery and account reset actions remain controlled through Clerk and the CEO-managed account process.
+Foreman accounts do not require multi-factor authentication in Version 1. Clerk
+continues to enforce password and session security. Recovery and account reset
+actions remain controlled through Clerk and the CEO-managed account process.
 
 ---
 
@@ -394,7 +393,6 @@ The owner confirmed the following Version 1 choices:
 3. The Foreman experience is an installable PWA.
 4. Development uses a hosted Supabase development project rather than requiring the full local Docker stack.
 5. Initial monitoring uses Vercel and Supabase logs only.
-6. Foreman accounts require multi-factor authentication.
+6. Foreman accounts do not require multi-factor authentication in Version 1.
 
 `STACKS.md` is complete. New technology should not be introduced unless it solves a confirmed requirement that the current stack cannot reasonably satisfy.
-

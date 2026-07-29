@@ -52,7 +52,7 @@ export function LeaveRequestForm({
             required
             value={workerId}
             onChange={(event) => setWorkerId(event.target.value)}
-            className="h-11 w-full border border-stone-300 bg-white px-3"
+            className="h-11 w-full border border-violet-100 bg-white px-3"
           >
             {workers.length === 0 ? (
               <option value="">No active assigned workers</option>
@@ -74,7 +74,7 @@ export function LeaveRequestForm({
             name="leaveTypeId"
             required
             defaultValue={leaveTypes[0]?.id ?? ""}
-            className="h-11 w-full border border-stone-300 bg-white px-3"
+            className="h-11 w-full border border-violet-100 bg-white px-3"
           >
             {leaveTypes.length === 0 ? (
               <option value="">No active leave types</option>
@@ -94,7 +94,7 @@ export function LeaveRequestForm({
             name="startsOn"
             required
             defaultValue={today}
-            className="h-11 w-full border border-stone-300 bg-white px-3"
+            className="h-11 w-full border border-violet-100 bg-white px-3"
           />
         </label>
         <label className="space-y-2 text-sm font-medium">
@@ -104,7 +104,7 @@ export function LeaveRequestForm({
             name="endsOn"
             required
             defaultValue={today}
-            className="h-11 w-full border border-stone-300 bg-white px-3"
+            className="h-11 w-full border border-violet-100 bg-white px-3"
           />
         </label>
         <label className="space-y-2 text-sm font-medium md:col-span-2">
@@ -113,8 +113,8 @@ export function LeaveRequestForm({
             name="reason"
             minLength={2}
             maxLength={500}
-            placeholder="Plain-English reason for this request"
-            className="h-11 w-full border border-stone-300 bg-white px-3"
+            placeholder="Plain-English reason for this request…"
+            className="h-11 w-full border border-violet-100 bg-white px-3"
           />
         </label>
         <label className="space-y-2 text-sm font-medium md:col-span-2">
@@ -122,7 +122,7 @@ export function LeaveRequestForm({
           <textarea
             name="notes"
             maxLength={2000}
-            className="min-h-24 w-full border border-stone-300 bg-white p-3"
+            className="min-h-24 w-full border border-violet-100 bg-white p-3"
           />
         </label>
         <label className="space-y-2 text-sm font-medium md:col-span-2">
@@ -134,9 +134,9 @@ export function LeaveRequestForm({
             type="file"
             name="file"
             accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
-            className="block w-full border border-stone-300 bg-white p-3 text-sm file:mr-3 file:border-0 file:bg-stone-100 file:px-3 file:py-2"
+            className="block w-full border border-violet-100 bg-white p-3 text-sm file:mr-3 file:border-0 file:bg-violet-50 file:px-3 file:py-2"
           />
-          <span className="block text-xs font-normal text-stone-500">
+          <span className="block text-xs font-normal text-slate-500">
             PDF, JPEG, or PNG up to 10 MB. Stored privately.
           </span>
         </label>
@@ -151,7 +151,7 @@ export function LeaveRequestForm({
         type="submit"
         disabled={unavailable || submitting}
         aria-busy={submitting}
-        className="inline-flex min-h-12 items-center justify-center gap-2 bg-stone-950 px-5 font-semibold text-white disabled:cursor-not-allowed disabled:bg-stone-400"
+        className="inline-flex min-h-12 items-center justify-center gap-2 bg-violet-700 px-5 font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-400"
       >
         {submitting ? (
           <Spinner aria-hidden="true" />

@@ -29,15 +29,15 @@ export default async function PayrollPage() {
 
   return (
     <main className="px-5 py-8 sm:px-8 lg:py-10">
-      <div className="flex flex-col gap-6 border-b border-stone-300 pb-8 xl:flex-row xl:items-end xl:justify-between">
+      <div className="flex flex-col gap-6 border-b border-violet-100 pb-8 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <p className="font-heading text-xs font-semibold uppercase tracking-[0.23em] text-amber-700">
+          <p className="font-heading text-xs font-semibold uppercase tracking-[0.23em] text-violet-700">
             Monthly payroll control
           </p>
           <h1 className="mt-3 font-heading text-5xl font-semibold uppercase leading-none sm:text-6xl">
             Payroll
           </h1>
-          <p className="mt-4 max-w-3xl text-sm leading-6 text-stone-600">
+          <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-600">
             Generate a fixed calendar month, resolve calculation exceptions,
             approve the complete company run, issue worker statements, and
             record full payments.
@@ -46,7 +46,7 @@ export default async function PayrollPage() {
         <ManagedForm
           action={generatePayrollAction}
           submitLabel="Generate or recalculate"
-          className="w-full border border-stone-300 bg-white p-4 xl:max-w-md"
+          className="w-full border border-violet-100 bg-white p-4 xl:max-w-md"
         >
           <Label htmlFor="payroll-month">Calendar month</Label>
           <Input
@@ -55,22 +55,22 @@ export default async function PayrollPage() {
             type="month"
             required
             defaultValue={firstDayOfMalaysiaMonth().slice(0, 7)}
-            className="mt-2 h-11 rounded-none"
+            className="mt-2 h-11 rounded-xl"
           />
         </ManagedForm>
       </div>
 
       <section className="mt-8" aria-label="Monthly payroll runs">
         {runs.length === 0 ? (
-          <div className="border border-dashed border-stone-300 bg-white p-10 text-center">
+          <div className="border border-dashed border-violet-100 bg-white p-10 text-center">
             <ReceiptText
-              className="mx-auto size-8 text-stone-300"
+              className="mx-auto size-8 text-slate-300"
               aria-hidden="true"
             />
             <h2 className="mt-4 font-heading text-2xl font-semibold uppercase">
               No payroll generated
             </h2>
-            <p className="mt-2 text-sm text-stone-500">
+            <p className="mt-2 text-sm text-slate-500">
               Select a calendar month above to create the first draft.
             </p>
           </div>
@@ -80,7 +80,7 @@ export default async function PayrollPage() {
               <Link
                 key={run.id}
                 href={`/ceo/payroll/${run.id}`}
-                className="group grid gap-4 border border-stone-300 bg-white p-5 transition-colors hover:bg-amber-50 lg:grid-cols-[1.4fr_repeat(5,1fr)_auto] lg:items-center"
+                className="group grid gap-4 border border-violet-100 bg-white p-5 transition-colors hover:bg-violet-50 lg:grid-cols-[1.4fr_repeat(5,1fr)_auto] lg:items-center"
               >
                 <div>
                   <p className="font-heading text-2xl font-semibold uppercase">
@@ -91,8 +91,8 @@ export default async function PayrollPage() {
                       run.status === "APPROVED"
                         ? "text-emerald-700"
                         : run.status === "NEEDS_REVIEW"
-                          ? "text-amber-700"
-                          : "text-stone-600"
+                          ? "text-violet-700"
+                          : "text-slate-600"
                     }`}
                   >
                     {run.status === "APPROVED" ? (
@@ -104,13 +104,13 @@ export default async function PayrollPage() {
                   </span>
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-wider text-stone-500">
+                  <p className="text-xs uppercase tracking-wider text-slate-500">
                     Workers
                   </p>
                   <p className="mt-1 font-semibold">{run.worker_count}</p>
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-wider text-stone-500">
+                  <p className="text-xs uppercase tracking-wider text-slate-500">
                     Gross
                   </p>
                   <p className="mt-1 font-semibold">
@@ -118,7 +118,7 @@ export default async function PayrollPage() {
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-wider text-stone-500">
+                  <p className="text-xs uppercase tracking-wider text-slate-500">
                     Net
                   </p>
                   <p className="mt-1 font-semibold">
@@ -126,7 +126,7 @@ export default async function PayrollPage() {
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-wider text-stone-500">
+                  <p className="text-xs uppercase tracking-wider text-slate-500">
                     Exceptions
                   </p>
                   <p className="mt-1 font-semibold">
@@ -134,7 +134,7 @@ export default async function PayrollPage() {
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-wider text-stone-500">
+                  <p className="text-xs uppercase tracking-wider text-slate-500">
                     Payments
                   </p>
                   <p className="mt-1 flex items-center gap-1 font-semibold">
@@ -143,7 +143,7 @@ export default async function PayrollPage() {
                   </p>
                 </div>
                 <ArrowRight
-                  className="size-5 text-stone-300 group-hover:text-stone-900"
+                  className="size-5 text-slate-300 group-hover:text-slate-900"
                   aria-hidden="true"
                 />
               </Link>

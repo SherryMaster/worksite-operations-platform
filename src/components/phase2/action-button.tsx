@@ -44,7 +44,7 @@ export function ActionButton({
         variant={variant}
         disabled={pending}
         aria-busy={pending}
-        className="rounded-none"
+        className="rounded-xl"
       >
         {pending ? <Spinner aria-hidden="true" /> : null}
         {pending ? pendingLabel : label}

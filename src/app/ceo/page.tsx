@@ -74,22 +74,22 @@ export default async function CeoDashboard() {
 
   return (
     <main className="px-5 py-8 sm:px-8 lg:py-10">
-      <div className="flex flex-col gap-5 border-b border-stone-300 pb-8 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-5 border-b border-violet-100 pb-8 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="font-heading text-xs font-semibold uppercase tracking-[0.23em] text-amber-700">
+          <p className="font-heading text-xs font-semibold uppercase tracking-[0.23em] text-violet-700">
             Operating structure
           </p>
           <h1 className="mt-3 font-heading text-5xl font-semibold uppercase leading-none tracking-tight sm:text-6xl">
             Company dashboard
           </h1>
-          <p className="mt-4 max-w-2xl text-sm leading-6 text-stone-600">
-            Projects, Foremen, and setup exceptions are shown from the live
-            development database.
+          <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-600">
+            Review workforce operations, priorities, and company activity in one
+            place.
           </p>
         </div>
         <Link
           href="/ceo/projects/new"
-          className="inline-flex min-h-11 items-center justify-center gap-2 bg-stone-950 px-5 text-sm font-semibold text-white hover:bg-stone-800"
+          className="inline-flex min-h-11 items-center justify-center gap-2 bg-violet-700 px-5 text-sm font-semibold text-white hover:bg-violet-800"
         >
           Create project
           <ArrowUpRight className="size-4" aria-hidden="true" />
@@ -98,26 +98,28 @@ export default async function CeoDashboard() {
 
       <section
         aria-label="Company summary"
-        className="mt-8 grid gap-px border border-stone-300 bg-stone-300 sm:grid-cols-2 xl:grid-cols-4"
+        className="mt-6 grid grid-cols-2 gap-3 xl:grid-cols-4"
       >
         {metrics.map(({ label, value, detail, icon: Icon, href }) => (
           <Link
             key={label}
             href={href}
-            className="group bg-white p-6 transition-colors hover:bg-amber-50"
+            className="group rounded-2xl border border-violet-100 bg-white p-4 shadow-sm transition-[background-color,border-color,box-shadow] hover:border-violet-200 hover:bg-violet-50 sm:p-6"
           >
             <div className="flex items-start justify-between">
-              <Icon className="size-5 text-amber-700" aria-hidden="true" />
+              <Icon className="size-5 text-violet-700" aria-hidden="true" />
               <ArrowUpRight
-                className="size-4 text-stone-300 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-stone-700"
+                className="size-4 text-slate-300 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-slate-700"
                 aria-hidden="true"
               />
             </div>
-            <p className="mt-8 font-heading text-5xl font-semibold">{value}</p>
+            <p className="mt-6 font-heading text-3xl font-semibold sm:text-5xl">
+              {value}
+            </p>
             <h2 className="mt-2 font-heading text-lg font-semibold uppercase">
               {label}
             </h2>
-            <p className="mt-1 text-xs text-stone-500">{detail}</p>
+            <p className="mt-1 text-xs text-slate-500">{detail}</p>
           </Link>
         ))}
       </section>
@@ -126,21 +128,21 @@ export default async function CeoDashboard() {
         id="action-required"
         className="mt-8 grid gap-6 xl:grid-cols-[1.4fr_0.6fr]"
       >
-        <article className="border border-stone-300 bg-white">
-          <div className="flex items-center justify-between border-b border-stone-200 px-5 py-4">
+        <article className="border border-violet-100 bg-white">
+          <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
             <div>
-              <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
+              <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-violet-700">
                 Action required
               </p>
               <h2 className="mt-1 font-heading text-2xl font-semibold uppercase">
                 Setup queue
               </h2>
             </div>
-            <span className="font-heading text-3xl font-semibold text-stone-300">
+            <span className="font-heading text-3xl font-semibold text-slate-300">
               {String(actionCount).padStart(2, "0")}
             </span>
           </div>
-          <div className="divide-y divide-stone-200">
+          <div className="divide-y divide-slate-200">
             {actionCount === 0 ? (
               <div className="flex items-start gap-4 p-6">
                 <UserRoundCheck
@@ -149,8 +151,8 @@ export default async function CeoDashboard() {
                 />
                 <div>
                   <p className="font-semibold">Operating structure is ready</p>
-                  <p className="mt-1 text-sm text-stone-500">
-                    No Phase 2 setup exceptions need attention.
+                  <p className="mt-1 text-sm text-slate-500">
+                    No setup exceptions need attention.
                   </p>
                 </div>
               </div>
@@ -160,11 +162,11 @@ export default async function CeoDashboard() {
                   <Link
                     key={project.id}
                     href={`/ceo/projects/${project.id}`}
-                    className="flex items-center justify-between gap-4 p-5 hover:bg-stone-50"
+                    className="flex items-center justify-between gap-4 p-5 hover:bg-slate-50"
                   >
                     <div>
                       <p className="text-sm font-semibold">{project.name}</p>
-                      <p className="mt-1 text-xs text-stone-500">
+                      <p className="mt-1 text-xs text-slate-500">
                         Needs a current Foreman
                       </p>
                     </div>
@@ -174,14 +176,14 @@ export default async function CeoDashboard() {
                 {pendingLeave > 0 ? (
                   <Link
                     href="/ceo/leave?status=PENDING"
-                    className="flex items-center justify-between gap-4 p-5 hover:bg-stone-50"
+                    className="flex items-center justify-between gap-4 p-5 hover:bg-slate-50"
                   >
                     <div>
                       <p className="text-sm font-semibold">
                         {pendingLeave} pending leave{" "}
                         {pendingLeave === 1 ? "request" : "requests"}
                       </p>
-                      <p className="mt-1 text-xs text-stone-500">
+                      <p className="mt-1 text-xs text-slate-500">
                         Review attendance conflicts, then approve or reject
                       </p>
                     </div>
@@ -193,13 +195,13 @@ export default async function CeoDashboard() {
                 payroll.unpaidWorkers > 0 ? (
                   <Link
                     href="/ceo/payroll"
-                    className="flex items-center justify-between gap-4 p-5 hover:bg-stone-50"
+                    className="flex items-center justify-between gap-4 p-5 hover:bg-slate-50"
                   >
                     <div>
                       <p className="text-sm font-semibold">
                         Payroll needs attention
                       </p>
-                      <p className="mt-1 text-xs text-stone-500">
+                      <p className="mt-1 text-xs text-slate-500">
                         {payroll.openRuns} open{" "}
                         {payroll.openRuns === 1 ? "run" : "runs"} ·{" "}
                         {payroll.blockingExceptions} blocking{" "}
@@ -216,7 +218,7 @@ export default async function CeoDashboard() {
                 {data.unassignedActiveForemen.length > 0 ? (
                   <Link
                     href="/ceo/settings#users"
-                    className="flex items-center justify-between gap-4 p-5 hover:bg-stone-50"
+                    className="flex items-center justify-between gap-4 p-5 hover:bg-slate-50"
                   >
                     <div>
                       <p className="text-sm font-semibold">
@@ -226,7 +228,7 @@ export default async function CeoDashboard() {
                           : "Foremen"}{" "}
                         awaiting assignment
                       </p>
-                      <p className="mt-1 text-xs text-stone-500">
+                      <p className="mt-1 text-xs text-slate-500">
                         Review users and project assignments
                       </p>
                     </div>
@@ -236,7 +238,7 @@ export default async function CeoDashboard() {
                 {workforce.awaitingAssignment > 0 ? (
                   <Link
                     href="/ceo/workers?status=ACTIVE"
-                    className="flex items-center justify-between gap-4 p-5 hover:bg-stone-50"
+                    className="flex items-center justify-between gap-4 p-5 hover:bg-slate-50"
                   >
                     <div>
                       <p className="text-sm font-semibold">
@@ -246,7 +248,7 @@ export default async function CeoDashboard() {
                           : "workers are"}{" "}
                         awaiting a project
                       </p>
-                      <p className="mt-1 text-xs text-stone-500">
+                      <p className="mt-1 text-xs text-slate-500">
                         Assign workers from their profiles
                       </p>
                     </div>
@@ -256,7 +258,7 @@ export default async function CeoDashboard() {
                 {workforce.documentAlerts > 0 ? (
                   <Link
                     href="/ceo/workers"
-                    className="flex items-center justify-between gap-4 p-5 hover:bg-stone-50"
+                    className="flex items-center justify-between gap-4 p-5 hover:bg-slate-50"
                   >
                     <div>
                       <p className="text-sm font-semibold">
@@ -266,7 +268,7 @@ export default async function CeoDashboard() {
                           : "workers have"}{" "}
                         an expired or expiring document
                       </p>
-                      <p className="mt-1 text-xs text-stone-500">
+                      <p className="mt-1 text-xs text-slate-500">
                         Review workforce document alerts
                       </p>
                     </div>
@@ -276,13 +278,13 @@ export default async function CeoDashboard() {
                 {!data.companyConfigured ? (
                   <Link
                     href="/ceo/settings#company"
-                    className="flex items-center justify-between gap-4 p-5 hover:bg-stone-50"
+                    className="flex items-center justify-between gap-4 p-5 hover:bg-slate-50"
                   >
                     <div>
                       <p className="text-sm font-semibold">
                         Company identity is incomplete
                       </p>
-                      <p className="mt-1 text-xs text-stone-500">
+                      <p className="mt-1 text-xs text-slate-500">
                         Add legal and display names
                       </p>
                     </div>
@@ -294,21 +296,21 @@ export default async function CeoDashboard() {
           </div>
         </article>
 
-        <aside className="border border-stone-800 bg-stone-950 p-6 text-stone-100">
-          <Settings className="size-5 text-amber-400" aria-hidden="true" />
-          <p className="mt-8 font-heading text-xs font-semibold uppercase tracking-[0.22em] text-stone-500">
-            Phase 3
+        <aside className="border border-violet-800 bg-violet-950 p-6 text-white">
+          <Settings className="size-5 text-orange-300" aria-hidden="true" />
+          <p className="mt-8 font-heading text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+            Workforce
           </p>
           <h2 className="mt-2 font-heading text-3xl font-semibold uppercase">
             Workforce records are live
           </h2>
-          <p className="mt-4 text-sm leading-6 text-stone-400">
+          <p className="mt-4 text-sm leading-6 text-slate-400">
             Create worker profiles, control employment and project history,
             manage effective rates, and securely store worker documents.
           </p>
           <Link
             href="/ceo/workers"
-            className="mt-8 inline-flex items-center gap-2 border border-stone-700 px-4 py-3 text-sm font-semibold hover:border-amber-400 hover:text-amber-300"
+            className="mt-8 inline-flex items-center gap-2 border border-violet-700 px-4 py-3 text-sm font-semibold hover:border-amber-400 hover:text-amber-300"
           >
             Open workers
             <ArrowUpRight className="size-4" aria-hidden="true" />

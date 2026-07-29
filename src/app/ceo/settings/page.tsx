@@ -1,11 +1,9 @@
 import {
   BadgeCheck,
   Building2,
-  CircleOff,
   Download,
   FileCog,
   KeyRound,
-  ShieldCheck,
   UserPlus,
   Users,
 } from "lucide-react";
@@ -19,7 +17,6 @@ import {
   resetForemanPasswordAction,
   setCategoryActiveAction,
   setForemanActiveAction,
-  setForemanMfaRequirementAction,
   updateCompanySettingsAction,
 } from "@/app/ceo/actions";
 import {
@@ -56,21 +53,21 @@ function CategorySection({
   title: string;
 }) {
   return (
-    <article id={id} className="border border-stone-300 bg-white">
-      <div className="border-b border-stone-200 p-5">
-        <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
+    <article id={id} className="border border-violet-100 bg-white">
+      <div className="border-b border-slate-200 p-5">
+        <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-violet-700">
           Workforce category
         </p>
         <h2 className="mt-1 font-heading text-2xl font-semibold uppercase">
           {title}
         </h2>
-        <p className="mt-2 text-sm text-stone-500">{description}</p>
+        <p className="mt-2 text-sm text-slate-500">{description}</p>
       </div>
       <div className="p-5">
         <ManagedForm
           action={createAction}
           submitLabel={`Add ${title.toLowerCase()}`}
-          className="border border-stone-200 bg-stone-50 p-4"
+          className="border border-slate-200 bg-slate-50 p-4"
         >
           <Label htmlFor={`${id}-name`}>New name</Label>
           <Input
@@ -78,16 +75,16 @@ function CategorySection({
             name="name"
             required
             maxLength={80}
-            className="mt-2 h-11 rounded-none bg-white"
+            className="mt-2 h-11 rounded-xl bg-white"
           />
         </ManagedForm>
 
         {categories.length === 0 ? (
-          <p className="mt-5 border border-dashed border-stone-300 p-6 text-center text-sm text-stone-500">
+          <p className="mt-5 border border-dashed border-violet-100 p-6 text-center text-sm text-slate-500">
             No {title.toLowerCase()} configured.
           </p>
         ) : (
-          <div className="mt-5 divide-y divide-stone-200 border border-stone-200">
+          <div className="mt-5 divide-y divide-slate-200 border border-slate-200">
             {categories.map((category) => (
               <div
                 key={category.id}
@@ -105,7 +102,7 @@ function CategorySection({
                       defaultValue={category.name}
                       required
                       maxLength={80}
-                      className="h-10 rounded-none"
+                      className="h-11 rounded-xl"
                     />
                   </label>
                 </ManagedForm>
@@ -142,14 +139,14 @@ export default async function SettingsPage() {
 
   return (
     <main className="px-5 py-8 sm:px-8 lg:py-10">
-      <div className="border-b border-stone-300 pb-8">
-        <p className="font-heading text-xs font-semibold uppercase tracking-[0.23em] text-amber-700">
+      <div className="border-b border-violet-100 pb-8">
+        <p className="font-heading text-xs font-semibold uppercase tracking-[0.23em] text-violet-700">
           Company administration
         </p>
         <h1 className="mt-3 font-heading text-5xl font-semibold uppercase leading-none sm:text-6xl">
           Settings
         </h1>
-        <p className="mt-4 max-w-2xl text-sm leading-6 text-stone-600">
+        <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-600">
           Manage who can enter the field workspace and the categories used by
           later workforce records.
         </p>
@@ -168,7 +165,7 @@ export default async function SettingsPage() {
           <a
             key={href}
             href={href}
-            className="shrink-0 border border-stone-300 bg-white px-4 py-2 text-sm font-medium hover:border-stone-950"
+            className="shrink-0 border border-violet-100 bg-white px-4 py-2 text-sm font-medium hover:border-violet-950"
           >
             {label}
           </a>
@@ -177,9 +174,9 @@ export default async function SettingsPage() {
 
       <section id="users" className="mt-8 space-y-6">
         <div className="flex items-center gap-3">
-          <Users className="size-5 text-amber-700" aria-hidden="true" />
+          <Users className="size-5 text-violet-700" aria-hidden="true" />
           <div>
-            <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
+            <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-violet-700">
               Restricted access
             </p>
             <h2 className="font-heading text-3xl font-semibold uppercase">
@@ -188,15 +185,15 @@ export default async function SettingsPage() {
           </div>
         </div>
 
-        <article className="grid gap-px border border-stone-300 bg-stone-300 lg:grid-cols-[0.72fr_1.28fr]">
-          <div className="bg-stone-950 p-6 text-stone-100">
-            <UserPlus className="size-5 text-amber-400" aria-hidden="true" />
+        <article className="grid gap-px border border-violet-100 bg-violet-100 lg:grid-cols-[0.72fr_1.28fr]">
+          <div className="bg-violet-950 p-6 text-white">
+            <UserPlus className="size-5 text-orange-300" aria-hidden="true" />
             <h3 className="mt-8 font-heading text-2xl font-semibold uppercase">
               Create a Foreman account
             </h3>
-            <p className="mt-3 text-sm leading-6 text-stone-400">
-              The CEO creates the sign-in details directly. Email and MFA are
-              optional. Share the initial password privately with the Foreman.
+            <p className="mt-3 text-sm leading-6 text-slate-400">
+              The CEO creates the sign-in details directly. Email is optional.
+              Share the initial password privately with the Foreman.
             </p>
           </div>
           <div className="bg-white p-5 sm:p-6">
@@ -213,7 +210,7 @@ export default async function SettingsPage() {
                     required
                     maxLength={80}
                     autoComplete="off"
-                    className="h-11 rounded-none"
+                    className="h-11 rounded-xl"
                   />
                 </div>
                 <div className="space-y-2">
@@ -223,7 +220,7 @@ export default async function SettingsPage() {
                     name="lastName"
                     maxLength={80}
                     autoComplete="off"
-                    className="h-11 rounded-none"
+                    className="h-11 rounded-xl"
                   />
                 </div>
                 <div className="space-y-2">
@@ -236,7 +233,7 @@ export default async function SettingsPage() {
                     maxLength={64}
                     autoComplete="off"
                     spellCheck={false}
-                    className="h-11 rounded-none"
+                    className="h-11 rounded-xl"
                   />
                 </div>
                 <div className="space-y-2">
@@ -247,7 +244,7 @@ export default async function SettingsPage() {
                     type="email"
                     autoComplete="off"
                     spellCheck={false}
-                    className="h-11 rounded-none"
+                    className="h-11 rounded-xl"
                   />
                 </div>
                 <div className="space-y-2 sm:col-span-2">
@@ -260,37 +257,29 @@ export default async function SettingsPage() {
                     minLength={8}
                     maxLength={128}
                     autoComplete="new-password"
-                    className="h-11 rounded-none"
+                    className="h-11 rounded-xl"
                   />
-                  <p className="text-xs text-stone-500">
+                  <p className="text-xs text-slate-500">
                     Use at least 8 characters. Passwords never appear in the
                     audit log.
                   </p>
                 </div>
-                <label className="flex min-h-11 items-center gap-3 border border-stone-200 bg-stone-50 px-3 text-sm sm:col-span-2">
-                  <input
-                    type="checkbox"
-                    name="mfaRequired"
-                    className="size-4 accent-stone-950"
-                  />
-                  Require MFA for this account
-                </label>
               </div>
             </ManagedForm>
           </div>
         </article>
 
         <div>
-          <article className="border border-stone-300 bg-white">
-            <h3 className="border-b border-stone-200 px-5 py-4 font-heading text-xl font-semibold uppercase">
+          <article className="border border-violet-100 bg-white">
+            <h3 className="border-b border-slate-200 px-5 py-4 font-heading text-xl font-semibold uppercase">
               Managed Foreman Accounts
             </h3>
             {data.foremen.length === 0 ? (
-              <p className="p-6 text-sm text-stone-500">
+              <p className="p-6 text-sm text-slate-500">
                 No Foreman accounts have been created.
               </p>
             ) : (
-              <div className="divide-y divide-stone-200">
+              <div className="divide-y divide-slate-200">
                 {data.foremen.map((foreman) => (
                   <div
                     key={foreman.applicationUserId}
@@ -303,39 +292,13 @@ export default async function SettingsPage() {
                           className={
                             foreman.isActive
                               ? "border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wider text-emerald-800"
-                              : "border border-stone-300 bg-stone-100 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wider text-stone-600"
+                              : "border border-violet-100 bg-violet-50 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wider text-slate-600"
                           }
                         >
                           {foreman.isActive ? "Active" : "Inactive"}
                         </span>
-                        <span
-                          className={
-                            foreman.mfaRequired || foreman.twoFactorEnabled
-                              ? "inline-flex items-center gap-1 text-xs text-emerald-700"
-                              : "inline-flex items-center gap-1 text-xs text-stone-500"
-                          }
-                        >
-                          {foreman.mfaRequired || foreman.twoFactorEnabled ? (
-                            <ShieldCheck
-                              className="size-3.5"
-                              aria-hidden="true"
-                            />
-                          ) : (
-                            <CircleOff
-                              className="size-3.5"
-                              aria-hidden="true"
-                            />
-                          )}
-                          {foreman.mfaRequired
-                            ? foreman.twoFactorEnabled
-                              ? "MFA required and enrolled"
-                              : "MFA required — setup pending"
-                            : foreman.twoFactorEnabled
-                              ? "MFA enrolled — optional"
-                              : "MFA off"}
-                        </span>
                       </div>
-                      <p className="mt-1 text-xs text-stone-500">
+                      <p className="mt-1 text-xs text-slate-500">
                         {foreman.username
                           ? `@${foreman.username}`
                           : "No username"}
@@ -343,31 +306,12 @@ export default async function SettingsPage() {
                           ? ` · ${foreman.emailAddress}`
                           : " · No email"}
                       </p>
-                      <p className="mt-2 flex items-center gap-2 text-xs text-stone-600">
+                      <p className="mt-2 flex items-center gap-2 text-xs text-slate-600">
                         <Building2 className="size-3.5" aria-hidden="true" />
                         {foreman.projectName ?? "No current project"}
                       </p>
                     </div>
                     <div className="flex flex-wrap items-start gap-3 xl:justify-end">
-                      <ActionButton
-                        action={setForemanMfaRequirementAction.bind(
-                          null,
-                          foreman.applicationUserId,
-                          foreman.clerkUserId,
-                          !(foreman.mfaRequired || foreman.twoFactorEnabled),
-                        )}
-                        label={
-                          foreman.mfaRequired || foreman.twoFactorEnabled
-                            ? "Turn MFA Off"
-                            : "Require MFA"
-                        }
-                        confirmMessage={
-                          foreman.mfaRequired || foreman.twoFactorEnabled
-                            ? `Turn MFA off for ${foreman.displayName}? Existing authenticator methods and backup codes will be removed.`
-                            : undefined
-                        }
-                        variant="outline"
-                      />
                       <ActionButton
                         action={setForemanActiveAction.bind(
                           null,
@@ -382,10 +326,10 @@ export default async function SettingsPage() {
                         }
                         variant={foreman.isActive ? "destructive" : "secondary"}
                       />
-                      <details className="w-full border border-stone-200 bg-stone-50 p-3 xl:max-w-sm">
+                      <details className="w-full border border-slate-200 bg-slate-50 p-3 xl:max-w-sm">
                         <summary className="flex cursor-pointer items-center gap-2 text-sm font-semibold">
                           <KeyRound
-                            className="size-4 text-amber-700"
+                            className="size-4 text-violet-700"
                             aria-hidden="true"
                           />
                           Change Password
@@ -412,9 +356,9 @@ export default async function SettingsPage() {
                             minLength={8}
                             maxLength={128}
                             autoComplete="new-password"
-                            className="h-10 rounded-none bg-white"
+                            className="h-11 rounded-xl bg-white"
                           />
-                          <p className="text-xs leading-5 text-stone-500">
+                          <p className="text-xs leading-5 text-slate-500">
                             Existing sessions will be signed out. Share the new
                             password securely.
                           </p>
@@ -454,17 +398,17 @@ export default async function SettingsPage() {
 
       <section
         id="documents"
-        className="mt-10 grid gap-px border border-stone-300 bg-stone-300 lg:grid-cols-[0.7fr_1.3fr]"
+        className="mt-10 grid gap-px border border-violet-100 bg-violet-100 lg:grid-cols-[0.7fr_1.3fr]"
       >
-        <div className="bg-stone-950 p-6 text-stone-100">
-          <FileCog className="size-5 text-amber-400" aria-hidden="true" />
-          <p className="mt-8 font-heading text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">
+        <div className="bg-violet-950 p-6 text-white">
+          <FileCog className="size-5 text-orange-300" aria-hidden="true" />
+          <p className="mt-8 font-heading text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
             Worker files
           </p>
           <h2 className="mt-2 font-heading text-3xl font-semibold uppercase">
             Document Types
           </h2>
-          <p className="mt-4 text-sm leading-6 text-stone-400">
+          <p className="mt-4 text-sm leading-6 text-slate-400">
             Define the labels and dates collected for private worker files.
             Deactivating a type preserves all existing records.
           </p>
@@ -473,7 +417,7 @@ export default async function SettingsPage() {
           <ManagedForm
             action={createDocumentTypeAction}
             submitLabel="Add Document Type"
-            className="border border-stone-200 bg-stone-50 p-4"
+            className="border border-slate-200 bg-slate-50 p-4"
           >
             <label className="space-y-2 text-sm font-medium">
               Name
@@ -482,7 +426,7 @@ export default async function SettingsPage() {
                 required
                 minLength={2}
                 maxLength={80}
-                className="mt-2 h-11 rounded-none bg-white"
+                className="mt-2 h-11 rounded-xl bg-white"
               />
             </label>
             <div className="flex flex-wrap gap-4">
@@ -504,7 +448,7 @@ export default async function SettingsPage() {
               </label>
             </div>
           </ManagedForm>
-          <div className="mt-5 divide-y divide-stone-200 border border-stone-200">
+          <div className="mt-5 divide-y divide-slate-200 border border-slate-200">
             {documentTypes.map((type) => (
               <div
                 key={type.id}
@@ -512,7 +456,7 @@ export default async function SettingsPage() {
               >
                 <div>
                   <p className="text-sm font-semibold">{type.name}</p>
-                  <p className="mt-1 text-xs text-stone-500">
+                  <p className="mt-1 text-xs text-slate-500">
                     {[
                       type.expects_issue_date ? "Issue date" : null,
                       type.expects_expiry_date ? "Expiry date" : null,
@@ -544,16 +488,16 @@ export default async function SettingsPage() {
 
       <section
         id="import-template"
-        className="mt-10 flex flex-col gap-5 border border-stone-300 bg-white p-6 sm:flex-row sm:items-center sm:justify-between"
+        className="mt-10 flex flex-col gap-5 border border-violet-100 bg-white p-6 sm:flex-row sm:items-center sm:justify-between"
       >
         <div>
-          <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
+          <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-violet-700">
             Data preparation
           </p>
           <h2 className="mt-2 font-heading text-2xl font-semibold uppercase">
             Worker Import Template
           </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-stone-500">
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
             Download the approved multi-sheet workbook for preparing projects,
             workers, documents, assignments, and rates. Import execution is
             planned for a later phase.
@@ -562,7 +506,7 @@ export default async function SettingsPage() {
         <a
           href="/templates/worksite-import-template.xlsx"
           download
-          className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 bg-stone-950 px-5 text-sm font-semibold text-white"
+          className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 bg-violet-700 px-5 text-sm font-semibold text-white"
         >
           <Download className="size-4" aria-hidden="true" />
           Download Template
@@ -571,23 +515,23 @@ export default async function SettingsPage() {
 
       <section
         id="company"
-        className="mt-10 grid gap-px border border-stone-300 bg-stone-300 lg:grid-cols-[0.7fr_1.3fr]"
+        className="mt-10 grid gap-px border border-violet-100 bg-violet-100 lg:grid-cols-[0.7fr_1.3fr]"
       >
-        <div className="bg-stone-950 p-6 text-stone-100">
-          <BadgeCheck className="size-5 text-amber-400" aria-hidden="true" />
-          <p className="mt-8 font-heading text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">
+        <div className="bg-violet-950 p-6 text-white">
+          <BadgeCheck className="size-5 text-orange-300" aria-hidden="true" />
+          <p className="mt-8 font-heading text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
             Company identity
           </p>
           <h2 className="mt-2 font-heading text-3xl font-semibold uppercase">
             Fixed operating context
           </h2>
           <dl className="mt-6 space-y-3 text-sm">
-            <div className="flex justify-between border-b border-stone-800 pb-3">
-              <dt className="text-stone-500">Currency</dt>
+            <div className="flex justify-between border-b border-violet-800 pb-3">
+              <dt className="text-slate-500">Currency</dt>
               <dd>MYR</dd>
             </div>
-            <div className="flex justify-between gap-4 border-b border-stone-800 pb-3">
-              <dt className="text-stone-500">Timezone</dt>
+            <div className="flex justify-between gap-4 border-b border-violet-800 pb-3">
+              <dt className="text-slate-500">Timezone</dt>
               <dd className="text-right">Asia/Kuala_Lumpur</dd>
             </div>
           </dl>
@@ -604,7 +548,7 @@ export default async function SettingsPage() {
                   name="legalName"
                   defaultValue={data.settings?.legal_name ?? ""}
                   maxLength={160}
-                  className="h-11 rounded-none"
+                  className="h-11 rounded-xl"
                 />
               </label>
               <label className="space-y-2 text-sm font-medium">
@@ -613,7 +557,7 @@ export default async function SettingsPage() {
                   name="displayName"
                   defaultValue={data.settings?.display_name ?? ""}
                   maxLength={120}
-                  className="h-11 rounded-none"
+                  className="h-11 rounded-xl"
                 />
               </label>
             </div>

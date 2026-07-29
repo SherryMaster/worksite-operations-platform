@@ -68,28 +68,28 @@ export default async function CeoAttendancePage({
   return (
     <main>
       <div className="px-5 pt-8 sm:px-8 lg:pt-10">
-        <div className="border-b border-stone-300 pb-7">
-          <p className="font-heading text-xs font-semibold uppercase tracking-[0.23em] text-amber-700">
+        <div className="border-b border-violet-100 pb-7">
+          <p className="font-heading text-xs font-semibold uppercase tracking-[0.23em] text-violet-700">
             Company attendance
           </p>
           <h1 className="mt-3 font-heading text-5xl font-semibold uppercase leading-none sm:text-6xl">
             Worksite time
           </h1>
-          <p className="mt-4 max-w-2xl text-sm leading-6 text-stone-600">
+          <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-600">
             Review daily attendance, payable minute categories, incomplete
             records, and permanent corrections across every project. Attendance
             has no separate approval step.
           </p>
         </div>
 
-        <form className="mt-5 grid gap-3 border border-stone-300 bg-white p-4 lg:grid-cols-[1.4fr_1fr_auto]">
+        <form className="mt-5 grid gap-3 border border-violet-100 bg-white p-4 lg:grid-cols-[1.4fr_1fr_auto]">
           <input type="hidden" name="view" value={view} />
-          <label className="text-xs font-semibold uppercase tracking-wider text-stone-600">
+          <label className="text-xs font-semibold uppercase tracking-wider text-slate-600">
             Project
             <select
               name="project"
               defaultValue={projectId}
-              className="mt-2 h-11 w-full border border-stone-300 px-3 text-sm font-medium normal-case tracking-normal"
+              className="mt-2 h-11 w-full border border-violet-100 px-3 text-sm font-medium normal-case tracking-normal"
             >
               {projects.map((project) => (
                 <option key={project.id} value={project.id}>
@@ -98,18 +98,18 @@ export default async function CeoAttendancePage({
               ))}
             </select>
           </label>
-          <label className="text-xs font-semibold uppercase tracking-wider text-stone-600">
+          <label className="text-xs font-semibold uppercase tracking-wider text-slate-600">
             {view === "day" ? "Date" : "Month"}
             <input
               name={view === "day" ? "date" : "month"}
               type={view === "day" ? "date" : "month"}
               defaultValue={view === "day" ? workDate : month}
-              className="mt-2 h-11 w-full border border-stone-300 px-3 text-sm font-medium normal-case tracking-normal"
+              className="mt-2 h-11 w-full border border-violet-100 px-3 text-sm font-medium normal-case tracking-normal"
             />
           </label>
           <FormSubmitButton
             pendingLabel="Loading attendance…"
-            className="min-h-11 self-end bg-stone-950 px-5 text-sm font-semibold text-white"
+            className="min-h-11 self-end bg-violet-700 px-5 text-sm font-semibold text-white"
           >
             Show attendance
           </FormSubmitButton>
@@ -119,10 +119,10 @@ export default async function CeoAttendancePage({
           <Link
             href={`/ceo/attendance?view=day&project=${projectId ?? ""}&date=${workDate}`}
             className={cn(
-              "inline-flex min-h-10 items-center gap-2 border px-4 text-sm font-semibold",
+              "inline-flex min-h-11 items-center gap-2 border px-4 text-sm font-semibold",
               view === "day"
-                ? "border-stone-950 bg-stone-950 text-white"
-                : "border-stone-300 bg-white",
+                ? "border-violet-950 bg-violet-950 text-white"
+                : "border-violet-100 bg-white",
             )}
           >
             <CalendarDays className="size-4" aria-hidden="true" />
@@ -131,10 +131,10 @@ export default async function CeoAttendancePage({
           <Link
             href={`/ceo/attendance?view=month&project=${projectId ?? ""}&month=${month}`}
             className={cn(
-              "inline-flex min-h-10 items-center gap-2 border px-4 text-sm font-semibold",
+              "inline-flex min-h-11 items-center gap-2 border px-4 text-sm font-semibold",
               view === "month"
-                ? "border-stone-950 bg-stone-950 text-white"
-                : "border-stone-300 bg-white",
+                ? "border-violet-950 bg-violet-950 text-white"
+                : "border-violet-100 bg-white",
             )}
           >
             <Clock3 className="size-4" aria-hidden="true" />
@@ -144,13 +144,13 @@ export default async function CeoAttendancePage({
       </div>
 
       {projects.length === 0 ? (
-        <div className="m-5 border border-dashed border-stone-300 bg-white p-10 text-center sm:m-8">
+        <div className="m-5 border border-dashed border-violet-100 bg-white p-10 text-center sm:m-8">
           <CalendarDays
-            className="mx-auto size-8 text-stone-400"
+            className="mx-auto size-8 text-slate-400"
             aria-hidden="true"
           />
           <h2 className="mt-4 text-xl font-semibold">No active project</h2>
-          <p className="mt-2 text-sm text-stone-500">
+          <p className="mt-2 text-sm text-slate-500">
             Create or reactivate a project before recording attendance.
           </p>
         </div>
@@ -181,7 +181,7 @@ export default async function CeoAttendancePage({
       ) : (
         <section className="px-5 pb-10 pt-6 sm:px-8">
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="border border-stone-300 bg-white p-4">
+            <div className="border border-violet-100 bg-white p-4">
               <CheckCircle2
                 className="size-5 text-emerald-700"
                 aria-hidden="true"
@@ -189,22 +189,22 @@ export default async function CeoAttendancePage({
               <p className="mt-4 text-3xl font-semibold">
                 {allMonthRows.length}
               </p>
-              <p className="mt-1 text-xs uppercase tracking-wider text-stone-500">
+              <p className="mt-1 text-xs uppercase tracking-wider text-slate-500">
                 Recorded worker-days
               </p>
             </div>
-            <div className="border border-stone-300 bg-white p-4">
+            <div className="border border-violet-100 bg-white p-4">
               <AlertTriangle
                 className="size-5 text-red-700"
                 aria-hidden="true"
               />
               <p className="mt-4 text-3xl font-semibold">{exceptionRows}</p>
-              <p className="mt-1 text-xs uppercase tracking-wider text-stone-500">
+              <p className="mt-1 text-xs uppercase tracking-wider text-slate-500">
                 Days needing correction
               </p>
             </div>
-            <div className="border border-stone-300 bg-white p-4">
-              <Clock3 className="size-5 text-amber-700" aria-hidden="true" />
+            <div className="border border-violet-100 bg-white p-4">
+              <Clock3 className="size-5 text-violet-700" aria-hidden="true" />
               <p className="mt-4 text-3xl font-semibold">
                 {formatMinutes(
                   allMonthRows.reduce(
@@ -213,7 +213,7 @@ export default async function CeoAttendancePage({
                   ),
                 )}
               </p>
-              <p className="mt-1 text-xs uppercase tracking-wider text-stone-500">
+              <p className="mt-1 text-xs uppercase tracking-wider text-slate-500">
                 Valid payable time
               </p>
             </div>
@@ -226,21 +226,97 @@ export default async function CeoAttendancePage({
             <label className="relative block max-w-md">
               <span className="sr-only">Search workers</span>
               <Search
-                className="pointer-events-none absolute left-3 top-3.5 size-4 text-stone-400"
+                className="pointer-events-none absolute left-3 top-3.5 size-4 text-slate-400"
                 aria-hidden="true"
               />
               <input
                 name="query"
                 defaultValue={params.query}
-                placeholder="Search worker"
-                className="h-11 w-full border border-stone-300 bg-white pl-10 pr-3 text-sm"
+                placeholder="Search worker…"
+                className="h-11 w-full border border-violet-100 bg-white pl-10 pr-3 text-sm"
               />
             </label>
           </form>
 
-          <div className="mt-4 overflow-x-auto border border-stone-300 bg-white">
+          <div className="mt-4 grid gap-3 md:hidden">
+            {monthRows.map((row) => (
+              <article
+                key={`${row.date}:${row.workerId}:mobile`}
+                className="border border-violet-100 bg-white p-4"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold">{row.workerName}</p>
+                    <p className="mt-1 text-xs tabular-nums text-slate-500">
+                      {row.date}
+                    </p>
+                  </div>
+                  <span
+                    className={cn(
+                      "inline-flex shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold",
+                      row.status === "LEAVE"
+                        ? "border-blue-200 bg-blue-50 text-blue-800"
+                        : row.exceptionCount > 0
+                          ? "border-red-200 bg-red-50 text-red-800"
+                          : "border-emerald-200 bg-emerald-50 text-emerald-800",
+                    )}
+                  >
+                    {row.status === "LEAVE"
+                      ? "On leave"
+                      : row.exceptionCount > 0
+                        ? "Needs correction"
+                        : "Complete"}
+                  </span>
+                </div>
+                <dl className="mt-4 grid grid-cols-2 gap-3 rounded-xl bg-slate-50 p-3 text-sm">
+                  <div>
+                    <dt className="text-xs text-slate-500">Normal</dt>
+                    <dd className="mt-1 font-semibold">
+                      {formatMinutes(row.normalMinutes)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-slate-500">After 5 PM</dt>
+                    <dd className="mt-1 font-semibold">
+                      {formatMinutes(row.overtimeMinutes)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-slate-500">Sunday</dt>
+                    <dd className="mt-1 font-semibold">
+                      {formatMinutes(row.sundayMinutes)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-slate-500">Public holiday</dt>
+                    <dd className="mt-1 font-semibold">
+                      {formatMinutes(row.publicHolidayMinutes)}
+                    </dd>
+                  </div>
+                </dl>
+                {row.status === "LEAVE" ? (
+                  <p className="mt-3 text-xs text-blue-700">
+                    Approved leave · {row.leaveTypeName}
+                  </p>
+                ) : null}
+                <Link
+                  href={`/ceo/attendance?view=day&project=${projectId}&date=${row.date}`}
+                  className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-violet-50 px-4 text-sm font-semibold text-violet-800"
+                >
+                  Inspect day
+                </Link>
+              </article>
+            ))}
+            {monthRows.length === 0 ? (
+              <p className="rounded-2xl border border-dashed border-violet-200 bg-white px-5 py-10 text-center text-sm text-slate-500">
+                No recorded attendance matches this month and search.
+              </p>
+            ) : null}
+          </div>
+
+          <div className="mt-4 hidden overflow-x-auto border border-violet-100 bg-white md:block">
             <table className="w-full min-w-[54rem] text-left text-sm">
-              <thead className="border-b border-stone-300 bg-stone-50 text-xs uppercase tracking-wider text-stone-500">
+              <thead className="border-b border-violet-100 bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
                 <tr>
                   <th className="px-4 py-3 font-semibold">Date</th>
                   <th className="px-4 py-3 font-semibold">Worker</th>
@@ -252,7 +328,7 @@ export default async function CeoAttendancePage({
                   <th className="px-4 py-3 font-semibold">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-200">
+              <tbody className="divide-y divide-slate-200">
                 {monthRows.map((row) => (
                   <tr key={`${row.date}:${row.workerId}`}>
                     <td className="px-4 py-3 tabular-nums">{row.date}</td>
@@ -303,7 +379,7 @@ export default async function CeoAttendancePage({
                   <tr>
                     <td
                       colSpan={8}
-                      className="px-6 py-12 text-center text-stone-500"
+                      className="px-6 py-12 text-center text-slate-500"
                     >
                       No recorded attendance matches this month and search.
                     </td>

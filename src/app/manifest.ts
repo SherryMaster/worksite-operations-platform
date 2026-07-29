@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    background_color: "#f5f5f4",
-    description: "Secure mobile attendance for Worksite Operations Foremen.",
+    background_color: "#f7f6fb",
+    description: "Secure construction workforce operations for company teams.",
     display: "standalone",
     icons: [
       {
@@ -19,9 +19,8 @@ export default function manifest(): MetadataRoute.Manifest {
       },
     ],
     name: "Worksite Operations",
-    orientation: "portrait",
     short_name: "Worksite",
-    start_url: "/foreman",
-    theme_color: "#1c1917",
+    start_url: "/",
+    theme_color: "#6d28d9",
   };
 }

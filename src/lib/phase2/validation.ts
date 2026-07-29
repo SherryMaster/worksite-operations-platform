@@ -55,10 +55,6 @@ export const foremanAccountSchema = z.object({
     z.email().trim().toLowerCase().nullable(),
   ),
   initialPassword: z.string().min(8).max(128),
-  mfaRequired: z.preprocess(
-    (value) => value === "on" || value === true,
-    z.boolean(),
-  ),
 });
 
 export const foremanPasswordSchema = z.object({

@@ -95,7 +95,7 @@ set local role authenticated;
 
 select set_config(
   'request.jwt.claims',
-  '{"sub":"user_phase3_ceo","role":"authenticated","fva":[0,-1]}',
+  '{"sub":"user_phase3_ceo","role":"authenticated"}',
   true
 );
 
@@ -189,7 +189,7 @@ where legal_name = 'Phase Three Worker';
 
 select set_config(
   'request.jwt.claims',
-  '{"sub":"user_phase3_foreman_a","role":"authenticated","fva":[0,0]}',
+  '{"sub":"user_phase3_foreman_a","role":"authenticated"}',
   true
 );
 
@@ -244,7 +244,7 @@ $$;
 
 select set_config(
   'request.jwt.claims',
-  '{"sub":"user_phase3_ceo","role":"authenticated","fva":[0,-1]}',
+  '{"sub":"user_phase3_ceo","role":"authenticated"}',
   true
 );
 
@@ -295,7 +295,7 @@ $$;
 
 select set_config(
   'request.jwt.claims',
-  '{"sub":"user_phase3_foreman_a","role":"authenticated","fva":[0,0]}',
+  '{"sub":"user_phase3_foreman_a","role":"authenticated"}',
   true
 );
 
@@ -316,7 +316,7 @@ $$;
 
 select set_config(
   'request.jwt.claims',
-  '{"sub":"user_phase3_foreman_b","role":"authenticated","fva":[0,0]}',
+  '{"sub":"user_phase3_foreman_b","role":"authenticated"}',
   true
 );
 
@@ -339,7 +339,7 @@ $$;
 
 select set_config(
   'request.jwt.claims',
-  '{"sub":"user_phase3_ceo","role":"authenticated","fva":[0,-1]}',
+  '{"sub":"user_phase3_ceo","role":"authenticated"}',
   true
 );
 

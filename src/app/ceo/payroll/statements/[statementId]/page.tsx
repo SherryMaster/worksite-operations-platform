@@ -52,7 +52,7 @@ export default async function PayrollStatementPage({
       <div className="mb-6 flex items-center justify-between gap-4 print:hidden">
         <Link
           href={`/ceo/payroll/${data.run.id}/workers/${data.statement.payroll_worker_id}`}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-stone-600"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600"
         >
           <ArrowLeft className="size-4" aria-hidden="true" />
           Worker payroll
@@ -60,16 +60,16 @@ export default async function PayrollStatementPage({
         <PrintStatementButton />
       </div>
 
-      <article className="border border-stone-300 bg-white p-6 sm:p-10 print:border-0">
-        <header className="flex flex-col gap-5 border-b-2 border-stone-950 pb-6 sm:flex-row sm:items-start sm:justify-between">
+      <article className="border border-violet-100 bg-white p-6 sm:p-10 print:border-0">
+        <header className="flex flex-col gap-5 border-b-2 border-violet-950 pb-6 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-500">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
               {companyName}
             </p>
             <h1 className="mt-3 font-heading text-4xl font-semibold uppercase">
               Monthly payroll statement
             </h1>
-            <p className="mt-2 text-sm text-stone-500">
+            <p className="mt-2 text-sm text-slate-500">
               {data.statement.statement_number}
             </p>
           </div>
@@ -77,7 +77,7 @@ export default async function PayrollStatementPage({
             <p className="font-heading text-2xl font-semibold uppercase">
               {payrollMonthLabel(data.run.payroll_month)}
             </p>
-            <p className="mt-2 text-sm text-stone-500">
+            <p className="mt-2 text-sm text-slate-500">
               Approved statement generated{" "}
               {formatDateTime(data.statement.generated_at)}
             </p>
@@ -86,7 +86,7 @@ export default async function PayrollStatementPage({
 
         <section className="mt-6 grid gap-4 sm:grid-cols-2">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
               Worker
             </p>
             <p className="mt-1 text-xl font-semibold">
@@ -94,7 +94,7 @@ export default async function PayrollStatementPage({
             </p>
           </div>
           <div className="sm:text-right">
-            <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
               Approved net pay
             </p>
             <p className="mt-1 font-heading text-3xl font-semibold">
@@ -107,9 +107,9 @@ export default async function PayrollStatementPage({
           <h2 className="font-heading text-2xl font-semibold uppercase">
             Earnings
           </h2>
-          <div className="mt-3 overflow-hidden border border-stone-300">
+          <div className="mt-3 overflow-hidden border border-violet-100">
             <table className="w-full text-left text-sm">
-              <thead className="bg-stone-50 text-xs uppercase tracking-wider text-stone-500">
+              <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
                 <tr>
                   <th className="px-4 py-3">Category</th>
                   <th className="px-4 py-3">Minutes</th>
@@ -117,7 +117,7 @@ export default async function PayrollStatementPage({
                   <th className="px-4 py-3 text-right">Amount</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-200">
+              <tbody className="divide-y divide-slate-200">
                 {buckets.map((bucket, index) => (
                   <tr key={`${String(bucket.id)}-${index}`}>
                     <td className="px-4 py-3">
@@ -138,7 +138,7 @@ export default async function PayrollStatementPage({
                   </tr>
                 ))}
               </tbody>
-              <tfoot className="border-t border-stone-300 bg-stone-50">
+              <tfoot className="border-t border-violet-100 bg-slate-50">
                 <tr>
                   <th colSpan={3} className="px-4 py-3 text-left">
                     Gross earnings
@@ -157,7 +157,7 @@ export default async function PayrollStatementPage({
             <h2 className="font-heading text-2xl font-semibold uppercase">
               Additions and deductions
             </h2>
-            <dl className="mt-3 divide-y divide-stone-200 border border-stone-300 text-sm">
+            <dl className="mt-3 divide-y divide-slate-200 border border-violet-100 text-sm">
               {adjustments.map((adjustment, index) => (
                 <div
                   key={`${String(adjustment.id)}-${index}`}
@@ -176,7 +176,7 @@ export default async function PayrollStatementPage({
                   −{formatSen(number(snapshot.food_deduction_sen))}
                 </dd>
               </div>
-              <div className="flex justify-between gap-4 bg-stone-50 p-3">
+              <div className="flex justify-between gap-4 bg-slate-50 p-3">
                 <dt className="font-semibold">Net pay</dt>
                 <dd className="font-semibold">
                   {formatSen(number(snapshot.net_pay_sen))}
@@ -188,7 +188,7 @@ export default async function PayrollStatementPage({
             <h2 className="font-heading text-2xl font-semibold uppercase">
               Attendance and unpaid leave
             </h2>
-            <div className="mt-3 max-h-80 divide-y divide-stone-200 overflow-auto border border-stone-300 text-sm print:max-h-none print:overflow-visible">
+            <div className="mt-3 max-h-80 divide-y divide-slate-200 overflow-auto border border-violet-100 text-sm print:max-h-none print:overflow-visible">
               {sourceDays.map((day, index) => {
                 const minutes =
                   number(day.normal_minutes) +
@@ -204,7 +204,7 @@ export default async function PayrollStatementPage({
                       <p className="font-semibold">
                         {formatDate(String(day.work_date))}
                       </p>
-                      <p className="mt-1 text-xs text-stone-500">
+                      <p className="mt-1 text-xs text-slate-500">
                         {String(day.day_type)
                           .toLowerCase()
                           .replaceAll("_", " ")}
@@ -223,20 +223,20 @@ export default async function PayrollStatementPage({
           </div>
         </section>
 
-        <footer className="mt-8 border-t border-stone-300 pt-5 text-xs leading-5 text-stone-500">
+        <footer className="mt-8 border-t border-violet-100 pt-5 text-xs leading-5 text-slate-500">
           <p>
             Amounts are generated from the immutable approved payroll snapshot.
             Worked time is calculated by minute; approved full-day unpaid leave
             contributes zero payable time.
           </p>
           {data.payment ? (
-            <p className="mt-2 font-semibold text-stone-700">
+            <p className="mt-2 font-semibold text-slate-700">
               Paid in full on {formatDate(data.payment.payment_date)} by{" "}
               {data.payment.method === "CASH" ? "cash" : "bank transfer"}
               {data.payment.reference ? ` · ${data.payment.reference}` : ""}.
             </p>
           ) : (
-            <p className="mt-2 font-semibold text-stone-700">
+            <p className="mt-2 font-semibold text-slate-700">
               Payment status: unpaid.
             </p>
           )}

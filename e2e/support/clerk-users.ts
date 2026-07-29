@@ -1,17 +1,12 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 
-type ClerkUser = {
-  two_factor_enabled: boolean;
-};
-
 type ClerkSignInToken = {
   token: string;
 };
 
 export type PhaseOneTestUser = {
   signInTicket: string;
-  mfaEnabled: boolean;
 };
 
 function getRoleClerkUserIds(role: "CEO" | "FOREMAN"): string[] {
@@ -120,7 +115,6 @@ export async function getPhaseOneTestUser(
       );
     }
 
-    const clerkUser = (await userResponse.json()) as ClerkUser;
     const tokenResponse = await clerkRequest("/sign_in_tokens", secretKey, {
       method: "POST",
       body: JSON.stringify({
@@ -139,7 +133,6 @@ export async function getPhaseOneTestUser(
 
     return {
       signInTicket: token.token,
-      mfaEnabled: clerkUser.two_factor_enabled,
     };
   }
 

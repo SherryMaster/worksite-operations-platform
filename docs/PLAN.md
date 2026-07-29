@@ -203,7 +203,7 @@ Create a deployable application foundation and prove that CEO and Foreman access
 ### Required Proof
 
 - a CEO can sign in and open the CEO application shell;
-- a Foreman can sign in only after required MFA setup;
+- an active Foreman can sign in and open the assigned project workspace;
 - an unauthenticated user is denied;
 - a Foreman cannot reach CEO routes;
 - RLS tests demonstrate that unauthorized records cannot be read through the selected access path;
@@ -462,7 +462,7 @@ Prove the complete operating cycle, prepare production safely, and replace Excel
 
 - resolve defects from all accepted phases;
 - production configuration review;
-- Clerk production roles and MFA verification;
+- Clerk production roles and account-access verification;
 - Supabase production schema migration review;
 - RLS and private Storage access review;
 - backup and recovery procedure test;
@@ -677,7 +677,7 @@ Production cutover requires all of the following:
 ### Access and Security
 
 - CEO production access works.
-- Every active Foreman has the correct project and required MFA.
+- Every active Foreman has the correct project assignment.
 - Former or unauthorized users cannot access the application.
 - RLS and private Storage checks pass.
 - Production secrets are present only in production.

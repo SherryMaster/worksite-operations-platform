@@ -1,7 +1,7 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import { shadcn } from "@clerk/ui/themes";
-import type { Metadata } from "next";
-import { Barlow_Condensed, IBM_Plex_Sans } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { IBM_Plex_Sans } from "next/font/google";
 
 import { cn } from "@/lib/utils";
 import { WorksiteSerwistProvider } from "@/components/phase4/serwist-provider";
@@ -11,19 +11,13 @@ import "./globals.css";
 const sans = IBM_Plex_Sans({
   subsets: ["latin"],
   variable: "--font-worksite-sans",
-  weight: ["400", "500", "600"],
-});
-
-const heading = Barlow_Condensed({
-  subsets: ["latin"],
-  variable: "--font-worksite-heading",
-  weight: ["500", "600", "700"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black",
+    statusBarStyle: "default",
     title: "Worksite",
   },
   title: {
@@ -37,6 +31,11 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
 };
 
+export const viewport: Viewport = {
+  themeColor: "#6d28d9",
+  viewportFit: "cover",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -44,11 +43,7 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider appearance={{ theme: shadcn }}>
-      <html
-        lang="en"
-        className={cn(sans.variable, heading.variable)}
-        suppressHydrationWarning
-      >
+      <html lang="en" className={cn(sans.variable)} suppressHydrationWarning>
         <body>
           <WorksiteSerwistProvider>{children}</WorksiteSerwistProvider>
         </body>

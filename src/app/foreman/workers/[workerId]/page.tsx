@@ -31,29 +31,29 @@ export default async function ForemanWorkerPage({
     <main className="min-h-[calc(100vh-9rem)] px-4 pb-24 pt-6">
       <Link
         href="/foreman/workers"
-        className="inline-flex items-center gap-2 text-sm text-stone-600"
+        className="inline-flex items-center gap-2 text-sm text-slate-600"
       >
         <ChevronLeft className="size-4" aria-hidden="true" />
         Back to workers
       </Link>
 
-      <div className="mt-6 border-b border-stone-300 pb-6">
-        <p className="text-xs font-semibold uppercase tracking-wider text-amber-700">
+      <div className="mt-6 border-b border-violet-100 pb-6">
+        <p className="text-xs font-semibold uppercase tracking-wider text-violet-700">
           {worker.tradeName ?? "No trade"} ·{" "}
           {worker.skillName ?? "No skill level"}
         </p>
         <h1 className="mt-2 font-heading text-4xl font-semibold uppercase leading-none">
           {worker.legal_name}
         </h1>
-        <p className="mt-3 text-sm text-stone-500">
+        <p className="mt-3 text-sm text-slate-500">
           {maskIdentifier(worker.cnic_number ?? worker.passport_number)}
         </p>
       </div>
 
-      <section className="mt-5 border border-stone-300 bg-white">
-        <dl className="divide-y divide-stone-200">
+      <section className="mt-5 border border-violet-100 bg-white">
+        <dl className="divide-y divide-slate-200">
           <div className="p-4">
-            <dt className="text-xs font-semibold uppercase tracking-wider text-stone-500">
+            <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">
               Phone
             </dt>
             <dd className="mt-2">
@@ -67,7 +67,7 @@ export default async function ForemanWorkerPage({
             </dd>
           </div>
           <div className="p-4">
-            <dt className="text-xs font-semibold uppercase tracking-wider text-stone-500">
+            <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">
               Employment status
             </dt>
             <dd className="mt-2 text-sm font-semibold">
@@ -81,19 +81,19 @@ export default async function ForemanWorkerPage({
         </dl>
       </section>
 
-      <section className="mt-5 border border-stone-300 bg-white">
-        <div className="border-b border-stone-200 p-4">
+      <section className="mt-5 border border-violet-100 bg-white">
+        <div className="border-b border-slate-200 p-4">
           <h2 className="flex items-center gap-2 font-heading text-xl font-semibold uppercase">
-            <FileText className="size-5 text-amber-700" aria-hidden="true" />
+            <FileText className="size-5 text-violet-700" aria-hidden="true" />
             Documents
           </h2>
         </div>
         {documents.length === 0 ? (
-          <p className="p-4 text-sm text-stone-500">
+          <p className="p-4 text-sm text-slate-500">
             No current worker documents are recorded.
           </p>
         ) : (
-          <ol className="divide-y divide-stone-200">
+          <ol className="divide-y divide-slate-200">
             {documents.map((document) => (
               <li key={document.id} className="p-4">
                 <div className="flex items-start justify-between gap-3">
@@ -101,7 +101,7 @@ export default async function ForemanWorkerPage({
                     <p className="text-sm font-semibold">
                       {document.documentTypeName}
                     </p>
-                    <p className="mt-1 text-xs text-stone-500">
+                    <p className="mt-1 text-xs text-slate-500">
                       {document.expiry_date
                         ? `Expires ${formatDate(document.expiry_date)}`
                         : "No expiry date recorded"}
@@ -121,7 +121,7 @@ export default async function ForemanWorkerPage({
                   <Link
                     href={`/api/workers/${worker.id}/documents/${document.id}`}
                     aria-label={`Open ${document.documentTypeName}`}
-                    className="grid size-11 shrink-0 place-items-center border border-stone-300"
+                    className="grid size-11 shrink-0 place-items-center border border-violet-100"
                   >
                     <ArrowUpRight className="size-4" aria-hidden="true" />
                   </Link>

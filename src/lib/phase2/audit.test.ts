@@ -27,58 +27,6 @@ describe("audit presentation", () => {
     });
   });
 
-  it("explains optional MFA changes without exposing internal IDs", () => {
-    const result = presentAuditEntry({
-      action: "users.update",
-      actorName: "Sherry",
-      beforeData: {
-        clerk_user_id: "user_secret",
-        mfa_required: false,
-      },
-      afterData: {
-        clerk_user_id: "user_secret",
-        mfa_required: true,
-      },
-      entityType: "application_users",
-      foremanName: "Ali Khan",
-      module: "users",
-      projectName: null,
-      source: "ONLINE",
-    });
-
-    expect(result.title).toBe("MFA required");
-    expect(result.summary).toBe("Sherry required MFA for Ali Khan.");
-    expect(result.changes).toEqual([
-      { field: "MFA requirement", from: "Off", to: "Required" },
-    ]);
-  });
-
-  it("explains removal of optional enrolled MFA methods", () => {
-    const result = presentAuditEntry({
-      action: "users.mfa_disabled",
-      actorName: "Sherry",
-      beforeData: null,
-      afterData: { enrolled_mfa_methods_removed: true },
-      entityType: "application_users",
-      foremanName: "Ali Khan",
-      module: "users",
-      projectName: null,
-      source: "ONLINE",
-    });
-
-    expect(result.title).toBe("MFA turned off");
-    expect(result.summary).toBe(
-      "Sherry turned MFA off for Ali Khan and removed the enrolled methods.",
-    );
-    expect(result.changes).toEqual([
-      {
-        field: "Authenticator and backup codes removed",
-        from: null,
-        to: "Yes",
-      },
-    ]);
-  });
-
   it("describes worker rate changes in plain English and formats sen", () => {
     const result = presentAuditEntry({
       action: "worker_rates.insert",

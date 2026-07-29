@@ -33,14 +33,14 @@ export function PayrollPaymentForm({
           type="date"
           defaultValue={malaysiaDateInputValue()}
           required
-          className="mt-2 h-11 rounded-none bg-white"
+          className="mt-2 h-11 rounded-xl bg-white"
         />
       </div>
-      <label className="text-xs font-semibold uppercase tracking-wider text-stone-600">
+      <label className="text-xs font-semibold uppercase tracking-wider text-slate-600">
         Method
         <select
           name="method"
-          className="mt-2 h-11 w-full border border-stone-300 bg-white px-3 text-sm normal-case"
+          className="mt-2 h-11 w-full border border-violet-100 bg-white px-3 text-sm normal-case"
           defaultValue="CASH"
           required
         >
@@ -56,7 +56,7 @@ export function PayrollPaymentForm({
           id={`payment-reference-${payrollWorkerId}`}
           name="reference"
           maxLength={120}
-          className="mt-2 h-11 rounded-none bg-white"
+          className="mt-2 h-11 rounded-xl bg-white"
         />
       </div>
       <div className="sm:col-span-2">
@@ -67,7 +67,7 @@ export function PayrollPaymentForm({
           id={`payment-notes-${payrollWorkerId}`}
           name="notes"
           maxLength={1000}
-          className="mt-2 rounded-none bg-white"
+          className="mt-2 rounded-xl bg-white"
         />
       </div>
       <p className="sm:col-span-2 text-xs leading-5 text-emerald-900">

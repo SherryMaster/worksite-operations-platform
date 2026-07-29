@@ -1,6 +1,6 @@
 "use client";
 
-import { Download } from "lucide-react";
+import { Download, LoaderCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 
 type InstallPromptEvent = Event & {
@@ -10,6 +10,7 @@ type InstallPromptEvent = Event & {
 
 export function InstallAppButton() {
   const [prompt, setPrompt] = useState<InstallPromptEvent | null>(null);
+  const [installing, setInstalling] = useState(false);
 
   useEffect(() => {
     function capturePrompt(event: Event) {
@@ -26,15 +27,28 @@ export function InstallAppButton() {
   return (
     <button
       type="button"
+      disabled={installing}
       onClick={async () => {
-        await prompt.prompt();
-        const choice = await prompt.userChoice;
-        if (choice.outcome === "accepted") setPrompt(null);
+        setInstalling(true);
+        try {
+          await prompt.prompt();
+          const choice = await prompt.userChoice;
+          if (choice.outcome === "accepted") setPrompt(null);
+        } finally {
+          setInstalling(false);
+        }
       }}
-      className="mt-3 inline-flex min-h-10 items-center gap-2 border border-stone-700 px-3 text-xs font-semibold text-stone-200"
+      className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl border border-violet-200 bg-white px-3 text-xs font-semibold text-violet-800 disabled:cursor-wait disabled:opacity-70"
     >
-      <Download className="size-4 text-amber-400" aria-hidden="true" />
-      Install attendance app
+      {installing ? (
+        <LoaderCircle
+          className="size-4 animate-spin text-violet-600"
+          aria-hidden="true"
+        />
+      ) : (
+        <Download className="size-4 text-violet-600" aria-hidden="true" />
+      )}
+      {installing ? "Opening install prompt…" : "Install Worksite App"}
     </button>
   );
 }

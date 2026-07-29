@@ -22,7 +22,7 @@ export function FormSubmitButton({
       disabled={pending}
       aria-busy={pending}
       className={cn(
-        "inline-flex items-center justify-center gap-2 disabled:cursor-wait disabled:opacity-70",
+        "inline-flex min-h-11 touch-manipulation items-center justify-center gap-2 rounded-xl transition-[background-color,color,border-color,box-shadow] disabled:cursor-wait disabled:opacity-70",
         className,
       )}
     >

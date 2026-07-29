@@ -23,15 +23,15 @@ export default async function ImportCenterPage() {
 
   return (
     <main className="px-5 py-8 sm:px-8 lg:py-10">
-      <div className="flex flex-col gap-5 border-b border-stone-300 pb-8 lg:flex-row lg:items-end lg:justify-between">
+      <div className="flex flex-col gap-5 border-b border-violet-100 pb-8 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="font-heading text-xs font-semibold uppercase tracking-[0.23em] text-amber-700">
+          <p className="font-heading text-xs font-semibold uppercase tracking-[0.23em] text-violet-700">
             Controlled Excel migration
           </p>
           <h1 className="mt-3 font-heading text-4xl font-semibold uppercase leading-none sm:text-6xl">
             Import Center
           </h1>
-          <p className="mt-4 max-w-3xl text-sm leading-6 text-stone-600">
+          <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-600">
             Move copied legacy data through a fixed template, row-level
             validation, a no-change preview, duplicate protection, and a
             reconciled commit history.
@@ -48,7 +48,7 @@ export default async function ImportCenterPage() {
           </a>
           <Link
             href="/ceo/reports"
-            className="inline-flex min-h-11 items-center border border-stone-300 bg-white px-4 text-sm font-semibold"
+            className="inline-flex min-h-11 items-center border border-violet-100 bg-white px-4 text-sm font-semibold"
           >
             Back to Reports
           </Link>
@@ -70,9 +70,9 @@ export default async function ImportCenterPage() {
             "Valid projects, workers, assignments, rates, and private documents commit together and appear across the app.",
           ],
         ].map(([title, description]) => (
-          <div key={title} className="border border-stone-300 bg-white p-4">
+          <div key={title} className="border border-violet-100 bg-white p-4">
             <h2 className="font-semibold">{title}</h2>
-            <p className="mt-2 text-sm leading-6 text-stone-600">
+            <p className="mt-2 text-sm leading-6 text-slate-600">
               {description}
             </p>
           </div>
@@ -93,8 +93,8 @@ export default async function ImportCenterPage() {
       <ImportWorkspace />
 
       <section className="mt-8" aria-labelledby="import-history-title">
-        <div className="flex items-center gap-3 border-b border-stone-300 pb-3">
-          <History className="size-5 text-amber-700" aria-hidden="true" />
+        <div className="flex items-center gap-3 border-b border-violet-100 pb-3">
+          <History className="size-5 text-violet-700" aria-hidden="true" />
           <div>
             <h2
               id="import-history-title"
@@ -102,14 +102,14 @@ export default async function ImportCenterPage() {
             >
               Reconciliation History
             </h2>
-            <p className="mt-1 text-sm text-stone-500">
+            <p className="mt-1 text-sm text-slate-500">
               Recent previews and committed row totals.
             </p>
           </div>
         </div>
 
         {batches.length === 0 ? (
-          <p className="mt-4 border border-dashed border-stone-300 bg-white p-8 text-center text-sm text-stone-500">
+          <p className="mt-4 border border-dashed border-violet-100 bg-white p-8 text-center text-sm text-slate-500">
             No workbook has been previewed yet.
           </p>
         ) : (
@@ -119,14 +119,14 @@ export default async function ImportCenterPage() {
               return (
                 <li
                   key={batch.id}
-                  className="grid gap-4 border border-stone-300 bg-white p-4 lg:grid-cols-[minmax(0,1.4fr)_repeat(5,minmax(4rem,0.6fr))_auto] lg:items-center"
+                  className="grid gap-4 border border-violet-100 bg-white p-4 lg:grid-cols-[minmax(0,1.4fr)_repeat(5,minmax(4rem,0.6fr))_auto] lg:items-center"
                 >
                   <div className="min-w-0">
                     <p className="truncate font-semibold">{batch.file_name}</p>
-                    <p className="mt-1 text-xs text-stone-500">
+                    <p className="mt-1 text-xs text-slate-500">
                       Previewed {formatDateTime(batch.created_at)}
                     </p>
-                    <p className="mt-1 font-mono text-[0.65rem] text-stone-400">
+                    <p className="mt-1 font-mono text-[0.65rem] text-slate-400">
                       {batch.file_checksum.slice(0, 12)}…
                     </p>
                   </div>
@@ -141,7 +141,7 @@ export default async function ImportCenterPage() {
                       <p className="text-xl font-semibold tabular-nums">
                         {summaryValue(batch.summary, key)}
                       </p>
-                      <p className="text-[0.6rem] uppercase tracking-wider text-stone-500">
+                      <p className="text-[0.6rem] uppercase tracking-wider text-slate-500">
                         {label}
                       </p>
                     </div>

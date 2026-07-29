@@ -92,15 +92,15 @@ export default async function WorkerDetailPage({
     <main className="px-5 py-8 sm:px-8 lg:py-10">
       <Link
         href="/ceo/workers"
-        className="inline-flex items-center gap-2 text-sm text-stone-600 hover:text-stone-950"
+        className="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-slate-950"
       >
         <ChevronLeft className="size-4" aria-hidden="true" />
         Back to workers
       </Link>
 
-      <div className="mt-6 flex flex-col gap-6 border-b border-stone-300 pb-8 xl:flex-row xl:items-end xl:justify-between">
+      <div className="mt-6 flex flex-col gap-6 border-b border-violet-100 pb-8 xl:flex-row xl:items-end xl:justify-between">
         <div className="flex items-start gap-5">
-          <div className="relative grid size-20 shrink-0 place-items-center overflow-hidden border border-stone-300 bg-stone-100 font-heading text-2xl font-semibold text-stone-500">
+          <div className="relative grid size-20 shrink-0 place-items-center overflow-hidden border border-violet-100 bg-violet-50 font-heading text-2xl font-semibold text-slate-500">
             {worker.photoId ? (
               <Image
                 src={`/api/workers/${worker.id}/documents/${worker.photoId}`}
@@ -119,17 +119,17 @@ export default async function WorkerDetailPage({
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="border border-stone-300 bg-white px-2 py-1 text-xs font-semibold uppercase tracking-wider">
+              <span className="border border-violet-100 bg-white px-2 py-1 text-xs font-semibold uppercase tracking-wider">
                 {employmentLabel(currentStatus)}
               </span>
-              <span className="text-xs text-stone-500">
+              <span className="text-xs text-slate-500">
                 {worker.projectName ?? "Awaiting assignment"}
               </span>
             </div>
             <h1 className="mt-3 font-heading text-4xl font-semibold uppercase leading-none sm:text-6xl">
               {worker.legal_name}
             </h1>
-            <p className="mt-3 text-sm text-stone-600">
+            <p className="mt-3 text-sm text-slate-600">
               {worker.tradeName ?? "No trade"} ·{" "}
               {worker.skillName ?? "No skill level"}
             </p>
@@ -138,7 +138,7 @@ export default async function WorkerDetailPage({
         {currentStatus !== "ARCHIVED" ? (
           <Link
             href={`/ceo/workers/${worker.id}/edit`}
-            className="inline-flex min-h-11 items-center justify-center gap-2 border border-stone-300 bg-white px-4 text-sm font-semibold hover:border-stone-950"
+            className="inline-flex min-h-11 items-center justify-center gap-2 border border-violet-100 bg-white px-4 text-sm font-semibold hover:border-violet-950"
           >
             <Pencil className="size-4" aria-hidden="true" />
             Edit Worker
@@ -148,7 +148,7 @@ export default async function WorkerDetailPage({
 
       <nav
         aria-label="Worker sections"
-        className="mt-6 flex gap-1 overflow-x-auto border-b border-stone-300"
+        className="mt-6 flex gap-1 overflow-x-auto border-b border-violet-100"
       >
         {[
           ["Overview", "#overview"],
@@ -166,7 +166,7 @@ export default async function WorkerDetailPage({
             className={
               index === 0
                 ? "shrink-0 border-b-2 border-amber-600 px-4 py-3 text-sm font-semibold"
-                : "shrink-0 border-b-2 border-transparent px-4 py-3 text-sm text-stone-500 hover:text-stone-950"
+                : "shrink-0 border-b-2 border-transparent px-4 py-3 text-sm text-slate-500 hover:text-slate-950"
             }
           >
             {label}
@@ -178,9 +178,9 @@ export default async function WorkerDetailPage({
         id="overview"
         className="mt-8 grid gap-6 xl:grid-cols-[1.3fr_0.7fr]"
       >
-        <article className="border border-stone-300 bg-white">
-          <div className="border-b border-stone-200 p-5">
-            <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
+        <article className="border border-violet-100 bg-white">
+          <div className="border-b border-slate-200 p-5">
+            <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-violet-700">
               Overview
             </p>
             <h2 className="mt-1 font-heading text-2xl font-semibold uppercase">
@@ -210,19 +210,19 @@ export default async function WorkerDetailPage({
             ].map(([label, value]) => (
               <div
                 key={label}
-                className="border-b border-stone-200 p-5 sm:odd:border-r"
+                className="border-b border-slate-200 p-5 sm:odd:border-r"
               >
-                <dt className="text-xs font-semibold uppercase tracking-wider text-stone-500">
+                <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                   {label}
                 </dt>
                 <dd className="mt-2 text-sm font-medium">{value}</dd>
               </div>
             ))}
             <div className="p-5 sm:col-span-2">
-              <dt className="text-xs font-semibold uppercase tracking-wider text-stone-500">
+              <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                 Address and notes
               </dt>
-              <dd className="mt-2 whitespace-pre-wrap text-sm leading-6 text-stone-700">
+              <dd className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
                 {[worker.address, worker.notes].filter(Boolean).join("\n\n") ||
                   "No address or notes recorded."}
               </dd>
@@ -230,15 +230,15 @@ export default async function WorkerDetailPage({
           </dl>
         </article>
 
-        <aside className="border border-stone-800 bg-stone-950 p-6 text-stone-100">
-          <WalletCards className="size-5 text-amber-400" aria-hidden="true" />
-          <p className="mt-8 text-xs font-semibold uppercase tracking-wider text-stone-500">
+        <aside className="border border-violet-800 bg-violet-950 p-6 text-white">
+          <WalletCards className="size-5 text-orange-300" aria-hidden="true" />
+          <p className="mt-8 text-xs font-semibold uppercase tracking-wider text-slate-500">
             Current hourly rate
           </p>
           <p className="mt-2 font-heading text-4xl font-semibold">
             {formatSen(worker.currentRate?.hourly_rate_sen ?? null)}
           </p>
-          <p className="mt-6 text-xs font-semibold uppercase tracking-wider text-stone-500">
+          <p className="mt-6 text-xs font-semibold uppercase tracking-wider text-slate-500">
             Monthly food deduction
           </p>
           <p className="mt-2 font-heading text-3xl font-semibold">
@@ -248,8 +248,8 @@ export default async function WorkerDetailPage({
       </section>
 
       <section id="employment" className="mt-8 grid gap-6 lg:grid-cols-2">
-        <article className="border border-stone-300 bg-white p-5">
-          <UserRound className="size-5 text-amber-700" aria-hidden="true" />
+        <article className="border border-violet-100 bg-white p-5">
+          <UserRound className="size-5 text-violet-700" aria-hidden="true" />
           <h2 className="mt-5 font-heading text-2xl font-semibold uppercase">
             Change Employment Status
           </h2>
@@ -264,7 +264,7 @@ export default async function WorkerDetailPage({
                 <select
                   name="status"
                   required
-                  className="h-11 w-full border border-stone-300 bg-white px-3"
+                  className="h-11 w-full border border-violet-100 bg-white px-3"
                 >
                   {nextEmploymentStatuses(currentStatus).map((status) => (
                     <option key={status} value={status}>
@@ -281,7 +281,7 @@ export default async function WorkerDetailPage({
                   required
                   max={today}
                   defaultValue={today}
-                  className="h-11 w-full border border-stone-300 bg-white px-3"
+                  className="h-11 w-full border border-violet-100 bg-white px-3"
                 />
               </label>
               <label className="block space-y-2 text-sm font-medium">
@@ -289,34 +289,34 @@ export default async function WorkerDetailPage({
                 <input
                   name="reason"
                   maxLength={500}
-                  className="h-11 w-full border border-stone-300 bg-white px-3"
+                  className="h-11 w-full border border-violet-100 bg-white px-3"
                 />
               </label>
             </ManagedForm>
           ) : (
-            <p className="mt-4 text-sm text-stone-500">
+            <p className="mt-4 text-sm text-slate-500">
               Archived workers are read-only.
             </p>
           )}
         </article>
-        <article className="border border-stone-300 bg-white">
-          <h3 className="border-b border-stone-200 p-5 font-heading text-xl font-semibold uppercase">
+        <article className="border border-violet-100 bg-white">
+          <h3 className="border-b border-slate-200 p-5 font-heading text-xl font-semibold uppercase">
             Employment History
           </h3>
-          <ol className="divide-y divide-stone-200">
+          <ol className="divide-y divide-slate-200">
             {worker.employment.map((period) => (
               <li key={period.id} className="p-5">
                 <div className="flex justify-between gap-4">
                   <p className="font-semibold">
                     {employmentLabel(period.status)}
                   </p>
-                  <p className="text-xs text-stone-500">
+                  <p className="text-xs text-slate-500">
                     {formatDate(period.starts_on)} —{" "}
                     {formatDate(period.ends_on)}
                   </p>
                 </div>
                 {period.reason ? (
-                  <p className="mt-2 text-sm text-stone-600">{period.reason}</p>
+                  <p className="mt-2 text-sm text-slate-600">{period.reason}</p>
                 ) : null}
               </li>
             ))}
@@ -325,9 +325,9 @@ export default async function WorkerDetailPage({
       </section>
 
       <section id="assignments" className="mt-8 grid gap-6 lg:grid-cols-2">
-        <article className="border border-stone-300 bg-white p-5">
+        <article className="border border-violet-100 bg-white p-5">
           <BriefcaseBusiness
-            className="size-5 text-amber-700"
+            className="size-5 text-violet-700"
             aria-hidden="true"
           />
           <h2 className="mt-5 font-heading text-2xl font-semibold uppercase">
@@ -344,7 +344,7 @@ export default async function WorkerDetailPage({
                 <select
                   name="projectId"
                   defaultValue={worker.currentAssignment?.project_id ?? ""}
-                  className="h-11 w-full border border-stone-300 bg-white px-3"
+                  className="h-11 w-full border border-violet-100 bg-white px-3"
                 >
                   <option value="">Awaiting assignment</option>
                   {options.projects.map((project) => (
@@ -362,30 +362,30 @@ export default async function WorkerDetailPage({
                   required
                   max={today}
                   defaultValue={today}
-                  className="h-11 w-full border border-stone-300 bg-white px-3"
+                  className="h-11 w-full border border-violet-100 bg-white px-3"
                 />
               </label>
             </ManagedForm>
           ) : (
-            <p className="mt-4 text-sm text-stone-500">
+            <p className="mt-4 text-sm text-slate-500">
               Only active workers can be assigned to projects.
             </p>
           )}
         </article>
-        <article className="border border-stone-300 bg-white">
-          <h3 className="border-b border-stone-200 p-5 font-heading text-xl font-semibold uppercase">
+        <article className="border border-violet-100 bg-white">
+          <h3 className="border-b border-slate-200 p-5 font-heading text-xl font-semibold uppercase">
             Assignment History
           </h3>
           {worker.assignments.length === 0 ? (
-            <p className="p-5 text-sm text-stone-500">
+            <p className="p-5 text-sm text-slate-500">
               This worker has always been awaiting assignment.
             </p>
           ) : (
-            <ol className="divide-y divide-stone-200">
+            <ol className="divide-y divide-slate-200">
               {worker.assignments.map((assignment) => (
                 <li key={assignment.id} className="p-5">
                   <p className="font-semibold">{assignment.projectName}</p>
-                  <p className="mt-1 text-xs text-stone-500">
+                  <p className="mt-1 text-xs text-slate-500">
                     {formatDate(assignment.starts_on)} —{" "}
                     {formatDate(assignment.ends_on)}
                   </p>
@@ -397,8 +397,11 @@ export default async function WorkerDetailPage({
       </section>
 
       <section id="rates" className="mt-8 grid gap-6 lg:grid-cols-2">
-        <article className="border border-stone-300 bg-white p-5">
-          <CalendarClock className="size-5 text-amber-700" aria-hidden="true" />
+        <article className="border border-violet-100 bg-white p-5">
+          <CalendarClock
+            className="size-5 text-violet-700"
+            aria-hidden="true"
+          />
           <h2 className="mt-5 font-heading text-2xl font-semibold uppercase">
             Add Effective Rate
           </h2>
@@ -419,7 +422,7 @@ export default async function WorkerDetailPage({
                       ? (worker.currentRate.hourly_rate_sen / 100).toFixed(2)
                       : ""
                   }
-                  className="h-11 w-full border border-stone-300 bg-white px-3"
+                  className="h-11 w-full border border-violet-100 bg-white px-3"
                 />
               </label>
               <label className="block space-y-2 text-sm font-medium">
@@ -429,21 +432,21 @@ export default async function WorkerDetailPage({
                   name="startsOn"
                   required
                   defaultValue={today}
-                  className="h-11 w-full border border-stone-300 bg-white px-3"
+                  className="h-11 w-full border border-violet-100 bg-white px-3"
                 />
               </label>
             </ManagedForm>
           ) : (
-            <p className="mt-4 text-sm text-stone-500">
+            <p className="mt-4 text-sm text-slate-500">
               Archived workers are read-only.
             </p>
           )}
         </article>
-        <article className="border border-stone-300 bg-white">
-          <h3 className="border-b border-stone-200 p-5 font-heading text-xl font-semibold uppercase">
+        <article className="border border-violet-100 bg-white">
+          <h3 className="border-b border-slate-200 p-5 font-heading text-xl font-semibold uppercase">
             Rate History
           </h3>
-          <ol className="divide-y divide-stone-200">
+          <ol className="divide-y divide-slate-200">
             {worker.rates.map((rate) => (
               <li
                 key={rate.id}
@@ -452,7 +455,7 @@ export default async function WorkerDetailPage({
                 <p className="font-semibold">
                   {formatSen(rate.hourly_rate_sen)} / hour
                 </p>
-                <p className="text-xs text-stone-500">
+                <p className="text-xs text-slate-500">
                   {formatDate(rate.starts_on)} — {formatDate(rate.ends_on)}
                 </p>
               </li>
@@ -463,9 +466,9 @@ export default async function WorkerDetailPage({
 
       <section id="documents" className="mt-8">
         <div className="flex items-center gap-3">
-          <FileText className="size-5 text-amber-700" aria-hidden="true" />
+          <FileText className="size-5 text-violet-700" aria-hidden="true" />
           <div>
-            <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
+            <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-violet-700">
               Private Storage
             </p>
             <h2 className="font-heading text-3xl font-semibold uppercase">
@@ -487,7 +490,7 @@ export default async function WorkerDetailPage({
         ) : null}
 
         {currentStatus === "ARCHIVED" ? (
-          <p className="mt-5 border border-stone-300 bg-stone-50 p-4 text-sm text-stone-600">
+          <p className="mt-5 border border-violet-100 bg-slate-50 p-4 text-sm text-slate-600">
             This worker is archived. Files remain available for authorized
             viewing, but the record is read-only.
           </p>
@@ -497,9 +500,12 @@ export default async function WorkerDetailPage({
               action={`/api/workers/${worker.id}/documents`}
               method="post"
               encType="multipart/form-data"
-              className="border border-stone-300 bg-white p-5"
+              className="border border-violet-100 bg-white p-5"
             >
-              <ImageIcon className="size-5 text-amber-700" aria-hidden="true" />
+              <ImageIcon
+                className="size-5 text-violet-700"
+                aria-hidden="true"
+              />
               <h3 className="mt-4 font-heading text-xl font-semibold uppercase">
                 {worker.photoId ? "Replace Worker Photo" : "Add Worker Photo"}
               </h3>
@@ -520,12 +526,12 @@ export default async function WorkerDetailPage({
                   name="file"
                   accept="image/jpeg,image/png"
                   required
-                  className="block w-full border border-stone-300 p-3 text-sm"
+                  className="block w-full border border-violet-100 p-3 text-sm"
                 />
               </label>
               <FormSubmitButton
                 pendingLabel="Saving photo…"
-                className="mt-4 min-h-11 bg-stone-950 px-5 text-sm font-semibold text-white"
+                className="mt-4 min-h-11 bg-violet-700 px-5 text-sm font-semibold text-white"
               >
                 Save Photo
               </FormSubmitButton>
@@ -535,9 +541,9 @@ export default async function WorkerDetailPage({
               action={`/api/workers/${worker.id}/documents`}
               method="post"
               encType="multipart/form-data"
-              className="border border-stone-300 bg-white p-5"
+              className="border border-violet-100 bg-white p-5"
             >
-              <FileText className="size-5 text-amber-700" aria-hidden="true" />
+              <FileText className="size-5 text-violet-700" aria-hidden="true" />
               <h3 className="mt-4 font-heading text-xl font-semibold uppercase">
                 Upload Document
               </h3>
@@ -549,7 +555,7 @@ export default async function WorkerDetailPage({
                   <select
                     name="documentTypeId"
                     required
-                    className="h-11 w-full border border-stone-300 bg-white px-3"
+                    className="h-11 w-full border border-violet-100 bg-white px-3"
                   >
                     <option value="">Select type</option>
                     {options.documentTypes.map((type) => (
@@ -564,7 +570,7 @@ export default async function WorkerDetailPage({
                   <input
                     name="documentNumber"
                     maxLength={100}
-                    className="h-11 w-full border border-stone-300 px-3"
+                    className="h-11 w-full border border-violet-100 px-3"
                   />
                 </label>
                 <label className="space-y-2 text-sm font-medium">
@@ -572,7 +578,7 @@ export default async function WorkerDetailPage({
                   <input
                     type="date"
                     name="issueDate"
-                    className="h-11 w-full border border-stone-300 px-3"
+                    className="h-11 w-full border border-violet-100 px-3"
                   />
                 </label>
                 <label className="space-y-2 text-sm font-medium">
@@ -580,7 +586,7 @@ export default async function WorkerDetailPage({
                   <input
                     type="date"
                     name="expiryDate"
-                    className="h-11 w-full border border-stone-300 px-3"
+                    className="h-11 w-full border border-violet-100 px-3"
                   />
                 </label>
                 <label className="space-y-2 text-sm font-medium sm:col-span-2">
@@ -590,13 +596,13 @@ export default async function WorkerDetailPage({
                     name="file"
                     accept="application/pdf,image/jpeg,image/png"
                     required
-                    className="block w-full border border-stone-300 p-3 text-sm"
+                    className="block w-full border border-violet-100 p-3 text-sm"
                   />
                 </label>
               </div>
               <FormSubmitButton
                 pendingLabel="Uploading document…"
-                className="mt-4 min-h-11 bg-stone-950 px-5 text-sm font-semibold text-white"
+                className="mt-4 min-h-11 bg-violet-700 px-5 text-sm font-semibold text-white"
               >
                 Upload Document
               </FormSubmitButton>
@@ -604,16 +610,16 @@ export default async function WorkerDetailPage({
           </div>
         )}
 
-        <div className="mt-6 border border-stone-300 bg-white">
-          <h3 className="border-b border-stone-200 p-5 font-heading text-xl font-semibold uppercase">
+        <div className="mt-6 border border-violet-100 bg-white">
+          <h3 className="border-b border-slate-200 p-5 font-heading text-xl font-semibold uppercase">
             Current Documents
           </h3>
           {activeDocuments.length === 0 ? (
-            <p className="p-5 text-sm text-stone-500">
+            <p className="p-5 text-sm text-slate-500">
               No worker documents uploaded.
             </p>
           ) : (
-            <div className="divide-y divide-stone-200">
+            <div className="divide-y divide-slate-200">
               {activeDocuments.map((document) => (
                 <article key={document.id} className="p-5">
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -635,7 +641,7 @@ export default async function WorkerDetailPage({
                           </span>
                         ) : null}
                       </div>
-                      <p className="mt-1 text-xs text-stone-500">
+                      <p className="mt-1 text-xs text-slate-500">
                         {document.original_filename} ·{" "}
                         {document.expiry_date
                           ? `Expires ${formatDate(document.expiry_date)}`
@@ -645,7 +651,7 @@ export default async function WorkerDetailPage({
                     <div className="flex flex-wrap gap-2">
                       <Link
                         href={`/api/workers/${worker.id}/documents/${document.id}`}
-                        className="inline-flex min-h-10 items-center gap-2 border border-stone-300 px-3 text-sm font-semibold"
+                        className="inline-flex min-h-11 items-center gap-2 border border-violet-100 px-3 text-sm font-semibold"
                       >
                         Open Private File
                         <ArrowUpRight className="size-3.5" aria-hidden="true" />
@@ -663,7 +669,7 @@ export default async function WorkerDetailPage({
                           />
                           <ConfirmSubmitButton
                             message={`Remove ${document.documentTypeName ?? "this document"}? The file will no longer be available, but its history will remain.`}
-                            className="min-h-10 border border-red-200 px-3 text-sm font-semibold text-red-700"
+                            className="min-h-11 border border-red-200 px-3 text-sm font-semibold text-red-700"
                           >
                             Remove
                           </ConfirmSubmitButton>
@@ -672,7 +678,7 @@ export default async function WorkerDetailPage({
                     </div>
                   </div>
                   {currentStatus !== "ARCHIVED" ? (
-                    <details className="mt-4 border-t border-stone-200 pt-4">
+                    <details className="mt-4 border-t border-slate-200 pt-4">
                       <summary className="cursor-pointer text-sm font-semibold text-amber-800">
                         Replace This Document
                       </summary>
@@ -696,22 +702,22 @@ export default async function WorkerDetailPage({
                         <input
                           name="documentNumber"
                           defaultValue={document.document_number ?? ""}
-                          placeholder="Document number"
-                          className="h-11 border border-stone-300 px-3 text-sm"
+                          placeholder="Document number…"
+                          className="h-11 border border-violet-100 px-3 text-sm"
                         />
                         <input
                           type="date"
                           name="issueDate"
                           defaultValue={document.issue_date ?? ""}
                           aria-label="Replacement issue date"
-                          className="h-11 border border-stone-300 px-3 text-sm"
+                          className="h-11 border border-violet-100 px-3 text-sm"
                         />
                         <input
                           type="date"
                           name="expiryDate"
                           defaultValue={document.expiry_date ?? ""}
                           aria-label="Replacement expiry date"
-                          className="h-11 border border-stone-300 px-3 text-sm"
+                          className="h-11 border border-violet-100 px-3 text-sm"
                         />
                         <input
                           type="file"
@@ -719,11 +725,11 @@ export default async function WorkerDetailPage({
                           accept="application/pdf,image/jpeg,image/png"
                           required
                           aria-label="Replacement file"
-                          className="border border-stone-300 p-3 text-sm sm:col-span-2"
+                          className="border border-violet-100 p-3 text-sm sm:col-span-2"
                         />
                         <FormSubmitButton
                           pendingLabel="Replacing document…"
-                          className="min-h-10 bg-stone-950 px-4 text-sm font-semibold text-white"
+                          className="min-h-11 bg-violet-700 px-4 text-sm font-semibold text-white"
                         >
                           Replace Document
                         </FormSubmitButton>
@@ -737,17 +743,17 @@ export default async function WorkerDetailPage({
         </div>
 
         {fileHistory.length > 0 ? (
-          <details className="mt-4 border border-stone-300 bg-stone-50 p-5">
+          <details className="mt-4 border border-violet-100 bg-slate-50 p-5">
             <summary className="cursor-pointer font-semibold">
               Replaced and Removed File History ({fileHistory.length})
             </summary>
-            <ol className="mt-4 divide-y divide-stone-200">
+            <ol className="mt-4 divide-y divide-slate-200">
               {fileHistory.map((document) => (
                 <li key={document.id} className="py-3 text-sm">
                   <span className="font-medium">
                     {document.documentTypeName ?? "Worker photo"}
                   </span>{" "}
-                  <span className="text-stone-500">
+                  <span className="text-slate-500">
                     · {employmentLabel(document.status)} ·{" "}
                     {document.original_filename}
                   </span>
@@ -760,7 +766,7 @@ export default async function WorkerDetailPage({
 
       <section id="leave" className="mt-8">
         <div className="mb-4">
-          <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
+          <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-violet-700">
             Full-day unpaid leave
           </p>
           <h2 className="mt-1 font-heading text-3xl font-semibold uppercase">
@@ -772,7 +778,7 @@ export default async function WorkerDetailPage({
 
       <section id="payroll" className="mt-8">
         <div className="mb-4">
-          <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
+          <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-violet-700">
             CEO-only financial history
           </p>
           <h2 className="mt-1 font-heading text-3xl font-semibold uppercase">
@@ -780,11 +786,11 @@ export default async function WorkerDetailPage({
           </h2>
         </div>
         {payrollHistory.length === 0 ? (
-          <p className="border border-stone-300 bg-white p-5 text-sm text-stone-500">
+          <p className="border border-violet-100 bg-white p-5 text-sm text-slate-500">
             This worker has no generated payroll history.
           </p>
         ) : (
-          <div className="divide-y divide-stone-200 border border-stone-300 bg-white">
+          <div className="divide-y divide-slate-200 border border-violet-100 bg-white">
             {payrollHistory.map((payroll) => (
               <article
                 key={payroll.id}
@@ -796,7 +802,7 @@ export default async function WorkerDetailPage({
                       ? payrollMonthLabel(payroll.run.payroll_month)
                       : "Payroll month"}
                   </p>
-                  <p className="mt-1 text-sm text-stone-500">
+                  <p className="mt-1 text-sm text-slate-500">
                     {payroll.run?.status === "APPROVED"
                       ? payroll.payment
                         ? "Paid in full"
@@ -828,20 +834,20 @@ export default async function WorkerDetailPage({
 
       <section
         id="audit"
-        className="mt-8 border border-stone-800 bg-stone-950 p-6 text-stone-100"
+        className="mt-8 border border-violet-800 bg-violet-950 p-6 text-white"
       >
-        <ShieldCheck className="size-5 text-amber-400" aria-hidden="true" />
+        <ShieldCheck className="size-5 text-orange-300" aria-hidden="true" />
         <h2 className="mt-5 font-heading text-2xl font-semibold uppercase">
           Worker Audit History
         </h2>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-stone-400">
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">
           Identity numbers and document contents are never copied into audit
           details. Open the filtered company audit log to trace profile,
           assignment, rate, status, and document changes.
         </p>
         <Link
           href={`/ceo/audit?query=${encodeURIComponent(worker.legal_name)}`}
-          className="mt-5 inline-flex items-center gap-2 border border-stone-700 px-4 py-3 text-sm font-semibold hover:border-amber-400"
+          className="mt-5 inline-flex items-center gap-2 border border-violet-700 px-4 py-3 text-sm font-semibold hover:border-amber-400"
         >
           Open Worker Audit
           <ArrowUpRight className="size-4" aria-hidden="true" />

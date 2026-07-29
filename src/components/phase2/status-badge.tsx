@@ -7,7 +7,7 @@ const styles: Record<ProjectStatus, string> = {
   ACTIVE: "border-emerald-200 bg-emerald-50 text-emerald-800",
   COMPLETED: "border-indigo-200 bg-indigo-50 text-indigo-800",
   CANCELLED: "border-red-200 bg-red-50 text-red-800",
-  ARCHIVED: "border-stone-300 bg-stone-100 text-stone-600",
+  ARCHIVED: "border-violet-100 bg-violet-50 text-slate-600",
 };
 
 export function StatusBadge({
@@ -20,7 +20,7 @@ export function StatusBadge({
   return (
     <span
       className={cn(
-        "inline-flex border px-2 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.12em]",
+        "inline-flex rounded-full border px-2.5 py-1 text-[0.72rem] font-semibold",
         styles[status],
         className,
       )}

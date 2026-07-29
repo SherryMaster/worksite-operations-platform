@@ -14,13 +14,13 @@ export function PayrollAdjustmentForm({
     <ManagedForm
       action={addPayrollAdjustmentAction.bind(null, payrollRunId, workerId)}
       submitLabel="Add adjustment"
-      className="grid gap-3 border border-stone-200 bg-stone-50 p-4 sm:grid-cols-2"
+      className="grid gap-3 border border-slate-200 bg-slate-50 p-4 sm:grid-cols-2"
     >
-      <label className="text-xs font-semibold uppercase tracking-wider text-stone-600">
+      <label className="text-xs font-semibold uppercase tracking-wider text-slate-600">
         Type
         <select
           name="kind"
-          className="mt-2 h-11 w-full border border-stone-300 bg-white px-3 text-sm normal-case"
+          className="mt-2 h-11 w-full border border-violet-100 bg-white px-3 text-sm normal-case"
           required
           defaultValue="ADDITION"
         >
@@ -37,7 +37,7 @@ export function PayrollAdjustmentForm({
           placeholder="0.00"
           pattern="[0-9]+(?:\.[0-9]{1,2})?"
           required
-          className="mt-2 h-11 rounded-none bg-white"
+          className="mt-2 h-11 rounded-xl bg-white"
         />
       </div>
       <div className="sm:col-span-2">
@@ -48,8 +48,8 @@ export function PayrollAdjustmentForm({
           minLength={2}
           maxLength={500}
           required
-          placeholder="Plain-English reason for this payroll change"
-          className="mt-2 h-11 rounded-none bg-white"
+          placeholder="Plain-English reason for this payroll change…"
+          className="mt-2 h-11 rounded-xl bg-white"
         />
       </div>
     </ManagedForm>

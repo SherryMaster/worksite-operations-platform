@@ -29,14 +29,14 @@ export default async function ForemanProjectPage({
     <main className="min-h-[calc(100vh-9rem)] px-4 pb-24 pt-6">
       <Link
         href="/foreman"
-        className="inline-flex items-center gap-2 text-sm text-stone-600"
+        className="inline-flex items-center gap-2 text-sm text-slate-600"
       >
         <ChevronLeft className="size-4" aria-hidden="true" />
         Back to Today
       </Link>
       <div className="mt-6 flex items-start justify-between gap-3">
         <div>
-          <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
+          <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-violet-700">
             Assigned project
           </p>
           <h1 className="mt-2 font-heading text-4xl font-semibold uppercase leading-none">
@@ -46,8 +46,8 @@ export default async function ForemanProjectPage({
         <StatusBadge status={project.status} />
       </div>
 
-      <section className="mt-6 border border-stone-300 bg-white">
-        <dl className="divide-y divide-stone-200">
+      <section className="mt-6 border border-violet-100 bg-white">
+        <dl className="divide-y divide-slate-200">
           {[
             ["Client", project.client_name],
             ["Contractor", project.contractor_name ?? "Not recorded"],
@@ -59,7 +59,7 @@ export default async function ForemanProjectPage({
               key={label}
               className="grid grid-cols-[7rem_1fr] gap-3 px-4 py-4"
             >
-              <dt className="text-xs font-semibold uppercase tracking-wider text-stone-500">
+              <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                 {label}
               </dt>
               <dd className="text-sm font-medium">{value}</dd>
@@ -68,11 +68,11 @@ export default async function ForemanProjectPage({
         </dl>
       </section>
 
-      <section className="mt-4 border border-stone-300 bg-white p-5">
-        <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">
+      <section className="mt-4 border border-violet-100 bg-white p-5">
+        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
           Operational notes
         </p>
-        <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-stone-700">
+        <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">
           {project.notes || "No operational notes recorded."}
         </p>
       </section>
@@ -87,8 +87,8 @@ export default async function ForemanProjectPage({
         </div>
       </div>
 
-      <div className="mt-4 border border-stone-300 bg-stone-100 p-4">
-        <Users className="size-5 text-amber-700" aria-hidden="true" />
+      <div className="mt-4 border border-violet-100 bg-violet-50 p-4">
+        <Users className="size-5 text-violet-700" aria-hidden="true" />
         <p className="mt-3 text-sm font-semibold">
           {workers.length} current {workers.length === 1 ? "worker" : "workers"}
         </p>
@@ -101,11 +101,12 @@ export default async function ForemanProjectPage({
         </Link>
       </div>
 
-      <div className="mt-4 border border-stone-300 bg-stone-100 p-4">
-        <CalendarDays className="size-5 text-stone-400" aria-hidden="true" />
+      <div className="mt-4 border border-violet-100 bg-violet-50 p-4">
+        <CalendarDays className="size-5 text-slate-400" aria-hidden="true" />
         <p className="mt-3 text-sm font-semibold">Attendance</p>
-        <p className="mt-1 text-xs leading-5 text-stone-500">
-          Offline attendance arrives in Phase 4.
+        <p className="mt-1 text-xs leading-5 text-slate-500">
+          Attendance recorded offline stays on this device until it
+          synchronizes.
         </p>
       </div>
     </main>
