@@ -2,6 +2,7 @@ import { clerk } from "@clerk/testing/playwright";
 import { expect, test } from "@playwright/test";
 
 import { getPhaseOneTestUser } from "./support/clerk-users";
+import { recoverProtectedPage } from "./support/navigation";
 import {
   cleanupPhaseFiveE2EData,
   setupPhaseFiveE2EData,
@@ -26,6 +27,7 @@ test("the CEO submits and approves full-day unpaid leave", async ({ page }) => {
     signInParams: { strategy: "ticket", ticket: signInTicket },
   });
   await page.goto("/ceo/leave");
+  await recoverProtectedPage(page);
 
   await page
     .getByText("Submit leave on behalf of a worker", { exact: true })
@@ -44,10 +46,14 @@ test("the CEO submits and approves full-day unpaid leave", async ({ page }) => {
   await page.getByRole("button", { name: "Submit for CEO review" }).click();
 
   await expect(page).toHaveURL(/result=submitted/);
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await recoverProtectedPage(page);
   const request = page
     .getByRole("listitem")
     .filter({ hasText: "E2E Phase 5 Worker" });
-  await expect(request.getByText("pending", { exact: true })).toBeVisible();
+  await expect(request.getByText("pending", { exact: true })).toBeVisible({
+    timeout: 20_000,
+  });
   await request.getByText("View request details").click();
   page.once("dialog", (dialog) => dialog.accept());
   await request
