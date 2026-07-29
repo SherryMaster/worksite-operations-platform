@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { CeoNavigation } from "@/components/ceo-navigation";
@@ -6,6 +6,14 @@ import { ForemanNavigation } from "@/components/foreman-navigation";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/ceo",
+}));
+
+vi.mock("@/components/phase4/device-sign-out-button", () => ({
+  DeviceSignOutButton: () => <button type="button">Sign out</button>,
+}));
+
+vi.mock("@/components/phase4/install-app-button", () => ({
+  InstallAppButton: () => null,
 }));
 
 afterEach(() => {
@@ -38,6 +46,10 @@ describe("responsive role navigation", () => {
       screen.getByRole("link", { name: /Attendance/ }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /More/ })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /More/ }));
+    expect(
+      screen.getByRole("link", { name: /Import center/ }),
+    ).toBeInTheDocument();
   });
 
   it("keeps all Foreman workflows in both navigation layouts", () => {
@@ -54,5 +66,8 @@ describe("responsive role navigation", () => {
       screen.getByRole("link", { name: /Attendance/ }),
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Leave/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /More/ })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /More/ }));
+    expect(screen.getByRole("link", { name: /Reports/ })).toBeInTheDocument();
   });
 });

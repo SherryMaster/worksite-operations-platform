@@ -29,9 +29,7 @@ test("the CEO filters reports, exports Excel, and previews an invalid import", a
   });
 
   await page.goto("/ceo/reports");
-  await expect(
-    page.getByRole("heading", { name: "Reports Center" }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Reports" })).toBeVisible();
   await expect(page.getByLabel("Report").locator("option")).toHaveCount(11);
 
   const downloadPromise = page.waitForEvent("download");
@@ -41,9 +39,12 @@ test("the CEO filters reports, exports Excel, and previews an invalid import", a
     /^current-workforce-and-assignments-\d{4}-\d{2}-\d{2}\.xlsx$/,
   );
 
-  await page.getByRole("link", { name: "Open Import Center" }).click();
+  await page
+    .locator("#main-content")
+    .getByRole("link", { name: "Import center" })
+    .click();
   await expect(
-    page.getByRole("heading", { name: "Import Center" }),
+    page.getByRole("heading", { name: "Import center" }),
   ).toBeVisible({ timeout: 30_000 });
   await page
     .getByLabel("Import workbook (.xlsx)")

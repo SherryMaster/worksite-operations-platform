@@ -25,12 +25,17 @@ import {
 } from "@/lib/phase6/calculations";
 import { getPayrollRun } from "@/lib/phase6/data";
 
+const WORKER_PAGE_SIZE = 50;
+
 export default async function PayrollRunPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ runId: string }>;
+  searchParams: Promise<{ page?: string }>;
 }) {
   const { runId } = await params;
+  const query = await searchParams;
   const data = await getPayrollRun(runId);
   if (!data) notFound();
 
@@ -54,6 +59,20 @@ export default async function PayrollRunPage({
     data.run.status !== "APPROVED" &&
     data.run.blocking_exception_count === 0 &&
     data.run.worker_count > 0;
+  const requestedPage = Number(query.page ?? "1");
+  const workerPage =
+    Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const workerPageCount = Math.max(
+    1,
+    Math.ceil(data.workers.length / WORKER_PAGE_SIZE),
+  );
+  const currentWorkerPage = Math.min(workerPage, workerPageCount);
+  const visibleWorkers = data.workers.slice(
+    (currentWorkerPage - 1) * WORKER_PAGE_SIZE,
+    currentWorkerPage * WORKER_PAGE_SIZE,
+  );
+  const workerPageHref = (target: number) =>
+    `/ceo/payroll/${data.run.id}?page=${target}`;
 
   return (
     <main className="px-5 py-8 sm:px-8 lg:py-10">
@@ -175,6 +194,43 @@ export default async function PayrollRunPage({
         ))}
       </section>
 
+      {exceptions.length > 0 ? (
+        <section className="mt-5 rounded-lg border border-red-200 bg-red-50 p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle
+              className="mt-0.5 size-5 shrink-0 text-red-700"
+              aria-hidden="true"
+            />
+            <div className="min-w-0 flex-1">
+              <h2 className="font-heading text-lg font-semibold text-red-950">
+                Resolve blockers before reviewing workers
+              </h2>
+              <p className="mt-1 text-sm text-red-900">
+                {exceptions.length} blocking{" "}
+                {exceptions.length === 1
+                  ? "exception prevents"
+                  : "exceptions prevent"}{" "}
+                approval.
+              </p>
+              <ol className="mt-3 divide-y divide-red-200 border-y border-red-200">
+                {exceptions.slice(0, 5).map(({ exception, worker }) => (
+                  <li key={exception.id} className="py-2 text-sm">
+                    <span className="font-semibold">{worker.worker_name}</span>
+                    <span className="text-red-900"> · {exception.message}</span>
+                  </li>
+                ))}
+              </ol>
+              <a
+                href="#exceptions"
+                className="mt-3 inline-flex min-h-10 items-center rounded-lg border border-red-300 bg-white px-3 text-sm font-semibold text-red-900"
+              >
+                Review all blockers
+              </a>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       <section className="mt-8">
         <div className="mb-4 flex items-center gap-3">
           <Building2 className="size-5 text-violet-700" aria-hidden="true" />
@@ -237,7 +293,7 @@ export default async function PayrollRunPage({
           </p>
         </div>
         <div className="grid gap-3 md:hidden">
-          {data.workers.map((worker) => {
+          {visibleWorkers.map((worker) => {
             const minutes =
               worker.normal_minutes +
               worker.overtime_minutes +
@@ -256,7 +312,7 @@ export default async function PayrollRunPage({
               <Link
                 key={`${worker.id}:mobile`}
                 href={`/ceo/payroll/${data.run.id}/workers/${worker.id}`}
-                className="block rounded-2xl border border-violet-100 bg-white p-4 shadow-sm"
+                className="block rounded-lg border border-slate-200 bg-white p-3"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -279,7 +335,7 @@ export default async function PayrollRunPage({
                     {state}
                   </span>
                 </div>
-                <dl className="mt-4 grid grid-cols-2 gap-3 rounded-xl bg-slate-50 p-3 text-sm">
+                <dl className="mt-3 grid grid-cols-2 gap-2 rounded-lg bg-slate-50 p-2.5 text-sm">
                   <div>
                     <dt className="text-xs text-slate-500">Payable time</dt>
                     <dd className="mt-1 font-semibold">
@@ -331,7 +387,7 @@ export default async function PayrollRunPage({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
-              {data.workers.map((worker) => {
+              {visibleWorkers.map((worker) => {
                 const minutes =
                   worker.normal_minutes +
                   worker.overtime_minutes +
@@ -383,6 +439,35 @@ export default async function PayrollRunPage({
             </tbody>
           </table>
         </div>
+        {workerPageCount > 1 ? (
+          <nav
+            aria-label="Payroll worker pages"
+            className="mt-4 flex items-center justify-between"
+          >
+            <p className="text-xs text-slate-500">
+              Page {currentWorkerPage} of {workerPageCount} ·{" "}
+              {data.workers.length} workers
+            </p>
+            <div className="flex gap-2">
+              {currentWorkerPage > 1 ? (
+                <Link
+                  href={workerPageHref(currentWorkerPage - 1)}
+                  className="inline-flex min-h-10 items-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold"
+                >
+                  Previous
+                </Link>
+              ) : null}
+              {currentWorkerPage < workerPageCount ? (
+                <Link
+                  href={workerPageHref(currentWorkerPage + 1)}
+                  className="inline-flex min-h-10 items-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold"
+                >
+                  Next
+                </Link>
+              ) : null}
+            </div>
+          </nav>
+        ) : null}
       </section>
 
       <section className="mt-8" id="exceptions">

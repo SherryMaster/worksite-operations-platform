@@ -190,15 +190,13 @@ export default async function ProjectDetailPage({
           </dl>
         </article>
 
-        <aside className="border border-violet-800 bg-violet-950 p-6 text-white">
-          <CalendarDays className="size-5 text-orange-300" aria-hidden="true" />
-          <p className="mt-8 text-xs font-semibold uppercase tracking-wider text-slate-500">
-            Workforce
-          </p>
-          <p className="mt-2 font-heading text-5xl font-semibold">
+        <aside className="rounded-lg border border-slate-200 bg-white p-5">
+          <CalendarDays className="size-5 text-violet-700" aria-hidden="true" />
+          <p className="mt-4 text-xs font-semibold text-slate-500">Workforce</p>
+          <p className="mt-1 text-3xl font-semibold tabular-nums">
             {workers.length}
           </p>
-          <p className="mt-2 text-sm text-slate-400">
+          <p className="mt-1 text-sm text-slate-600">
             {workers.length === 1
               ? "Worker currently assigned."
               : "Workers currently assigned."}

@@ -19,49 +19,56 @@ export function ForemanShell({
       >
         Skip to content
       </a>
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-72 border-r border-violet-100 bg-white px-5 py-6 lg:flex lg:flex-col">
-        <BrandMark />
-        <div className="mt-8 rounded-2xl bg-violet-50 p-4">
-          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-violet-600">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-20 border-r border-slate-200 bg-white px-3 py-4 md:flex md:flex-col xl:w-64 xl:px-4">
+        <div className="flex justify-center xl:justify-start xl:px-2">
+          <span className="xl:hidden">
+            <BrandMark compact />
+          </span>
+          <span className="hidden xl:block">
+            <BrandMark />
+          </span>
+        </div>
+        <div className="mt-5 hidden rounded-lg border border-violet-100 bg-violet-50 p-3 xl:block">
+          <p className="text-[0.65rem] font-semibold uppercase tracking-wider text-violet-700">
             Assigned Project
           </p>
-          <p className="mt-2 text-sm font-semibold leading-5 text-violet-950">
+          <p className="mt-1 truncate text-sm font-semibold text-slate-950">
             {projectName ?? "Awaiting assignment"}
           </p>
         </div>
         <ForemanNavigation />
-        <div className="mt-auto space-y-3 border-t border-violet-100 pt-5">
+        <div className="mt-auto hidden space-y-2 border-t border-slate-200 pt-4 xl:block">
           <ConnectionIndicator />
           <InstallAppButton />
+          <DeviceSignOutButton variant="menu" />
         </div>
       </aside>
 
-      <div className="lg:pl-72">
-        <header className="sticky top-0 z-30 border-b border-violet-100 bg-white/90 px-4 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))] backdrop-blur-xl sm:px-6 lg:flex lg:min-h-16 lg:items-center lg:justify-between lg:px-8 lg:py-2">
-          <div className="flex items-center justify-between gap-3">
-            <div className="lg:hidden">
+      <div className="md:pl-20 xl:pl-64">
+        <header className="sticky top-0 z-30 flex min-h-14 items-center justify-between border-b border-slate-200 bg-white/95 px-4 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top))] backdrop-blur sm:px-6 md:py-2">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="md:hidden">
               <BrandMark compact />
             </div>
-            <div className="flex items-center gap-3">
-              <ConnectionIndicator />
-              <DeviceSignOutButton />
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-slate-950">
+                {projectName ?? "Awaiting assignment"}
+              </p>
+              <p className="truncate text-xs text-slate-500">
+                Foreman workspace
+              </p>
             </div>
           </div>
-          <div className="mt-3 min-w-0 border-t border-violet-100 pt-3 lg:mt-0 lg:border-0 lg:pt-0">
-            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-violet-600">
-              Assigned Project
-            </p>
-            <p className="mt-1 truncate text-sm font-semibold text-slate-950">
-              {projectName ?? "Awaiting assignment"}
-            </p>
-            <div className="lg:hidden">
-              <InstallAppButton />
-            </div>
+          <div className="flex items-center gap-2">
+            <ConnectionIndicator />
+            <span className="md:hidden">
+              <DeviceSignOutButton />
+            </span>
           </div>
         </header>
         <div id="main-content">{children}</div>
       </div>
-      <ForemanNavigation mobile />
+      <ForemanNavigation mobile projectName={projectName} />
     </div>
   );
 }

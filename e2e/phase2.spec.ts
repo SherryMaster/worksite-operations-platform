@@ -64,7 +64,7 @@ test("the CEO can create, update, and audit a project from the app", async ({
 
   await page.goto("/ceo/audit");
   await expect(
-    page.getByRole("heading", { name: "Audit Log", exact: true }),
+    page.getByRole("heading", { name: "Audit log", exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Project created" }).first(),

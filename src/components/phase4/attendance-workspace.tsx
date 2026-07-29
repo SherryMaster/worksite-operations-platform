@@ -13,13 +13,13 @@ import {
   RefreshCw,
   Search,
   Trash2,
-  Wifi,
   WifiOff,
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AppPageSkeleton } from "@/components/app-page-skeleton";
+import { SyncCenter } from "@/components/operations/sync-center";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { calculateAttendance, formatMinutes } from "@/lib/phase4/calculations";
@@ -456,12 +456,15 @@ function CorrectionPanel({
 }
 
 export function AttendanceWorkspace({
+  context = "today",
   initialSnapshot,
   mode = "FOREMAN",
 }: {
+  context?: "history" | "today";
   initialSnapshot: AttendanceSnapshot | null;
   mode?: "CEO" | "FOREMAN";
 }) {
+  const WorkspaceRoot = mode === "CEO" ? "div" : "main";
   const [snapshot, setSnapshot] = useState(initialSnapshot);
   const [actions, setActions] = useState<AttendanceQueueAction[]>([]);
   const online = useOnlineStatus();
@@ -856,6 +859,47 @@ export function AttendanceWorkspace({
   const attentionCount = projectActions.filter(
     (action) => action.state === "NEEDS_ATTENTION",
   ).length;
+  const liveSummary = snapshot
+    ? snapshot.workers.reduce(
+        (summary, worker) => {
+          if (worker.approvedLeaveType) {
+            return summary;
+          }
+          const workerSessions = snapshot.sessions.filter(
+            (session) => session.workerId === worker.id,
+          );
+          const state = workerState(workerSessions);
+          const calculation = calculateAttendance(
+            workerSessions,
+            snapshot.dayType,
+            snapshot.workDate,
+          );
+          if (state.label === "On site") {
+            summary.onSite += 1;
+          } else if (state.label === "On break") {
+            summary.onBreak += 1;
+          } else if (state.label === "Exited") {
+            summary.exited += 1;
+          } else {
+            summary.notEntered += 1;
+          }
+          if (
+            calculation.status === "INCOMPLETE" ||
+            calculation.status === "INVALID"
+          ) {
+            summary.issues += 1;
+          }
+          return summary;
+        },
+        {
+          exited: 0,
+          issues: 0,
+          notEntered: 0,
+          onBreak: 0,
+          onSite: 0,
+        },
+      )
+    : { exited: 0, issues: 0, notEntered: 0, onBreak: 0, onSite: 0 };
 
   if (!snapshot && hydratingDevice) {
     return <AppPageSkeleton compact />;
@@ -863,7 +907,7 @@ export function AttendanceWorkspace({
 
   if (!snapshot) {
     return (
-      <main className="px-4 pb-24 pt-8 sm:px-6">
+      <WorkspaceRoot className="px-4 pb-24 pt-8 sm:px-6">
         <div className="border border-dashed border-violet-100 bg-white p-8 text-center">
           <WifiOff
             className="mx-auto size-8 text-slate-400"
@@ -878,7 +922,7 @@ export function AttendanceWorkspace({
             during temporary connection loss.
           </p>
         </div>
-      </main>
+      </WorkspaceRoot>
     );
   }
 
@@ -889,47 +933,45 @@ export function AttendanceWorkspace({
     : [];
 
   return (
-    <main className="px-4 pb-28 pt-6 sm:px-6">
-      <section className="border border-violet-100 bg-white">
-        <div className="border-b border-slate-200 bg-violet-950 p-4 text-white">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-orange-300">
-                {mode === "CEO" ? "Attendance review" : "Today at the worksite"}
-              </p>
-              <h1 className="mt-1 text-2xl font-semibold">
-                {snapshot.projectName}
-              </h1>
-            </div>
-            <span
-              className={cn(
-                "inline-flex min-h-8 items-center gap-2 px-2.5 text-xs font-semibold",
-                online
-                  ? "bg-emerald-950 text-emerald-300"
-                  : "bg-amber-950 text-amber-300",
-              )}
-            >
-              {online ? (
-                <Wifi className="size-3.5" aria-hidden="true" />
-              ) : (
-                <WifiOff className="size-3.5" aria-hidden="true" />
-              )}
-              {online ? "Online" : "Offline"}
-            </span>
-          </div>
+    <WorkspaceRoot>
+      <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <div className="border-b border-slate-200 p-4">
+          <p className="text-xs font-semibold text-violet-700">
+            {mode === "CEO"
+              ? "Attendance review"
+              : context === "history"
+                ? "Attendance history"
+                : "Live operations"}
+          </p>
+          <h1 className="mt-1 font-heading text-2xl font-semibold">
+            {mode === "CEO"
+              ? snapshot.projectName
+              : context === "history"
+                ? "Attendance"
+                : "Today"}
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            {mode === "CEO"
+              ? "Review recorded time and make traceable corrections."
+              : context === "history"
+                ? `Review or correct attendance for ${snapshot.projectName}.`
+                : snapshot.projectName}
+          </p>
         </div>
-        <div className="grid gap-4 p-4 sm:grid-cols-2">
-          <label className="text-xs font-semibold uppercase tracking-wider text-slate-600">
+        <div className="grid gap-3 p-3 sm:grid-cols-2 sm:p-4">
+          <label className="text-xs font-semibold text-slate-600">
             Work date
             <input
               type="date"
-              disabled={loadingDate}
+              disabled={
+                loadingDate || (mode === "FOREMAN" && context === "today")
+              }
               value={selectedWorkDate}
               onChange={(event) => void changeDate(event.target.value)}
-              className="mt-2 h-12 w-full border border-violet-100 bg-white px-3 text-base font-medium normal-case tracking-normal"
+              className="mt-1.5 h-10 w-full border border-slate-200 bg-white px-3 text-sm font-medium"
             />
           </label>
-          <label className="text-xs font-semibold uppercase tracking-wider text-slate-600">
+          <label className="text-xs font-semibold text-slate-600">
             Day type
             <select
               disabled={loadingDate}
@@ -940,7 +982,7 @@ export function AttendanceWorkspace({
                   workDate: snapshot.workDate,
                 })
               }
-              className="mt-2 h-12 w-full border border-violet-100 bg-white px-3 text-base font-medium normal-case tracking-normal"
+              className="mt-1.5 h-10 w-full border border-slate-200 bg-white px-3 text-sm font-medium"
             >
               <option value="NORMAL">Normal day</option>
               <option value="SUNDAY">Sunday</option>
@@ -948,65 +990,101 @@ export function AttendanceWorkspace({
             </select>
           </label>
         </div>
-        <div className="flex flex-wrap items-center gap-2 border-t border-slate-200 px-4 py-3 text-xs">
-          <span className="inline-flex items-center gap-1.5 font-semibold text-slate-700">
-            {syncingNow ? (
-              <LoaderCircle
-                className="size-3.5 animate-spin text-violet-700"
+        {!online || syncingNow || pendingCount > 0 || attentionCount > 0 ? (
+          <div className="flex flex-wrap items-center gap-2 border-t border-slate-200 bg-slate-50 px-4 py-2 text-xs">
+            <span className="inline-flex items-center gap-1.5 font-semibold text-slate-700">
+              {!online ? (
+                <WifiOff
+                  className="size-3.5 text-amber-700"
+                  aria-hidden="true"
+                />
+              ) : syncingNow ? (
+                <LoaderCircle
+                  className="size-3.5 animate-spin text-violet-700"
+                  aria-hidden="true"
+                />
+              ) : (
+                <Check
+                  className="size-3.5 text-emerald-600"
+                  aria-hidden="true"
+                />
+              )}
+              <span aria-live="polite">
+                {!online
+                  ? `${pendingCount} ${pendingCount === 1 ? "change" : "changes"} saved on this device`
+                  : syncingNow
+                    ? `Synchronizing ${pendingCount} ${pendingCount === 1 ? "action" : "actions"}`
+                    : `${pendingCount} waiting to synchronize`}
+              </span>
+            </span>
+            {attentionCount > 0 ? (
+              <span className="inline-flex items-center gap-1.5 font-semibold text-red-700">
+                <AlertTriangle className="size-3.5" aria-hidden="true" />
+                {attentionCount} need attention
+              </span>
+            ) : null}
+            <button
+              type="button"
+              disabled={!online || syncingNow}
+              onClick={async () => {
+                const retryable = projectActions.filter(
+                  (action) => action.state === "NEEDS_ATTENTION",
+                );
+                await Promise.all(
+                  retryable.map((action) =>
+                    saveAttendanceAction({
+                      ...action,
+                      message: null,
+                      state: "PENDING",
+                    }),
+                  ),
+                );
+                setActions((current) =>
+                  current.map((action) =>
+                    action.projectId === snapshot.projectId &&
+                    action.state === "NEEDS_ATTENTION"
+                      ? { ...action, message: null, state: "PENDING" }
+                      : action,
+                  ),
+                );
+                await synchronize(snapshot.projectId, snapshot.workDate);
+              }}
+              className="ml-auto inline-flex min-h-11 items-center gap-2 px-2 font-semibold text-amber-800 disabled:text-slate-400"
+            >
+              <RefreshCw
+                className={cn("size-3.5", syncingNow && "animate-spin")}
                 aria-hidden="true"
               />
-            ) : (
-              <Check className="size-3.5 text-emerald-600" aria-hidden="true" />
-            )}
-            <span aria-live="polite">
-              {syncingNow
-                ? `Synchronizing ${pendingCount} ${pendingCount === 1 ? "action" : "actions"}`
-                : pendingCount === 0
-                  ? "All actions synchronized"
-                  : `${pendingCount} waiting to synchronize`}
-            </span>
-          </span>
-          {attentionCount > 0 ? (
-            <span className="inline-flex items-center gap-1.5 font-semibold text-red-700">
-              <AlertTriangle className="size-3.5" aria-hidden="true" />
-              {attentionCount} need attention
-            </span>
-          ) : null}
-          <button
-            type="button"
-            disabled={!online || syncingNow}
-            onClick={async () => {
-              const retryable = projectActions.filter(
-                (action) => action.state === "NEEDS_ATTENTION",
-              );
-              await Promise.all(
-                retryable.map((action) =>
-                  saveAttendanceAction({
-                    ...action,
-                    message: null,
-                    state: "PENDING",
-                  }),
-                ),
-              );
-              setActions((current) =>
-                current.map((action) =>
-                  action.projectId === snapshot.projectId &&
-                  action.state === "NEEDS_ATTENTION"
-                    ? { ...action, message: null, state: "PENDING" }
-                    : action,
-                ),
-              );
-              await synchronize(snapshot.projectId, snapshot.workDate);
-            }}
-            className="ml-auto inline-flex min-h-11 items-center gap-2 px-2 font-semibold text-amber-800 disabled:text-slate-400"
+              {syncingNow ? "Syncing…" : "Retry sync"}
+            </button>
+          </div>
+        ) : null}
+      </section>
+
+      <section
+        aria-label="Attendance summary"
+        className="mt-3 grid grid-cols-3 overflow-hidden rounded-lg border border-slate-200 bg-white sm:grid-cols-6"
+      >
+        {[
+          ["Expected", snapshot.workers.length],
+          ["Not entered", liveSummary.notEntered],
+          ["On site", liveSummary.onSite],
+          ["On break", liveSummary.onBreak],
+          ["Exited", liveSummary.exited],
+          ["Issues", liveSummary.issues + attentionCount],
+        ].map(([label, value]) => (
+          <div
+            key={label}
+            className="border-r border-slate-200 px-2 py-2.5 text-center last:border-0 sm:px-3"
           >
-            <RefreshCw
-              className={cn("size-3.5", syncingNow && "animate-spin")}
-              aria-hidden="true"
-            />
-            {syncingNow ? "Syncing…" : "Retry sync"}
-          </button>
-        </div>
+            <p className="text-lg font-semibold tabular-nums text-slate-950">
+              {value}
+            </p>
+            <p className="truncate text-[0.625rem] text-slate-500 sm:text-xs">
+              {label}
+            </p>
+          </div>
+        ))}
       </section>
 
       {message ? (
@@ -1018,7 +1096,7 @@ export function AttendanceWorkspace({
         </p>
       ) : null}
 
-      <section className="mt-4">
+      <section className="mt-3">
         <label className="relative block">
           <span className="sr-only">Search workers</span>
           <Search
@@ -1029,7 +1107,7 @@ export function AttendanceWorkspace({
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search worker, trade, or skill…"
-            className="h-12 w-full border border-violet-100 bg-white pl-11 pr-3 text-base"
+            className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-11 pr-3 text-sm"
           />
         </label>
         <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
@@ -1051,10 +1129,10 @@ export function AttendanceWorkspace({
               onClick={() => setFilter(value)}
               aria-pressed={filter === value}
               className={cn(
-                "min-h-11 shrink-0 border px-3 text-xs font-semibold",
+                "min-h-9 shrink-0 rounded-full border px-3 text-xs font-semibold",
                 filter === value
-                  ? "border-violet-950 bg-violet-950 text-white"
-                  : "border-violet-100 bg-white text-slate-700",
+                  ? "border-violet-700 bg-violet-700 text-white"
+                  : "border-slate-200 bg-white text-slate-700",
               )}
             >
               {label}
@@ -1063,7 +1141,10 @@ export function AttendanceWorkspace({
         </div>
       </section>
 
-      <section className="mt-4 space-y-3" aria-label="Worker attendance">
+      <section
+        className="mt-3 grid gap-2 md:grid-cols-2 2xl:grid-cols-3"
+        aria-label="Worker attendance"
+      >
         {loadingDate ? (
           <AttendanceListSkeleton />
         ) : workerViews.length === 0 ? (
@@ -1081,11 +1162,11 @@ export function AttendanceWorkspace({
           workerViews.map(({ calculation, localAction, state, worker }) => (
             <article
               key={worker.id}
-              className="border border-violet-100 bg-white p-4"
+              className="rounded-lg border border-slate-200 bg-white p-3"
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h2 className="text-lg font-semibold">{worker.legalName}</h2>
+                  <h2 className="text-sm font-semibold">{worker.legalName}</h2>
                   <p className="mt-0.5 text-xs text-slate-500">
                     {[worker.tradeName, worker.skillName]
                       .filter(Boolean)
@@ -1094,7 +1175,7 @@ export function AttendanceWorkspace({
                 </div>
                 <span
                   className={cn(
-                    "shrink-0 border px-2.5 py-1 text-xs font-semibold",
+                    "shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold",
                     state.label === "On site"
                       ? "border-emerald-200 bg-emerald-50 text-emerald-800"
                       : state.label === "On break"
@@ -1168,8 +1249,17 @@ export function AttendanceWorkspace({
                     blocked for this date.
                   </p>
                 </div>
+              ) : mode === "CEO" || context === "history" ? (
+                <button
+                  type="button"
+                  onClick={() => setCorrectingWorker(worker)}
+                  className="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 text-sm font-semibold hover:bg-slate-50"
+                >
+                  <Pencil className="size-4" aria-hidden="true" />
+                  Review or correct times
+                </button>
               ) : (
-                <div className="mt-4 grid grid-cols-2 gap-2">
+                <div className="mt-3 grid grid-cols-2 gap-2">
                   {!state.openSession ? (
                     <button
                       type="button"
@@ -1246,42 +1336,37 @@ export function AttendanceWorkspace({
         )}
       </section>
 
-      {projectActions.length > 0 ? (
-        <details className="mt-5 border border-violet-100 bg-white p-4">
-          <summary className="cursor-pointer text-sm font-semibold">
-            Device synchronization history
-          </summary>
-          <ol className="mt-3 divide-y divide-slate-100">
-            {[...projectActions]
-              .reverse()
-              .slice(0, 20)
-              .map((action) => (
-                <li key={action.clientActionId} className="py-3 text-xs">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="font-semibold">
-                      {action.actionType.replaceAll("_", " ").toLowerCase()}
-                    </span>
-                    <span
-                      className={cn(
-                        "font-semibold",
-                        action.state === "NEEDS_ATTENTION"
-                          ? "text-red-700"
-                          : action.state === "SYNCED"
-                            ? "text-emerald-700"
-                            : "text-amber-800",
-                      )}
-                    >
-                      {actionStateLabel(action)}
-                    </span>
-                  </div>
-                  {action.message ? (
-                    <p className="mt-1 text-slate-500">{action.message}</p>
-                  ) : null}
-                </li>
-              ))}
-          </ol>
-        </details>
-      ) : null}
+      <SyncCenter pendingCount={pendingCount} attentionCount={attentionCount}>
+        <ol className="mt-3 divide-y divide-slate-100">
+          {[...projectActions]
+            .reverse()
+            .slice(0, 20)
+            .map((action) => (
+              <li key={action.clientActionId} className="py-3 text-xs">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-semibold">
+                    {action.actionType.replaceAll("_", " ").toLowerCase()}
+                  </span>
+                  <span
+                    className={cn(
+                      "font-semibold",
+                      action.state === "NEEDS_ATTENTION"
+                        ? "text-red-700"
+                        : action.state === "SYNCED"
+                          ? "text-emerald-700"
+                          : "text-amber-800",
+                    )}
+                  >
+                    {actionStateLabel(action)}
+                  </span>
+                </div>
+                {action.message ? (
+                  <p className="mt-1 text-slate-500">{action.message}</p>
+                ) : null}
+              </li>
+            ))}
+        </ol>
+      </SyncCenter>
 
       {correctingWorker ? (
         <CorrectionPanel
@@ -1300,6 +1385,6 @@ export function AttendanceWorkspace({
           }}
         />
       ) : null}
-    </main>
+    </WorkspaceRoot>
   );
 }

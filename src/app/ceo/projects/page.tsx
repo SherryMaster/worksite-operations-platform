@@ -1,7 +1,9 @@
-import { ArrowUpRight, FolderPlus, MapPin, Search } from "lucide-react";
+import { ArrowUpRight, FolderPlus, MapPin } from "lucide-react";
 import Link from "next/link";
 
 import { FormSubmitButton } from "@/components/form-submit-button";
+import { DataViewToolbar } from "@/components/operations/data-view-toolbar";
+import { PageHeader } from "@/components/operations/page-header";
 import { StatusBadge } from "@/components/phase2/status-badge";
 import { formatDate } from "@/lib/phase2/format";
 import { listProjects } from "@/lib/phase2/data";
@@ -49,66 +51,53 @@ export default async function ProjectsPage({
   });
 
   return (
-    <main className="px-5 py-8 sm:px-8 lg:py-10">
-      <div className="flex flex-col gap-5 border-b border-violet-100 pb-8 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="font-heading text-xs font-semibold uppercase tracking-[0.23em] text-violet-700">
-            Project register
-          </p>
-          <h1 className="mt-3 font-heading text-5xl font-semibold uppercase leading-none sm:text-6xl">
-            Projects
-          </h1>
-          <p className="mt-4 text-sm text-slate-600">
-            Search current work and retain completed project history.
-          </p>
-        </div>
-        <Link
-          href="/ceo/projects/new"
-          className="inline-flex min-h-11 items-center justify-center gap-2 bg-violet-700 px-5 text-sm font-semibold text-white hover:bg-violet-800"
-        >
-          <FolderPlus className="size-4" aria-hidden="true" />
-          Create project
-        </Link>
-      </div>
-
-      <form
-        action="/ceo/projects"
-        className="mt-6 grid gap-3 border border-violet-100 bg-white p-4 sm:grid-cols-[minmax(0,1fr)_13rem_auto]"
-      >
-        <label className="relative">
-          <span className="sr-only">Search projects</span>
-          <Search
-            className="absolute left-3 top-3.5 size-4 text-slate-400"
-            aria-hidden="true"
-          />
-          <input
-            name="query"
-            defaultValue={params.query}
-            placeholder="Search name, client, or location…"
-            className="h-11 w-full border border-violet-100 bg-slate-50 pl-10 pr-3 text-sm outline-none focus:border-amber-600"
-          />
-        </label>
-        <label>
-          <span className="sr-only">Filter by status</span>
-          <select
-            name="status"
-            defaultValue={status ?? ""}
-            className="h-11 w-full border border-violet-100 bg-slate-50 px-3 text-sm outline-none focus:border-amber-600"
+    <main>
+      <PageHeader
+        eyebrow="Project register"
+        title="Projects"
+        description="Search current worksites and retain completed project history."
+        action={
+          <Link
+            href="/ceo/projects/new"
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-violet-700 px-4 text-sm font-semibold text-white hover:bg-violet-800"
           >
-            <option value="">All statuses</option>
-            {statuses.map((value) => (
-              <option key={value} value={value}>
-                {projectStatusLabel(value)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <FormSubmitButton
-          pendingLabel="Applying…"
-          className="h-11 bg-violet-700 px-5 text-sm font-semibold text-white"
+            <FolderPlus className="size-4" aria-hidden="true" />
+            Create project
+          </Link>
+        }
+      />
+
+      <form action="/ceo/projects" className="mt-4">
+        <DataViewToolbar
+          action="/ceo/projects"
+          searchName="query"
+          searchDefaultValue={params.query}
+          searchPlaceholder="Search name, client, or location"
+          activeFilterCount={status ? 1 : 0}
+          filterTitle="Filter projects"
         >
-          Apply filters
-        </FormSubmitButton>
+          <label>
+            <span className="sr-only">Filter by status</span>
+            <select
+              name="status"
+              defaultValue={status ?? ""}
+              className="h-10 w-full min-w-36 border border-slate-200 bg-white px-3 text-sm"
+            >
+              <option value="">All statuses</option>
+              {statuses.map((value) => (
+                <option key={value} value={value}>
+                  {projectStatusLabel(value)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <FormSubmitButton
+            pendingLabel="Applying…"
+            className="h-10 bg-violet-700 px-4 text-sm font-semibold text-white"
+          >
+            Apply
+          </FormSubmitButton>
+        </DataViewToolbar>
       </form>
 
       {projects.length === 0 ? (
@@ -128,9 +117,9 @@ export default async function ProjectsPage({
         </section>
       ) : (
         <>
-          <div className="mt-6 hidden overflow-hidden border border-violet-100 bg-white lg:block">
+          <div className="mt-4 hidden overflow-hidden rounded-lg border border-slate-200 bg-white md:block">
             <table className="w-full text-left text-sm">
-              <thead className="border-b border-violet-100 bg-violet-50 text-xs uppercase tracking-wider text-slate-500">
+              <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-600">
                 <tr>
                   <th className="px-5 py-3 font-semibold">Project</th>
                   <th className="px-5 py-3 font-semibold">Status</th>
@@ -143,7 +132,7 @@ export default async function ProjectsPage({
               <tbody className="divide-y divide-slate-200">
                 {projects.map((project) => (
                   <tr key={project.id} className="hover:bg-violet-50/70">
-                    <td className="px-5 py-4">
+                    <td className="px-5 py-2.5">
                       <Link
                         href={`/ceo/projects/${project.id}`}
                         className="font-semibold hover:underline"
@@ -154,21 +143,21 @@ export default async function ProjectsPage({
                         {project.client_name} · {project.location}
                       </p>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-5 py-2.5">
                       <StatusBadge status={project.status} />
                     </td>
-                    <td className="px-5 py-4 text-slate-600">
+                    <td className="px-5 py-2.5 text-slate-600">
                       {project.currentForeman?.displayName ?? "Unassigned"}
                     </td>
-                    <td className="px-5 py-4 text-xs text-slate-500">
+                    <td className="px-5 py-2.5 text-xs text-slate-500">
                       {formatDate(project.start_date)}
                       <br />
                       to {formatDate(project.end_date)}
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-5 py-2.5">
                       {workerCounts[project.id] ?? 0}
                     </td>
-                    <td className="px-5 py-4 text-right">
+                    <td className="px-5 py-2.5 text-right">
                       <Link
                         href={`/ceo/projects/${project.id}`}
                         aria-label={`Open ${project.name}`}
@@ -183,29 +172,27 @@ export default async function ProjectsPage({
             </table>
           </div>
 
-          <div className="mt-6 grid gap-4 lg:hidden">
+          <div className="mt-4 overflow-hidden rounded-lg border border-slate-200 bg-white md:hidden">
             {projects.map((project) => (
               <Link
                 key={project.id}
                 href={`/ceo/projects/${project.id}`}
-                className="border border-violet-100 bg-white p-5"
+                className="block border-b border-slate-200 p-3 last:border-0"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h2 className="font-heading text-xl font-semibold uppercase">
-                      {project.name}
-                    </h2>
+                    <h2 className="text-sm font-semibold">{project.name}</h2>
                     <p className="mt-1 text-sm text-slate-500">
                       {project.client_name}
                     </p>
                   </div>
                   <StatusBadge status={project.status} />
                 </div>
-                <p className="mt-5 flex items-center gap-2 text-sm text-slate-600">
+                <p className="mt-2 flex items-center gap-2 text-xs text-slate-600">
                   <MapPin className="size-4" aria-hidden="true" />
                   {project.location}
                 </p>
-                <div className="mt-4 flex items-center justify-between border-t border-slate-200 pt-4 text-xs text-slate-500">
+                <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
                   <span>
                     {project.currentForeman?.displayName ?? "No Foreman"}
                   </span>

@@ -13,37 +13,38 @@ export function CeoShell({ children }: { children: React.ReactNode }) {
       >
         Skip to content
       </a>
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-72 border-r border-violet-100 bg-white px-5 py-6 lg:flex lg:flex-col">
-        <BrandMark />
-        <p className="mt-9 px-3 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-slate-400">
-          Company Workspace
-        </p>
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-20 border-r border-slate-200 bg-white px-3 py-4 md:flex md:flex-col xl:w-64 xl:px-4">
+        <div className="flex justify-center xl:justify-start xl:px-2">
+          <span className="xl:hidden">
+            <BrandMark compact />
+          </span>
+          <span className="hidden xl:block">
+            <BrandMark />
+          </span>
+        </div>
         <CeoNavigation />
-        <div className="mt-auto rounded-2xl bg-violet-50 p-4 text-xs leading-5 text-slate-600">
-          <p className="font-semibold text-violet-900">CEO access</p>
-          <p className="mt-1">Company-wide operations and oversight.</p>
+        <div className="mt-auto hidden rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs leading-5 text-slate-600 xl:block">
+          <p className="font-semibold text-slate-900">CEO workspace</p>
+          <p>Company-wide operations and oversight.</p>
         </div>
       </aside>
 
-      <div className="lg:pl-72">
-        <header className="sticky top-0 z-30 flex min-h-16 items-center justify-between border-b border-violet-100 bg-white/90 px-4 py-2 backdrop-blur-xl sm:px-6 lg:px-8">
+      <div className="md:pl-20 xl:pl-64">
+        <header className="sticky top-0 z-30 flex min-h-14 items-center justify-between border-b border-slate-200 bg-white/95 px-4 py-2 backdrop-blur sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="lg:hidden">
+            <div className="md:hidden">
               <BrandMark compact />
             </div>
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-slate-900">
-                Company Workspace
+                Company operations
               </p>
-              <p className="truncate text-xs text-slate-500">CEO operations</p>
+              <p className="truncate text-xs text-slate-500">CEO workspace</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <ConnectionIndicator />
-            <span className="sr-only" aria-label="Access verified">
-              Access verified
-            </span>
-            <div className="[&_.cl-userButtonTrigger]:size-11 [&_.cl-userButtonTrigger]:rounded-xl [&_.cl-userButtonTrigger]:focus-visible:ring-2 [&_.cl-userButtonTrigger]:focus-visible:ring-violet-500">
+            <div className="[&_.cl-userButtonTrigger]:size-9 [&_.cl-userButtonTrigger]:rounded-lg [&_.cl-userButtonTrigger]:focus-visible:ring-2 [&_.cl-userButtonTrigger]:focus-visible:ring-violet-500">
               <UserButton />
             </div>
           </div>

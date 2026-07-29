@@ -38,7 +38,7 @@ export function InstallAppButton() {
           setInstalling(false);
         }
       }}
-      className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl border border-violet-200 bg-white px-3 text-xs font-semibold text-violet-800 disabled:cursor-wait disabled:opacity-70"
+      className="inline-flex min-h-10 w-full items-center gap-2 rounded-lg px-3 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-950 disabled:cursor-wait disabled:opacity-70"
     >
       {installing ? (
         <LoaderCircle
@@ -48,7 +48,7 @@ export function InstallAppButton() {
       ) : (
         <Download className="size-4 text-violet-600" aria-hidden="true" />
       )}
-      {installing ? "Opening install prompt…" : "Install Worksite App"}
+      {installing ? "Opening install prompt…" : "Install app"}
     </button>
   );
 }

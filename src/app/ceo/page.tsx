@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { PageHeader } from "@/components/operations/page-header";
 import { getDashboardData } from "@/lib/phase2/data";
 import { getWorkerDashboardSummary } from "@/lib/phase3/data";
 import { getPendingLeaveCount } from "@/lib/phase5/data";
@@ -73,38 +74,31 @@ export default async function CeoDashboard() {
   ];
 
   return (
-    <main className="px-5 py-8 sm:px-8 lg:py-10">
-      <div className="flex flex-col gap-5 border-b border-violet-100 pb-8 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="font-heading text-xs font-semibold uppercase tracking-[0.23em] text-violet-700">
-            Operating structure
-          </p>
-          <h1 className="mt-3 font-heading text-5xl font-semibold uppercase leading-none tracking-tight sm:text-6xl">
-            Company dashboard
-          </h1>
-          <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-600">
-            Review workforce operations, priorities, and company activity in one
-            place.
-          </p>
-        </div>
-        <Link
-          href="/ceo/projects/new"
-          className="inline-flex min-h-11 items-center justify-center gap-2 bg-violet-700 px-5 text-sm font-semibold text-white hover:bg-violet-800"
-        >
-          Create project
-          <ArrowUpRight className="size-4" aria-hidden="true" />
-        </Link>
-      </div>
+    <main>
+      <PageHeader
+        eyebrow="Operations overview"
+        title="Company dashboard"
+        description="Review workforce operations, current priorities, and company activity."
+        action={
+          <Link
+            href="/ceo/projects/new"
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-violet-700 px-4 text-sm font-semibold text-white hover:bg-violet-800"
+          >
+            Create project
+            <ArrowUpRight className="size-4" aria-hidden="true" />
+          </Link>
+        }
+      />
 
       <section
         aria-label="Company summary"
-        className="mt-6 grid grid-cols-2 gap-3 xl:grid-cols-4"
+        className="mt-4 grid grid-cols-2 gap-2 xl:grid-cols-4"
       >
         {metrics.map(({ label, value, detail, icon: Icon, href }) => (
           <Link
             key={label}
             href={href}
-            className="group rounded-2xl border border-violet-100 bg-white p-4 shadow-sm transition-[background-color,border-color,box-shadow] hover:border-violet-200 hover:bg-violet-50 sm:p-6"
+            className="group rounded-lg border border-slate-200 bg-white p-3 shadow-sm hover:border-violet-200 hover:bg-violet-50/40 sm:p-4"
           >
             <div className="flex items-start justify-between">
               <Icon className="size-5 text-violet-700" aria-hidden="true" />
@@ -113,12 +107,10 @@ export default async function CeoDashboard() {
                 aria-hidden="true"
               />
             </div>
-            <p className="mt-6 font-heading text-3xl font-semibold sm:text-5xl">
+            <p className="mt-3 text-2xl font-semibold tabular-nums sm:text-3xl">
               {value}
             </p>
-            <h2 className="mt-2 font-heading text-lg font-semibold uppercase">
-              {label}
-            </h2>
+            <h2 className="mt-1 text-sm font-semibold">{label}</h2>
             <p className="mt-1 text-xs text-slate-500">{detail}</p>
           </Link>
         ))}
@@ -126,25 +118,25 @@ export default async function CeoDashboard() {
 
       <section
         id="action-required"
-        className="mt-8 grid gap-6 xl:grid-cols-[1.4fr_0.6fr]"
+        className="mt-5 grid gap-4 xl:grid-cols-[1.4fr_0.6fr]"
       >
-        <article className="border border-violet-100 bg-white">
-          <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+        <article className="border border-slate-200 bg-white">
+          <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
             <div>
-              <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-violet-700">
-                Action required
+              <p className="text-xs font-semibold text-violet-700">
+                Priority queue
               </p>
-              <h2 className="mt-1 font-heading text-2xl font-semibold uppercase">
-                Setup queue
+              <h2 className="mt-0.5 font-heading text-lg font-semibold">
+                Action required
               </h2>
             </div>
-            <span className="font-heading text-3xl font-semibold text-slate-300">
-              {String(actionCount).padStart(2, "0")}
+            <span className="text-2xl font-semibold tabular-nums text-slate-400">
+              {actionCount}
             </span>
           </div>
           <div className="divide-y divide-slate-200">
             {actionCount === 0 ? (
-              <div className="flex items-start gap-4 p-6">
+              <div className="flex items-start gap-3 p-4">
                 <UserRoundCheck
                   className="mt-0.5 size-5 text-emerald-600"
                   aria-hidden="true"
@@ -162,7 +154,7 @@ export default async function CeoDashboard() {
                   <Link
                     key={project.id}
                     href={`/ceo/projects/${project.id}`}
-                    className="flex items-center justify-between gap-4 p-5 hover:bg-slate-50"
+                    className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-slate-50"
                   >
                     <div>
                       <p className="text-sm font-semibold">{project.name}</p>
@@ -176,7 +168,7 @@ export default async function CeoDashboard() {
                 {pendingLeave > 0 ? (
                   <Link
                     href="/ceo/leave?status=PENDING"
-                    className="flex items-center justify-between gap-4 p-5 hover:bg-slate-50"
+                    className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-slate-50"
                   >
                     <div>
                       <p className="text-sm font-semibold">
@@ -195,7 +187,7 @@ export default async function CeoDashboard() {
                 payroll.unpaidWorkers > 0 ? (
                   <Link
                     href="/ceo/payroll"
-                    className="flex items-center justify-between gap-4 p-5 hover:bg-slate-50"
+                    className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-slate-50"
                   >
                     <div>
                       <p className="text-sm font-semibold">
@@ -218,7 +210,7 @@ export default async function CeoDashboard() {
                 {data.unassignedActiveForemen.length > 0 ? (
                   <Link
                     href="/ceo/settings#users"
-                    className="flex items-center justify-between gap-4 p-5 hover:bg-slate-50"
+                    className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-slate-50"
                   >
                     <div>
                       <p className="text-sm font-semibold">
@@ -238,7 +230,7 @@ export default async function CeoDashboard() {
                 {workforce.awaitingAssignment > 0 ? (
                   <Link
                     href="/ceo/workers?status=ACTIVE"
-                    className="flex items-center justify-between gap-4 p-5 hover:bg-slate-50"
+                    className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-slate-50"
                   >
                     <div>
                       <p className="text-sm font-semibold">
@@ -258,7 +250,7 @@ export default async function CeoDashboard() {
                 {workforce.documentAlerts > 0 ? (
                   <Link
                     href="/ceo/workers"
-                    className="flex items-center justify-between gap-4 p-5 hover:bg-slate-50"
+                    className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-slate-50"
                   >
                     <div>
                       <p className="text-sm font-semibold">
@@ -278,7 +270,7 @@ export default async function CeoDashboard() {
                 {!data.companyConfigured ? (
                   <Link
                     href="/ceo/settings#company"
-                    className="flex items-center justify-between gap-4 p-5 hover:bg-slate-50"
+                    className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-slate-50"
                   >
                     <div>
                       <p className="text-sm font-semibold">
@@ -296,21 +288,21 @@ export default async function CeoDashboard() {
           </div>
         </article>
 
-        <aside className="border border-violet-800 bg-violet-950 p-6 text-white">
-          <Settings className="size-5 text-orange-300" aria-hidden="true" />
-          <p className="mt-8 font-heading text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-            Workforce
+        <aside className="rounded-lg border border-slate-200 bg-white p-4">
+          <Settings className="size-5 text-violet-700" aria-hidden="true" />
+          <p className="mt-4 text-xs font-semibold text-violet-700">
+            Quick access
           </p>
-          <h2 className="mt-2 font-heading text-3xl font-semibold uppercase">
-            Workforce records are live
+          <h2 className="mt-1 font-heading text-lg font-semibold">
+            Workforce administration
           </h2>
-          <p className="mt-4 text-sm leading-6 text-slate-400">
-            Create worker profiles, control employment and project history,
-            manage effective rates, and securely store worker documents.
+          <p className="mt-2 text-sm leading-5 text-slate-600">
+            Manage worker profiles, employment history, rates, assignments, and
+            documents.
           </p>
           <Link
             href="/ceo/workers"
-            className="mt-8 inline-flex items-center gap-2 border border-violet-700 px-4 py-3 text-sm font-semibold hover:border-amber-400 hover:text-amber-300"
+            className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-violet-800 hover:bg-violet-50"
           >
             Open workers
             <ArrowUpRight className="size-4" aria-hidden="true" />

@@ -1,6 +1,8 @@
 "use client";
 
 import { useActionState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -24,10 +26,17 @@ export function ActionButton({
   pendingLabel?: string;
   variant?: "default" | "outline" | "destructive" | "secondary";
 }) {
+  const router = useRouter();
   const [state, formAction, pending] = useActionState(
     action,
     initialActionState,
   );
+
+  useEffect(() => {
+    if (state.status === "success") {
+      router.refresh();
+    }
+  }, [router, state.status]);
 
   return (
     <form

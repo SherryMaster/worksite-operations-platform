@@ -4,6 +4,7 @@ import {
   BarChart3,
   CalendarCheck2,
   ClipboardList,
+  Database,
   FolderKanban,
   LayoutDashboard,
   MoreHorizontal,
@@ -28,19 +29,51 @@ import {
 import { cn } from "@/lib/utils";
 
 const navigation = [
-  { label: "Home", icon: LayoutDashboard, href: "/ceo" },
-  { label: "Projects", icon: FolderKanban, href: "/ceo/projects" },
-  { label: "Workers", icon: Users, href: "/ceo/workers" },
-  { label: "Attendance", icon: CalendarCheck2, href: "/ceo/attendance" },
-  { label: "Leave", icon: ClipboardList, href: "/ceo/leave" },
-  { label: "Payroll", icon: ReceiptText, href: "/ceo/payroll" },
-  { label: "Reports", icon: BarChart3, href: "/ceo/reports" },
-  { label: "Settings", icon: Settings, href: "/ceo/settings" },
-  { label: "Audit", icon: ShieldCheck, href: "/ceo/audit" },
+  { label: "Home", icon: LayoutDashboard, href: "/ceo", group: "Operations" },
+  {
+    label: "Projects",
+    icon: FolderKanban,
+    href: "/ceo/projects",
+    group: "Operations",
+  },
+  { label: "Workers", icon: Users, href: "/ceo/workers", group: "Operations" },
+  {
+    label: "Attendance",
+    icon: CalendarCheck2,
+    href: "/ceo/attendance",
+    group: "Operations",
+  },
+  {
+    label: "Leave",
+    icon: ClipboardList,
+    href: "/ceo/leave",
+    group: "Operations",
+  },
+  {
+    label: "Payroll",
+    icon: ReceiptText,
+    href: "/ceo/payroll",
+    group: "Finance",
+  },
+  {
+    label: "Reports",
+    icon: BarChart3,
+    href: "/ceo/reports",
+    group: "Reporting",
+  },
+  { label: "Settings", icon: Settings, href: "/ceo/settings", group: "Admin" },
+  {
+    label: "Import center",
+    icon: Database,
+    href: "/ceo/imports",
+    group: "Admin",
+  },
+  { label: "Audit", icon: ShieldCheck, href: "/ceo/audit", group: "Admin" },
 ] as const;
 
 const mobilePrimary = navigation.slice(0, 4);
 const mobileMore = navigation.slice(4);
+const groups = ["Operations", "Finance", "Reporting", "Admin"] as const;
 
 function isActive(pathname: string, href: string) {
   return href === "/ceo"
@@ -55,7 +88,7 @@ function MobileNavigation({ pathname }: { pathname: string }) {
   return (
     <nav
       aria-label="CEO mobile navigation"
-      className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-violet-100 bg-white/95 px-1 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_rgba(76,29,149,0.08)] backdrop-blur-xl lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-slate-200 bg-white/98 px-1 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_16px_rgb(15_23_42/0.08)] md:hidden"
     >
       {mobilePrimary.map(({ label, icon: Icon, href }) => {
         const active = isActive(pathname, href);
@@ -65,7 +98,7 @@ function MobileNavigation({ pathname }: { pathname: string }) {
             href={href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "relative flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[0.68rem] font-medium transition-colors",
+              "relative flex min-h-15 flex-col items-center justify-center gap-1 rounded-md px-1 text-[0.68rem] font-medium transition-colors",
               active
                 ? "text-violet-700"
                 : "text-slate-500 hover:text-violet-700",
@@ -111,9 +144,9 @@ function MobileNavigation({ pathname }: { pathname: string }) {
         </SheetTrigger>
         <SheetContent
           side="bottom"
-          className="max-h-[78dvh] rounded-t-3xl border-violet-100 pb-[calc(1rem+env(safe-area-inset-bottom))]"
+          className="max-h-[82dvh] rounded-t-xl border-slate-200 pb-[calc(1rem+env(safe-area-inset-bottom))]"
         >
-          <SheetHeader className="border-b border-violet-100 px-5 py-5">
+          <SheetHeader className="border-b border-slate-200 px-5 py-4">
             <SheetTitle className="text-lg font-semibold">
               Company Workspace
             </SheetTitle>
@@ -121,28 +154,43 @@ function MobileNavigation({ pathname }: { pathname: string }) {
               Payroll, reporting, and company administration.
             </SheetDescription>
           </SheetHeader>
-          <div className="grid gap-2 px-3 pb-3">
-            {mobileMore.map(({ label, icon: Icon, href }) => {
-              const active = isActive(pathname, href);
+          <div className="px-3 pb-3">
+            {groups.slice(1).map((group) => {
+              const items = mobileMore.filter((item) => item.group === group);
+              if (items.length === 0) return null;
               return (
-                <Link
-                  key={href}
-                  href={href}
-                  onClick={() => setMoreOpen(false)}
-                  aria-current={active ? "page" : undefined}
-                  className={cn(
-                    "flex min-h-14 items-center gap-3 rounded-2xl px-4 text-sm font-semibold transition-colors",
-                    active
-                      ? "bg-violet-50 text-violet-800"
-                      : "text-slate-700 hover:bg-slate-50",
-                  )}
+                <div
+                  key={group}
+                  className="border-b border-slate-100 py-3 last:border-0"
                 >
-                  <span className="grid size-9 place-items-center rounded-xl bg-white text-violet-700 shadow-sm ring-1 ring-violet-100">
-                    <Icon className="size-4.5" aria-hidden="true" />
-                  </span>
-                  {label}
-                  <NavigationPendingIndicator />
-                </Link>
+                  <p className="px-3 pb-1 text-[0.65rem] font-semibold uppercase tracking-wider text-slate-500">
+                    {group}
+                  </p>
+                  {items.map(({ label, icon: Icon, href }) => {
+                    const active = isActive(pathname, href);
+                    return (
+                      <Link
+                        key={href}
+                        href={href}
+                        onClick={() => setMoreOpen(false)}
+                        aria-current={active ? "page" : undefined}
+                        className={cn(
+                          "flex min-h-12 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors",
+                          active
+                            ? "bg-violet-50 text-violet-800"
+                            : "text-slate-700 hover:bg-slate-50",
+                        )}
+                      >
+                        <Icon
+                          className="size-4.5 text-violet-700"
+                          aria-hidden="true"
+                        />
+                        {label}
+                        <NavigationPendingIndicator />
+                      </Link>
+                    );
+                  })}
+                </div>
               );
             })}
           </div>
@@ -160,36 +208,47 @@ export function CeoNavigation({ mobile = false }: { mobile?: boolean }) {
   }
 
   return (
-    <nav className="mt-6 space-y-1.5" aria-label="CEO navigation">
-      {navigation.map(({ label, icon: Icon, href }) => {
-        const active = isActive(pathname, href);
-
-        return (
-          <Link
-            key={href}
-            href={href}
-            aria-current={active ? "page" : undefined}
-            className={cn(
-              "group flex min-h-11 items-center gap-3 rounded-xl px-3.5 text-sm font-medium transition-colors",
-              active
-                ? "bg-violet-100 text-violet-900"
-                : "text-slate-600 hover:bg-slate-50 hover:text-violet-800",
-            )}
-          >
-            <Icon
-              className={cn(
-                "size-4.5",
-                active
-                  ? "text-violet-700"
-                  : "text-slate-400 group-hover:text-violet-600",
-              )}
-              aria-hidden="true"
-            />
-            {label}
-            <NavigationPendingIndicator />
-          </Link>
-        );
-      })}
+    <nav className="mt-5 space-y-3" aria-label="CEO navigation">
+      {groups.map((group) => (
+        <div key={group}>
+          <p className="mb-1 hidden px-3 text-[0.625rem] font-semibold uppercase tracking-wider text-slate-400 xl:block">
+            {group}
+          </p>
+          <div className="space-y-1">
+            {navigation
+              .filter((item) => item.group === group)
+              .map(({ label, icon: Icon, href }) => {
+                const active = isActive(pathname, href);
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    title={label}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "group flex min-h-10 items-center justify-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors xl:justify-start",
+                      active
+                        ? "bg-violet-50 text-violet-900"
+                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-950",
+                    )}
+                  >
+                    <Icon
+                      className={cn(
+                        "size-4.5 shrink-0",
+                        active
+                          ? "text-violet-700"
+                          : "text-slate-400 group-hover:text-slate-700",
+                      )}
+                      aria-hidden="true"
+                    />
+                    <span className="hidden xl:inline">{label}</span>
+                    <NavigationPendingIndicator />
+                  </Link>
+                );
+              })}
+          </div>
+        </div>
+      ))}
     </nav>
   );
 }

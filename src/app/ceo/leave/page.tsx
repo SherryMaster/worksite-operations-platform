@@ -1,6 +1,9 @@
 import { ClipboardList, Plus } from "lucide-react";
+import Link from "next/link";
 
 import { FormSubmitButton } from "@/components/form-submit-button";
+import { DataViewToolbar } from "@/components/operations/data-view-toolbar";
+import { PageHeader } from "@/components/operations/page-header";
 import { LeaveRequestForm } from "@/components/phase5/leave-request-form";
 import { LeaveRequestList } from "@/components/phase5/leave-request-list";
 import {
@@ -17,45 +20,62 @@ const resultMessages: Record<string, string> = {
   "submitted-file-failed":
     "The leave request was submitted, but the supporting file could not be attached.",
 };
+const PAGE_SIZE = 25;
 
 export default async function CeoLeavePage({
   searchParams,
 }: {
   searchParams: Promise<{
     project?: string;
+    page?: string;
     result?: string;
-    status?: "PENDING" | "APPROVED" | "REJECTED";
+    status?: string;
     worker?: string;
   }>;
 }) {
   const params = await searchParams;
+  const selectedStatus = ["ALL", "PENDING", "APPROVED", "REJECTED"].includes(
+    params.status ?? "",
+  )
+    ? (params.status as "ALL" | "PENDING" | "APPROVED" | "REJECTED")
+    : "PENDING";
   const [options, requests] = await Promise.all([
     getLeaveSubmissionOptions(),
     listLeaveRequests({
       projectId: params.project,
-      status: params.status,
+      status: selectedStatus === "ALL" ? undefined : selectedStatus,
       workerId: params.worker,
     }),
   ]);
   const resultMessage = params.result
     ? resultMessages[params.result]
     : undefined;
+  const requestedPage = Number(params.page ?? "1");
+  const page =
+    Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const pageCount = Math.max(1, Math.ceil(requests.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const visibleRequests = requests.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
+  const pageHref = (target: number) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter((entry): entry is [string, string] =>
+        Boolean(entry[1]),
+      ),
+    );
+    query.set("page", String(target));
+    return `/ceo/leave?${query.toString()}`;
+  };
 
   return (
-    <main className="px-5 py-8 sm:px-8 lg:py-10">
-      <div className="border-b border-violet-100 pb-8">
-        <p className="font-heading text-xs font-semibold uppercase tracking-[0.23em] text-violet-700">
-          Full-day unpaid leave
-        </p>
-        <h1 className="mt-3 font-heading text-5xl font-semibold uppercase leading-none sm:text-6xl">
-          Leave review
-        </h1>
-        <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-600">
-          Submit requests, review pending leave first, resolve attendance
-          conflicts, and approve or reject with a permanent audit history.
-          Approved days have zero payable hours.
-        </p>
-      </div>
+    <main>
+      <PageHeader
+        eyebrow="Full-day unpaid leave"
+        title="Leave review"
+        description="Pending requests appear first. Resolve attendance conflicts, then approve or reject with a permanent audit history."
+      />
 
       {resultMessage ? (
         <p
@@ -70,8 +90,8 @@ export default async function CeoLeavePage({
         </p>
       ) : null}
 
-      <details className="mt-6 border border-violet-100 bg-white">
-        <summary className="flex cursor-pointer items-center gap-2 p-5 font-semibold">
+      <details className="mt-4 rounded-lg border border-slate-200 bg-white">
+        <summary className="flex cursor-pointer items-center gap-2 p-4 font-semibold">
           <Plus className="size-4 text-violet-700" aria-hidden="true" />
           Submit leave on behalf of a worker
         </summary>
@@ -83,72 +103,109 @@ export default async function CeoLeavePage({
         </div>
       </details>
 
-      <form className="mt-6 grid gap-3 border border-violet-100 bg-white p-4 lg:grid-cols-[1fr_1fr_1fr_auto]">
-        <label className="text-xs font-semibold uppercase tracking-wider text-slate-600">
-          Status
-          <select
-            name="status"
-            defaultValue={params.status ?? ""}
-            className="mt-2 h-11 w-full border border-violet-100 px-3 text-sm normal-case tracking-normal"
-          >
-            <option value="">All statuses</option>
-            <option value="PENDING">Pending</option>
-            <option value="APPROVED">Approved</option>
-            <option value="REJECTED">Rejected</option>
-          </select>
-        </label>
-        <label className="text-xs font-semibold uppercase tracking-wider text-slate-600">
-          Project
-          <select
-            name="project"
-            defaultValue={params.project ?? ""}
-            className="mt-2 h-11 w-full border border-violet-100 px-3 text-sm normal-case tracking-normal"
-          >
-            <option value="">All projects</option>
-            {options.projects.map((project) => (
-              <option key={project.id} value={project.id}>
-                {project.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="text-xs font-semibold uppercase tracking-wider text-slate-600">
-          Worker
-          <select
-            name="worker"
-            defaultValue={params.worker ?? ""}
-            className="mt-2 h-11 w-full border border-violet-100 px-3 text-sm normal-case tracking-normal"
-          >
-            <option value="">All workers</option>
-            {options.workers.map((worker) => (
-              <option
-                key={`${worker.id}:${worker.projectId}`}
-                value={worker.id}
-              >
-                {worker.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <FormSubmitButton
-          pendingLabel="Filtering…"
-          className="min-h-11 self-end bg-violet-700 px-5 text-sm font-semibold text-white"
+      <form className="mt-4">
+        <DataViewToolbar
+          action="/ceo/leave"
+          searchName="unused"
+          searchPlaceholder="Filter leave requests"
+          className="[&_input[type=search]]:hidden [&_label:has(input[type=search])]:hidden"
+          activeFilterCount={
+            [params.project, params.worker].filter(Boolean).length
+          }
+          filterTitle="Filter leave requests"
         >
-          Filter
-        </FormSubmitButton>
+          <label className="text-xs font-semibold text-slate-600">
+            <span className="sr-only">Status</span>
+            <select
+              name="status"
+              defaultValue={selectedStatus}
+              className="h-10 w-full min-w-32 border border-slate-200 px-3 text-sm font-normal"
+            >
+              <option value="ALL">All statuses</option>
+              <option value="PENDING">Pending</option>
+              <option value="APPROVED">Approved</option>
+              <option value="REJECTED">Rejected</option>
+            </select>
+          </label>
+          <label className="text-xs font-semibold text-slate-600">
+            <span className="sr-only">Project</span>
+            <select
+              name="project"
+              defaultValue={params.project ?? ""}
+              className="h-10 w-full min-w-36 border border-slate-200 px-3 text-sm font-normal"
+            >
+              <option value="">All projects</option>
+              {options.projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-xs font-semibold text-slate-600">
+            <span className="sr-only">Worker</span>
+            <select
+              name="worker"
+              defaultValue={params.worker ?? ""}
+              className="h-10 w-full min-w-36 border border-slate-200 px-3 text-sm font-normal"
+            >
+              <option value="">All workers</option>
+              {options.workers.map((worker) => (
+                <option
+                  key={`${worker.id}:${worker.projectId}`}
+                  value={worker.id}
+                >
+                  {worker.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <FormSubmitButton
+            pendingLabel="Filtering…"
+            className="h-10 bg-violet-700 px-4 text-sm font-semibold text-white"
+          >
+            Filter
+          </FormSubmitButton>
+        </DataViewToolbar>
       </form>
 
-      <section className="mt-6" aria-label="Leave requests">
+      <section className="mt-5" aria-label="Leave requests">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-heading text-2xl font-semibold uppercase">
-            Requests
-          </h2>
+          <h2 className="font-heading text-lg font-semibold">Requests</h2>
           <span className="inline-flex items-center gap-2 text-sm text-slate-500">
             <ClipboardList className="size-4" aria-hidden="true" />
             {requests.length} shown
           </span>
         </div>
-        <LeaveRequestList requests={requests} canDecide />
+        <LeaveRequestList requests={visibleRequests} canDecide />
+        {pageCount > 1 ? (
+          <nav
+            aria-label="Leave request pages"
+            className="mt-4 flex items-center justify-between"
+          >
+            <p className="text-xs text-slate-500">
+              Page {currentPage} of {pageCount}
+            </p>
+            <div className="flex gap-2">
+              {currentPage > 1 ? (
+                <Link
+                  href={pageHref(currentPage - 1)}
+                  className="inline-flex min-h-10 items-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold"
+                >
+                  Previous
+                </Link>
+              ) : null}
+              {currentPage < pageCount ? (
+                <Link
+                  href={pageHref(currentPage + 1)}
+                  className="inline-flex min-h-10 items-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold"
+                >
+                  Next
+                </Link>
+              ) : null}
+            </div>
+          </nav>
+        ) : null}
       </section>
     </main>
   );

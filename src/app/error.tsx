@@ -11,22 +11,22 @@ export default function GlobalError({
   reset: () => void;
 }) {
   return (
-    <main className="grid min-h-screen place-items-center bg-violet-700 px-5 text-white">
-      <section className="w-full max-w-lg rounded-2xl border border-violet-500/40 bg-violet-900 p-8 shadow-2xl">
-        <p className="font-heading text-xs font-semibold uppercase tracking-[0.24em] text-orange-300">
+    <main className="grid min-h-screen place-items-center bg-slate-100 px-5 text-slate-950">
+      <section className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
+        <p className="text-xs font-semibold text-violet-700">
           Something went wrong
         </p>
-        <h1 className="mt-4 font-heading text-4xl font-semibold uppercase">
+        <h1 className="mt-2 font-heading text-3xl font-semibold">
           We couldn&apos;t open your workspace
         </h1>
-        <p className="mt-4 leading-7 text-violet-100">
+        <p className="mt-3 leading-7 text-slate-600">
           Your work has not been changed. Try again, or contact your company
           administrator if the problem continues.
         </p>
         <Button
           onClick={reset}
           size="lg"
-          className="mt-8 rounded-xl bg-amber-400 text-slate-950 hover:bg-amber-300"
+          className="mt-6 rounded-lg bg-violet-700 text-white hover:bg-violet-800"
         >
           <RotateCcw aria-hidden="true" />
           Try again
