@@ -23,47 +23,44 @@ const safeguards = [
 
 export default function SignInPage() {
   return (
-    <main className="min-h-screen bg-violet-950 text-white lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(30rem,0.72fr)]">
-      <section className="relative hidden min-h-screen overflow-hidden border-r border-violet-800 p-12 lg:flex lg:flex-col lg:justify-between">
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(251,191,36,0.11)_1px,transparent_1px),linear-gradient(90deg,rgba(251,191,36,0.11)_1px,transparent_1px)] [background-size:48px_48px] [mask-image:linear-gradient(to_bottom,black,transparent_86%)]"
-        />
-        <div className="relative">
-          <BrandMark inverted />
-          <p className="mt-24 font-heading text-sm font-semibold uppercase tracking-[0.28em] text-orange-300">
-            Company operations console
+    <main className="min-h-screen bg-slate-100 text-slate-950 lg:grid lg:grid-cols-[minmax(0,0.85fr)_minmax(28rem,0.65fr)]">
+      <section className="hidden min-h-screen border-r border-slate-200 bg-white p-10 lg:flex lg:flex-col lg:justify-between xl:p-14">
+        <div>
+          <BrandMark />
+          <p className="mt-20 text-sm font-semibold text-violet-700">
+            Company operations
           </p>
-          <h1 className="mt-5 max-w-2xl font-heading text-7xl font-semibold uppercase leading-[0.86] tracking-[-0.035em] xl:text-8xl">
-            The day starts at the worksite.
+          <h1 className="mt-3 max-w-xl font-heading text-4xl font-semibold leading-tight tracking-tight xl:text-5xl">
+            Workforce operations, from the office to the worksite.
           </h1>
-          <p className="mt-7 max-w-xl text-lg leading-8 text-slate-400">
+          <p className="mt-4 max-w-xl text-base leading-7 text-slate-600">
             One secure place for company oversight and focused field operations.
           </p>
         </div>
 
-        <div className="relative grid grid-cols-3 gap-px border border-violet-800 bg-violet-800">
+        <div className="grid grid-cols-3 overflow-hidden rounded-lg border border-slate-200">
           {safeguards.map(({ icon: Icon, title, text }) => (
-            <div key={title} className="bg-violet-950 p-5">
-              <Icon className="size-5 text-orange-300" aria-hidden="true" />
-              <p className="mt-5 font-heading text-lg font-semibold uppercase">
-                {title}
-              </p>
-              <p className="mt-2 text-sm leading-6 text-slate-500">{text}</p>
+            <div
+              key={title}
+              className="border-r border-slate-200 p-4 last:border-0"
+            >
+              <Icon className="size-5 text-violet-700" aria-hidden="true" />
+              <p className="mt-3 text-sm font-semibold">{title}</p>
+              <p className="mt-1 text-xs leading-5 text-slate-500">{text}</p>
             </div>
           ))}
         </div>
       </section>
 
-      <section className="flex min-h-screen items-center justify-center bg-violet-50 px-5 py-10 text-slate-950">
+      <section className="flex min-h-screen items-center justify-center px-5 py-10">
         <div className="w-full max-w-md">
           <div className="mb-10 lg:hidden">
             <BrandMark />
           </div>
-          <p className="font-heading text-xs font-semibold uppercase tracking-[0.24em] text-violet-700">
+          <p className="text-xs font-semibold text-violet-700">
             Authorized personnel
           </p>
-          <h2 className="mt-3 font-heading text-5xl font-semibold uppercase leading-none">
+          <h2 className="mt-2 font-heading text-3xl font-semibold">
             Sign in to continue
           </h2>
           <p className="mt-4 text-sm leading-6 text-slate-600">
@@ -78,13 +75,13 @@ export default function SignInPage() {
                 elements: {
                   rootBox: "w-full",
                   cardBox: "w-full shadow-none",
-                  card: "w-full rounded-2xl border border-violet-100 bg-white shadow-[0_20px_60px_rgba(76,29,149,0.10)]",
+                  card: "w-full rounded-xl border border-slate-200 bg-white shadow-sm",
                   header: "hidden",
                   footer: "hidden",
                   formButtonPrimary:
-                    "rounded-xl bg-violet-700 hover:bg-violet-800",
-                  formFieldInput: "rounded-xl border-violet-100",
-                  socialButtonsBlockButton: "rounded-xl border-violet-100",
+                    "rounded-lg bg-violet-700 hover:bg-violet-800",
+                  formFieldInput: "rounded-lg border-slate-200",
+                  socialButtonsBlockButton: "rounded-lg border-slate-200",
                 },
               }}
             />

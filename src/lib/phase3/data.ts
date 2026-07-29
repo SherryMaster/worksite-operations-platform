@@ -61,6 +61,10 @@ function effective<T extends { ends_on: string | null; starts_on: string }>(
   );
 }
 
+function isEmploymentStatus(value: string): value is Employment["status"] {
+  return ["ACTIVE", "ARCHIVED", "LEFT_COMPANY", "SUSPENDED"].includes(value);
+}
+
 async function loadWorkerData() {
   const supabase = await createServerSupabaseClient();
   const [
@@ -117,6 +121,209 @@ async function loadWorkerData() {
     skills: skills.data ?? [],
     trades: trades.data ?? [],
     workers: workers.data ?? [],
+  };
+}
+
+async function loadWorkerDataForIds(workerIds: string[]) {
+  const supabase = await createServerSupabaseClient();
+  if (workerIds.length === 0) {
+    return {
+      assignments: [],
+      classifications: [],
+      documents: [],
+      employment: [],
+      projects: [],
+      skills: [],
+      trades: [],
+      workers: [],
+    } satisfies Awaited<ReturnType<typeof loadWorkerData>>;
+  }
+
+  const [
+    workers,
+    employment,
+    classifications,
+    assignments,
+    projects,
+    trades,
+    skills,
+    documents,
+  ] = await Promise.all([
+    supabase.from("workers").select("*").in("id", workerIds),
+    supabase
+      .from("worker_employment_periods")
+      .select("*")
+      .in("worker_id", workerIds)
+      .order("starts_on", { ascending: false }),
+    supabase
+      .from("worker_classification_periods")
+      .select("*")
+      .in("worker_id", workerIds)
+      .order("starts_on", { ascending: false }),
+    supabase
+      .from("worker_project_assignments")
+      .select("*")
+      .in("worker_id", workerIds)
+      .order("starts_on", { ascending: false }),
+    supabase.from("projects").select("id,name,status").order("name"),
+    supabase.from("trades").select("id,name,is_active").order("name"),
+    supabase.from("skill_levels").select("id,name,is_active").order("name"),
+    supabase
+      .from("worker_documents")
+      .select("*")
+      .in("worker_id", workerIds)
+      .order("created_at", { ascending: false }),
+  ]);
+
+  for (const [operation, result] of [
+    ["worker_page", workers],
+    ["worker_page_employment", employment],
+    ["worker_page_classification", classifications],
+    ["worker_page_assignments", assignments],
+    ["worker_page_projects", projects],
+    ["worker_page_trades", trades],
+    ["worker_page_skills", skills],
+    ["worker_page_documents", documents],
+  ] as const) {
+    if (result.error) throwQueryError(operation, result.error);
+  }
+
+  const workersById = new Map(
+    (workers.data ?? []).map((worker) => [worker.id, worker]),
+  );
+  return {
+    assignments: assignments.data ?? [],
+    classifications: classifications.data ?? [],
+    documents: documents.data ?? [],
+    employment: employment.data ?? [],
+    projects: projects.data ?? [],
+    skills: skills.data ?? [],
+    trades: trades.data ?? [],
+    workers: workerIds
+      .map((workerId) => workersById.get(workerId))
+      .filter((worker): worker is Tables<"workers"> => Boolean(worker)),
+  };
+}
+
+function intersectWorkerIds(sets: string[][]): string[] | null {
+  if (sets.length === 0) return null;
+  return sets
+    .slice(1)
+    .reduce(
+      (current, next) => current.filter((workerId) => next.includes(workerId)),
+      sets[0],
+    );
+}
+
+export async function listWorkersPage({
+  page = 1,
+  pageSize = 25,
+  project,
+  query,
+  skill,
+  status,
+  trade,
+}: {
+  page?: number;
+  pageSize?: number;
+  project?: string;
+  query?: string;
+  skill?: string;
+  status?: string;
+  trade?: string;
+}) {
+  const supabase = await createServerSupabaseClient();
+  const today = malaysiaDateInputValue();
+  const relatedFilters: string[][] = [];
+  const currentPeriod = `ends_on.is.null,ends_on.gt.${today}`;
+
+  if (project) {
+    const result = await supabase
+      .from("worker_project_assignments")
+      .select("worker_id")
+      .eq("project_id", project)
+      .lte("starts_on", today)
+      .or(currentPeriod);
+    if (result.error)
+      throwQueryError("worker_page_project_filter", result.error);
+    relatedFilters.push(result.data.map((row) => row.worker_id));
+  }
+
+  if (trade || skill) {
+    let classificationQuery = supabase
+      .from("worker_classification_periods")
+      .select("worker_id")
+      .lte("starts_on", today)
+      .or(currentPeriod);
+    if (trade) classificationQuery = classificationQuery.eq("trade_id", trade);
+    if (skill) {
+      classificationQuery = classificationQuery.eq("skill_level_id", skill);
+    }
+    const result = await classificationQuery;
+    if (result.error) {
+      throwQueryError("worker_page_classification_filter", result.error);
+    }
+    relatedFilters.push(result.data.map((row) => row.worker_id));
+  }
+
+  if (status && isEmploymentStatus(status)) {
+    const result = await supabase
+      .from("worker_employment_periods")
+      .select("worker_id")
+      .eq("status", status)
+      .lte("starts_on", today)
+      .or(currentPeriod);
+    if (result.error)
+      throwQueryError("worker_page_status_filter", result.error);
+    relatedFilters.push(result.data.map((row) => row.worker_id));
+  }
+
+  const matchingIds = intersectWorkerIds(relatedFilters);
+  if (matchingIds?.length === 0) {
+    return { items: [] as WorkerSummary[], page: 1, pageCount: 1, total: 0 };
+  }
+
+  const safePageSize = Math.min(Math.max(pageSize, 1), 100);
+  const safePage = Math.max(page, 1);
+  let workersQuery = supabase
+    .from("workers")
+    .select("id", { count: "exact" })
+    .order("legal_name");
+
+  if (matchingIds) workersQuery = workersQuery.in("id", matchingIds);
+  const normalizedQuery = query?.trim().replace(/[%_,]/g, "");
+  if (normalizedQuery) {
+    const pattern = `%${normalizedQuery}%`;
+    workersQuery = workersQuery.or(
+      `legal_name.ilike.${pattern},phone_number.ilike.${pattern},cnic_number.ilike.${pattern},passport_number.ilike.${pattern}`,
+    );
+  }
+
+  const from = (safePage - 1) * safePageSize;
+  const result = await workersQuery.range(from, from + safePageSize - 1);
+  if (result.error) throwQueryError("worker_page", result.error);
+
+  const total = result.count ?? 0;
+  const pageCount = Math.max(1, Math.ceil(total / safePageSize));
+  if (safePage > pageCount) {
+    return listWorkersPage({
+      page: pageCount,
+      pageSize: safePageSize,
+      project,
+      query,
+      skill,
+      status,
+      trade,
+    });
+  }
+
+  const workerIds = result.data.map((worker) => worker.id);
+  const data = await loadWorkerDataForIds(workerIds);
+  return {
+    items: summarizeWorkers(data),
+    page: safePage,
+    pageCount,
+    total,
   };
 }
 
@@ -222,7 +429,7 @@ export async function listWorkers(filters?: {
 export async function getWorker(
   workerId: string,
 ): Promise<WorkerDetail | null> {
-  const data = await loadWorkerData();
+  const data = await loadWorkerDataForIds([workerId]);
   const summary = summarizeWorkers(data).find(
     (worker) => worker.id === workerId,
   );

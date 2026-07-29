@@ -1,6 +1,7 @@
 import { CheckCircle2, Download, FileWarning, History } from "lucide-react";
 import Link from "next/link";
 
+import { PageHeader } from "@/components/operations/page-header";
 import { ImportWorkspace } from "@/components/phase7/import-workspace";
 import { formatDateTime } from "@/lib/phase2/format";
 import { listMigrationBatches } from "@/lib/phase7/imports";
@@ -22,40 +23,32 @@ export default async function ImportCenterPage() {
   const batches = await listMigrationBatches();
 
   return (
-    <main className="px-5 py-8 sm:px-8 lg:py-10">
-      <div className="flex flex-col gap-5 border-b border-violet-100 pb-8 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p className="font-heading text-xs font-semibold uppercase tracking-[0.23em] text-violet-700">
-            Controlled Excel migration
-          </p>
-          <h1 className="mt-3 font-heading text-4xl font-semibold uppercase leading-none sm:text-6xl">
-            Import Center
-          </h1>
-          <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-600">
-            Move copied legacy data through a fixed template, row-level
-            validation, a no-change preview, duplicate protection, and a
-            reconciled commit history.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <a
-            href="/templates/worksite-import-template.xlsx"
-            download
-            className="inline-flex min-h-11 items-center gap-2 bg-amber-700 px-4 text-sm font-semibold text-white hover:bg-amber-800"
-          >
-            <Download className="size-4" aria-hidden="true" />
-            Download Fixed Template
-          </a>
-          <Link
-            href="/ceo/reports"
-            className="inline-flex min-h-11 items-center border border-violet-100 bg-white px-4 text-sm font-semibold"
-          >
-            Back to Reports
-          </Link>
-        </div>
-      </div>
+    <main>
+      <PageHeader
+        eyebrow="Administration"
+        title="Import center"
+        description="Move legacy data through a fixed template, row-level validation, a no-change preview, duplicate protection, and reconciled commit history."
+        action={
+          <div className="flex flex-wrap gap-2">
+            <a
+              href="/templates/worksite-import-template.xlsx"
+              download
+              className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-amber-700 px-4 text-sm font-semibold text-white hover:bg-amber-800"
+            >
+              <Download className="size-4" aria-hidden="true" />
+              Download template
+            </a>
+            <Link
+              href="/ceo/reports"
+              className="inline-flex min-h-10 items-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold"
+            >
+              Reports
+            </Link>
+          </div>
+        }
+      />
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-3">
+      <div className="mt-4 grid gap-2 lg:grid-cols-3">
         {[
           [
             "1. Copy into the template",
@@ -70,9 +63,12 @@ export default async function ImportCenterPage() {
             "Valid projects, workers, assignments, rates, and private documents commit together and appear across the app.",
           ],
         ].map(([title, description]) => (
-          <div key={title} className="border border-violet-100 bg-white p-4">
+          <div
+            key={title}
+            className="rounded-lg border border-slate-200 bg-white p-3"
+          >
             <h2 className="font-semibold">{title}</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
+            <p className="mt-1 text-sm leading-5 text-slate-600">
               {description}
             </p>
           </div>
@@ -98,7 +94,7 @@ export default async function ImportCenterPage() {
           <div>
             <h2
               id="import-history-title"
-              className="font-heading text-2xl font-semibold uppercase"
+              className="font-heading text-lg font-semibold"
             >
               Reconciliation History
             </h2>
@@ -113,13 +109,13 @@ export default async function ImportCenterPage() {
             No workbook has been previewed yet.
           </p>
         ) : (
-          <ol className="mt-4 space-y-3">
+          <ol className="mt-3 overflow-hidden rounded-lg border border-slate-200 bg-white">
             {batches.map((batch) => {
               const errors = issueCount(batch.issues);
               return (
                 <li
                   key={batch.id}
-                  className="grid gap-4 border border-violet-100 bg-white p-4 lg:grid-cols-[minmax(0,1.4fr)_repeat(5,minmax(4rem,0.6fr))_auto] lg:items-center"
+                  className="grid gap-3 border-b border-slate-200 p-3 last:border-0 lg:grid-cols-[minmax(0,1.4fr)_repeat(5,minmax(4rem,0.6fr))_auto] lg:items-center"
                 >
                   <div className="min-w-0">
                     <p className="truncate font-semibold">{batch.file_name}</p>

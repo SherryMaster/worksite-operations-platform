@@ -23,6 +23,7 @@ import {
   createDocumentTypeAction,
   setDocumentTypeActiveAction,
 } from "@/app/ceo/workers/actions";
+import { PageHeader } from "@/components/operations/page-header";
 import { ActionButton } from "@/components/phase2/action-button";
 import { ManagedForm } from "@/components/phase2/managed-form";
 import { LeaveTypeSettings } from "@/components/phase5/leave-type-settings";
@@ -138,21 +139,17 @@ export default async function SettingsPage() {
   ]);
 
   return (
-    <main className="px-5 py-8 sm:px-8 lg:py-10">
-      <div className="border-b border-violet-100 pb-8">
-        <p className="font-heading text-xs font-semibold uppercase tracking-[0.23em] text-violet-700">
-          Company administration
-        </p>
-        <h1 className="mt-3 font-heading text-5xl font-semibold uppercase leading-none sm:text-6xl">
-          Settings
-        </h1>
-        <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-600">
-          Manage who can enter the field workspace and the categories used by
-          later workforce records.
-        </p>
-      </div>
+    <main>
+      <PageHeader
+        eyebrow="Administration"
+        title="Company settings"
+        description="Manage access, master data, leave rules, import tools, and company identity."
+      />
 
-      <nav className="mt-6 flex gap-2 overflow-x-auto" aria-label="Settings">
+      <nav
+        className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-7"
+        aria-label="Administration sections"
+      >
         {[
           ["Users", "#users"],
           ["Trades", "#trades"],
@@ -165,33 +162,33 @@ export default async function SettingsPage() {
           <a
             key={href}
             href={href}
-            className="shrink-0 border border-violet-100 bg-white px-4 py-2 text-sm font-medium hover:border-violet-950"
+            className="rounded-lg border border-slate-200 bg-white px-3 py-3 text-sm font-medium hover:border-violet-300 hover:bg-violet-50"
           >
             {label}
           </a>
         ))}
       </nav>
 
-      <section id="users" className="mt-8 space-y-6">
+      <section id="users" className="mt-6 space-y-4 scroll-mt-20">
         <div className="flex items-center gap-3">
           <Users className="size-5 text-violet-700" aria-hidden="true" />
           <div>
-            <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-violet-700">
+            <p className="text-xs font-semibold text-violet-700">
               Restricted access
             </p>
-            <h2 className="font-heading text-3xl font-semibold uppercase">
+            <h2 className="font-heading text-xl font-semibold">
               Foreman accounts
             </h2>
           </div>
         </div>
 
-        <article className="grid gap-px border border-violet-100 bg-violet-100 lg:grid-cols-[0.72fr_1.28fr]">
-          <div className="bg-violet-950 p-6 text-white">
-            <UserPlus className="size-5 text-orange-300" aria-hidden="true" />
-            <h3 className="mt-8 font-heading text-2xl font-semibold uppercase">
+        <article className="grid overflow-hidden rounded-lg border border-slate-200 bg-white lg:grid-cols-[0.72fr_1.28fr]">
+          <div className="border-b border-slate-200 bg-slate-50 p-5 lg:border-b-0 lg:border-r">
+            <UserPlus className="size-5 text-violet-700" aria-hidden="true" />
+            <h3 className="mt-4 font-heading text-lg font-semibold">
               Create a Foreman account
             </h3>
-            <p className="mt-3 text-sm leading-6 text-slate-400">
+            <p className="mt-2 text-sm leading-6 text-slate-600">
               The CEO creates the sign-in details directly. Email is optional.
               Share the initial password privately with the Foreman.
             </p>
@@ -398,17 +395,17 @@ export default async function SettingsPage() {
 
       <section
         id="documents"
-        className="mt-10 grid gap-px border border-violet-100 bg-violet-100 lg:grid-cols-[0.7fr_1.3fr]"
+        className="mt-8 grid overflow-hidden rounded-lg border border-slate-200 bg-white lg:grid-cols-[0.7fr_1.3fr]"
       >
-        <div className="bg-violet-950 p-6 text-white">
-          <FileCog className="size-5 text-orange-300" aria-hidden="true" />
-          <p className="mt-8 font-heading text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+        <div className="border-b border-slate-200 bg-slate-50 p-5 lg:border-b-0 lg:border-r">
+          <FileCog className="size-5 text-violet-700" aria-hidden="true" />
+          <p className="mt-4 text-xs font-semibold text-violet-700">
             Worker files
           </p>
-          <h2 className="mt-2 font-heading text-3xl font-semibold uppercase">
+          <h2 className="mt-1 font-heading text-xl font-semibold">
             Document Types
           </h2>
-          <p className="mt-4 text-sm leading-6 text-slate-400">
+          <p className="mt-2 text-sm leading-6 text-slate-600">
             Define the labels and dates collected for private worker files.
             Deactivating a type preserves all existing records.
           </p>
@@ -515,22 +512,22 @@ export default async function SettingsPage() {
 
       <section
         id="company"
-        className="mt-10 grid gap-px border border-violet-100 bg-violet-100 lg:grid-cols-[0.7fr_1.3fr]"
+        className="mt-8 grid overflow-hidden rounded-lg border border-slate-200 bg-white lg:grid-cols-[0.7fr_1.3fr]"
       >
-        <div className="bg-violet-950 p-6 text-white">
-          <BadgeCheck className="size-5 text-orange-300" aria-hidden="true" />
-          <p className="mt-8 font-heading text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+        <div className="border-b border-slate-200 bg-slate-50 p-5 lg:border-b-0 lg:border-r">
+          <BadgeCheck className="size-5 text-violet-700" aria-hidden="true" />
+          <p className="mt-4 text-xs font-semibold text-violet-700">
             Company identity
           </p>
-          <h2 className="mt-2 font-heading text-3xl font-semibold uppercase">
+          <h2 className="mt-1 font-heading text-xl font-semibold">
             Fixed operating context
           </h2>
           <dl className="mt-6 space-y-3 text-sm">
-            <div className="flex justify-between border-b border-violet-800 pb-3">
+            <div className="flex justify-between border-b border-slate-200 pb-3">
               <dt className="text-slate-500">Currency</dt>
               <dd>MYR</dd>
             </div>
-            <div className="flex justify-between gap-4 border-b border-violet-800 pb-3">
+            <div className="flex justify-between gap-4 border-b border-slate-200 pb-3">
               <dt className="text-slate-500">Timezone</dt>
               <dd className="text-right">Asia/Kuala_Lumpur</dd>
             </div>

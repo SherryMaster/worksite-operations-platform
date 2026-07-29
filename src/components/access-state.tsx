@@ -17,26 +17,24 @@ export function AccessState({
   action?: { href: string; label: string };
 }) {
   return (
-    <main className="min-h-screen bg-violet-700 px-5 py-8 text-white sm:grid sm:place-items-center">
-      <section className="mx-auto w-full max-w-xl rounded-2xl border border-violet-500/40 bg-violet-900/70 p-6 shadow-2xl sm:p-10">
-        <BrandMark inverted />
-        <div className="mt-14 grid size-12 place-items-center rounded-xl border border-amber-400/30 bg-amber-400/10 text-orange-300">
+    <main className="min-h-screen bg-slate-100 px-5 py-8 text-slate-950 sm:grid sm:place-items-center">
+      <section className="mx-auto w-full max-w-xl rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <BrandMark />
+        <div className="mt-10 grid size-11 place-items-center rounded-lg bg-violet-50 text-violet-700">
           <LockKeyhole className="size-5" aria-hidden="true" />
         </div>
-        <p className="mt-8 font-heading text-xs font-semibold uppercase tracking-[0.24em] text-orange-300">
-          {eyebrow}
-        </p>
-        <h1 className="mt-3 max-w-md font-heading text-4xl font-semibold uppercase leading-[0.95] tracking-tight sm:text-5xl">
+        <p className="mt-6 text-xs font-semibold text-violet-700">{eyebrow}</p>
+        <h1 className="mt-2 max-w-md font-heading text-3xl font-semibold tracking-tight">
           {title}
         </h1>
-        <p className="mt-5 max-w-md leading-7 text-violet-100">{description}</p>
+        <p className="mt-3 max-w-md leading-7 text-slate-600">{description}</p>
         <div className="mt-8 flex flex-wrap gap-3">
           {action ? (
             <Button
               render={<Link href={action.href} />}
               nativeButton={false}
               size="lg"
-              className="rounded-xl bg-amber-400 px-5 text-slate-950 hover:bg-amber-300"
+              className="rounded-lg bg-violet-700 px-5 text-white hover:bg-violet-800"
             >
               {action.label}
               <ArrowRight aria-hidden="true" />
@@ -46,7 +44,7 @@ export function AccessState({
             <Button
               variant="outline"
               size="lg"
-              className="rounded-xl border-violet-700 bg-transparent text-slate-200 hover:bg-violet-800"
+              className="rounded-lg border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
             >
               Sign out
             </Button>

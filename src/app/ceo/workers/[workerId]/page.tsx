@@ -230,15 +230,15 @@ export default async function WorkerDetailPage({
           </dl>
         </article>
 
-        <aside className="border border-violet-800 bg-violet-950 p-6 text-white">
-          <WalletCards className="size-5 text-orange-300" aria-hidden="true" />
-          <p className="mt-8 text-xs font-semibold uppercase tracking-wider text-slate-500">
+        <aside className="rounded-lg border border-slate-200 bg-white p-5">
+          <WalletCards className="size-5 text-violet-700" aria-hidden="true" />
+          <p className="mt-4 text-xs font-semibold text-slate-500">
             Current hourly rate
           </p>
           <p className="mt-2 font-heading text-4xl font-semibold">
             {formatSen(worker.currentRate?.hourly_rate_sen ?? null)}
           </p>
-          <p className="mt-6 text-xs font-semibold uppercase tracking-wider text-slate-500">
+          <p className="mt-4 text-xs font-semibold text-slate-500">
             Monthly food deduction
           </p>
           <p className="mt-2 font-heading text-3xl font-semibold">
@@ -834,20 +834,20 @@ export default async function WorkerDetailPage({
 
       <section
         id="audit"
-        className="mt-8 border border-violet-800 bg-violet-950 p-6 text-white"
+        className="mt-8 rounded-lg border border-slate-200 bg-white p-5"
       >
-        <ShieldCheck className="size-5 text-orange-300" aria-hidden="true" />
-        <h2 className="mt-5 font-heading text-2xl font-semibold uppercase">
+        <ShieldCheck className="size-5 text-violet-700" aria-hidden="true" />
+        <h2 className="mt-4 font-heading text-xl font-semibold">
           Worker Audit History
         </h2>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
           Identity numbers and document contents are never copied into audit
           details. Open the filtered company audit log to trace profile,
           assignment, rate, status, and document changes.
         </p>
         <Link
           href={`/ceo/audit?query=${encodeURIComponent(worker.legal_name)}`}
-          className="mt-5 inline-flex items-center gap-2 border border-violet-700 px-4 py-3 text-sm font-semibold hover:border-amber-400"
+          className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-violet-800 hover:bg-violet-50"
         >
           Open Worker Audit
           <ArrowUpRight className="size-4" aria-hidden="true" />

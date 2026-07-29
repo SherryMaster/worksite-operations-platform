@@ -309,13 +309,73 @@ export async function getSettingsData() {
   };
 }
 
-export async function getAuditEntries(limit = 100) {
+type AuditQueryOptions = {
+  actorIds?: string[];
+  date?: string;
+  module?: string;
+  offset?: number;
+  query?: string;
+};
+
+function auditDateRange(date: string) {
+  const start = new Date(`${date}T00:00:00+08:00`);
+  const end = new Date(start);
+  end.setUTCDate(end.getUTCDate() + 1);
+  return { end: end.toISOString(), start: start.toISOString() };
+}
+
+export async function getAuditEntryCount(
+  options: Omit<AuditQueryOptions, "offset"> = {},
+) {
+  if (options.actorIds?.length === 0) return 0;
   const supabase = await createServerSupabaseClient();
-  const { data, error } = await supabase
+  let query = supabase
+    .from("audit_entries")
+    .select("id", { count: "exact", head: true });
+  if (options.module) query = query.eq("module", options.module);
+  if (options.actorIds) query = query.in("actor_user_id", options.actorIds);
+  const normalizedQuery = options.query?.trim().replace(/[%_,]/g, "");
+  if (normalizedQuery) {
+    const pattern = `%${normalizedQuery}%`;
+    query = query.or(
+      `action.ilike.${pattern},entity_type.ilike.${pattern},module.ilike.${pattern}`,
+    );
+  }
+  if (options.date) {
+    const range = auditDateRange(options.date);
+    query = query.gte("occurred_at", range.start).lt("occurred_at", range.end);
+  }
+  const { count, error } = await query;
+  if (error) throwQueryError("get_audit_entry_count", error);
+  return count ?? 0;
+}
+
+export async function getAuditEntries(
+  limit = 100,
+  options: AuditQueryOptions = {},
+) {
+  if (options.actorIds?.length === 0) return [];
+  const supabase = await createServerSupabaseClient();
+  const safeLimit = Math.min(Math.max(limit, 1), 100);
+  const offset = Math.max(options.offset ?? 0, 0);
+  let query = supabase
     .from("audit_entries")
     .select("*")
-    .order("occurred_at", { ascending: false })
-    .limit(Math.min(Math.max(limit, 1), 5000));
+    .order("occurred_at", { ascending: false });
+  if (options.module) query = query.eq("module", options.module);
+  if (options.actorIds) query = query.in("actor_user_id", options.actorIds);
+  const normalizedQuery = options.query?.trim().replace(/[%_,]/g, "");
+  if (normalizedQuery) {
+    const pattern = `%${normalizedQuery}%`;
+    query = query.or(
+      `action.ilike.${pattern},entity_type.ilike.${pattern},module.ilike.${pattern}`,
+    );
+  }
+  if (options.date) {
+    const range = auditDateRange(options.date);
+    query = query.gte("occurred_at", range.start).lt("occurred_at", range.end);
+  }
+  const { data, error } = await query.range(offset, offset + safeLimit - 1);
 
   if (error) {
     throwQueryError("get_audit_entries", error);
@@ -409,6 +469,29 @@ export async function getAuditEntries(limit = 100) {
         : null,
     };
   });
+}
+
+export async function findAuditActorIds(actorQuery: string | undefined) {
+  const normalized = actorQuery?.trim().toLowerCase();
+  if (!normalized) return undefined;
+
+  const supabase = await createServerSupabaseClient();
+  const { data, error } = await supabase
+    .from("application_users")
+    .select("id,clerk_user_id");
+  if (error) throwQueryError("find_audit_actors", error);
+
+  const clerkUsers = await getClerkUsers(
+    data.map((user) => user.clerk_user_id),
+  );
+  return data
+    .filter((user) => {
+      const clerkUser = clerkUsers.get(user.clerk_user_id);
+      return clerkUser
+        ? clerkDisplayName(clerkUser).toLowerCase().includes(normalized)
+        : false;
+    })
+    .map((user) => user.id);
 }
 
 export async function getForemanWorkspace() {

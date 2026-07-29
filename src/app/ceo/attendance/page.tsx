@@ -8,6 +8,7 @@ import {
 import Link from "next/link";
 
 import { FormSubmitButton } from "@/components/form-submit-button";
+import { PageHeader } from "@/components/operations/page-header";
 import { AttendanceWorkspace } from "@/components/phase4/attendance-workspace";
 import { malaysiaDateInputValue } from "@/lib/phase2/format";
 import { formatMinutes } from "@/lib/phase4/calculations";
@@ -19,6 +20,8 @@ import {
 } from "@/lib/phase4/data";
 import { cn } from "@/lib/utils";
 
+const MONTH_PAGE_SIZE = 50;
+
 function currentMonth() {
   return malaysiaDateInputValue().slice(0, 7);
 }
@@ -29,6 +32,7 @@ export default async function CeoAttendancePage({
   searchParams: Promise<{
     date?: string;
     month?: string;
+    page?: string;
     project?: string;
     query?: string;
     view?: string;
@@ -55,9 +59,30 @@ export default async function CeoAttendancePage({
       ? await getAttendanceMonthRows(projectId, month)
       : [];
   const query = params.query?.trim().toLowerCase();
-  const monthRows = allMonthRows.filter(
+  const filteredMonthRows = allMonthRows.filter(
     (row) => !query || row.workerName.toLowerCase().includes(query),
   );
+  const requestedPage = Number(params.page ?? "1");
+  const page =
+    Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const pageCount = Math.max(
+    1,
+    Math.ceil(filteredMonthRows.length / MONTH_PAGE_SIZE),
+  );
+  const currentPage = Math.min(page, pageCount);
+  const monthRows = filteredMonthRows.slice(
+    (currentPage - 1) * MONTH_PAGE_SIZE,
+    currentPage * MONTH_PAGE_SIZE,
+  );
+  const pageHref = (target: number) => {
+    const queryParams = new URLSearchParams();
+    queryParams.set("view", "month");
+    if (projectId) queryParams.set("project", projectId);
+    queryParams.set("month", month);
+    if (params.query) queryParams.set("query", params.query);
+    queryParams.set("page", String(target));
+    return `/ceo/attendance?${queryParams.toString()}`;
+  };
   const exceptionRows = allMonthRows.filter(
     (row) => row.exceptionCount > 0,
   ).length;
@@ -67,29 +92,21 @@ export default async function CeoAttendancePage({
 
   return (
     <main>
-      <div className="px-5 pt-8 sm:px-8 lg:pt-10">
-        <div className="border-b border-violet-100 pb-7">
-          <p className="font-heading text-xs font-semibold uppercase tracking-[0.23em] text-violet-700">
-            Company attendance
-          </p>
-          <h1 className="mt-3 font-heading text-5xl font-semibold uppercase leading-none sm:text-6xl">
-            Worksite time
-          </h1>
-          <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-600">
-            Review daily attendance, payable minute categories, incomplete
-            records, and permanent corrections across every project. Attendance
-            has no separate approval step.
-          </p>
-        </div>
+      <div>
+        <PageHeader
+          eyebrow="Company attendance"
+          title="Attendance oversight"
+          description="Review daily records, payable time, exceptions, and permanent corrections across every project."
+        />
 
-        <form className="mt-5 grid gap-3 border border-violet-100 bg-white p-4 lg:grid-cols-[1.4fr_1fr_auto]">
+        <form className="mt-4 grid gap-3 rounded-lg border border-slate-200 bg-white p-3 md:grid-cols-[1.4fr_1fr_auto]">
           <input type="hidden" name="view" value={view} />
-          <label className="text-xs font-semibold uppercase tracking-wider text-slate-600">
+          <label className="text-xs font-semibold text-slate-600">
             Project
             <select
               name="project"
               defaultValue={projectId}
-              className="mt-2 h-11 w-full border border-violet-100 px-3 text-sm font-medium normal-case tracking-normal"
+              className="mt-1 h-10 w-full border border-slate-200 px-3 text-sm font-medium"
             >
               {projects.map((project) => (
                 <option key={project.id} value={project.id}>
@@ -98,31 +115,31 @@ export default async function CeoAttendancePage({
               ))}
             </select>
           </label>
-          <label className="text-xs font-semibold uppercase tracking-wider text-slate-600">
+          <label className="text-xs font-semibold text-slate-600">
             {view === "day" ? "Date" : "Month"}
             <input
               name={view === "day" ? "date" : "month"}
               type={view === "day" ? "date" : "month"}
               defaultValue={view === "day" ? workDate : month}
-              className="mt-2 h-11 w-full border border-violet-100 px-3 text-sm font-medium normal-case tracking-normal"
+              className="mt-1 h-10 w-full border border-slate-200 px-3 text-sm font-medium"
             />
           </label>
           <FormSubmitButton
             pendingLabel="Loading attendance…"
-            className="min-h-11 self-end bg-violet-700 px-5 text-sm font-semibold text-white"
+            className="h-10 self-end bg-violet-700 px-4 text-sm font-semibold text-white"
           >
             Show attendance
           </FormSubmitButton>
         </form>
 
-        <div className="mt-3 flex gap-2">
+        <div className="mt-3 flex gap-1 rounded-lg bg-slate-100 p-1 sm:w-fit">
           <Link
             href={`/ceo/attendance?view=day&project=${projectId ?? ""}&date=${workDate}`}
             className={cn(
-              "inline-flex min-h-11 items-center gap-2 border px-4 text-sm font-semibold",
+              "inline-flex min-h-9 flex-1 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold sm:flex-none",
               view === "day"
-                ? "border-violet-950 bg-violet-950 text-white"
-                : "border-violet-100 bg-white",
+                ? "bg-white text-violet-800 shadow-sm"
+                : "text-slate-600",
             )}
           >
             <CalendarDays className="size-4" aria-hidden="true" />
@@ -131,10 +148,10 @@ export default async function CeoAttendancePage({
           <Link
             href={`/ceo/attendance?view=month&project=${projectId ?? ""}&month=${month}`}
             className={cn(
-              "inline-flex min-h-11 items-center gap-2 border px-4 text-sm font-semibold",
+              "inline-flex min-h-9 flex-1 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold sm:flex-none",
               view === "month"
-                ? "border-violet-950 bg-violet-950 text-white"
-                : "border-violet-100 bg-white",
+                ? "bg-white text-violet-800 shadow-sm"
+                : "text-slate-600",
             )}
           >
             <Clock3 className="size-4" aria-hidden="true" />
@@ -155,7 +172,7 @@ export default async function CeoAttendancePage({
           </p>
         </div>
       ) : view === "day" ? (
-        <div className="mx-auto mt-1 max-w-3xl pb-10">
+        <div className="mt-4 pb-4">
           {syncExceptions.length > 0 ? (
             <details className="mx-4 mt-5 border border-red-200 bg-red-50 p-4 sm:mx-6">
               <summary className="cursor-pointer text-sm font-semibold text-red-900">
@@ -179,33 +196,35 @@ export default async function CeoAttendancePage({
           <AttendanceWorkspace initialSnapshot={snapshot} mode="CEO" />
         </div>
       ) : (
-        <section className="px-5 pb-10 pt-6 sm:px-8">
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="border border-violet-100 bg-white p-4">
+        <section className="pt-4">
+          <div className="grid grid-cols-3 overflow-hidden rounded-lg border border-slate-200 bg-white">
+            <div className="border-r border-slate-200 p-3">
               <CheckCircle2
                 className="size-5 text-emerald-700"
                 aria-hidden="true"
               />
-              <p className="mt-4 text-3xl font-semibold">
+              <p className="mt-2 text-2xl font-semibold tabular-nums">
                 {allMonthRows.length}
               </p>
-              <p className="mt-1 text-xs uppercase tracking-wider text-slate-500">
+              <p className="mt-1 text-xs text-slate-500">
                 Recorded worker-days
               </p>
             </div>
-            <div className="border border-violet-100 bg-white p-4">
+            <div className="border-r border-slate-200 p-3">
               <AlertTriangle
                 className="size-5 text-red-700"
                 aria-hidden="true"
               />
-              <p className="mt-4 text-3xl font-semibold">{exceptionRows}</p>
-              <p className="mt-1 text-xs uppercase tracking-wider text-slate-500">
+              <p className="mt-2 text-2xl font-semibold tabular-nums">
+                {exceptionRows}
+              </p>
+              <p className="mt-1 text-xs text-slate-500">
                 Days needing correction
               </p>
             </div>
-            <div className="border border-violet-100 bg-white p-4">
+            <div className="p-3">
               <Clock3 className="size-5 text-violet-700" aria-hidden="true" />
-              <p className="mt-4 text-3xl font-semibold">
+              <p className="mt-2 text-2xl font-semibold tabular-nums">
                 {formatMinutes(
                   allMonthRows.reduce(
                     (total, row) => total + row.totalMinutes,
@@ -213,9 +232,7 @@ export default async function CeoAttendancePage({
                   ),
                 )}
               </p>
-              <p className="mt-1 text-xs uppercase tracking-wider text-slate-500">
-                Valid payable time
-              </p>
+              <p className="mt-1 text-xs text-slate-500">Valid payable time</p>
             </div>
           </div>
 
@@ -388,6 +405,35 @@ export default async function CeoAttendancePage({
               </tbody>
             </table>
           </div>
+          {pageCount > 1 ? (
+            <nav
+              aria-label="Monthly attendance pages"
+              className="mt-4 flex items-center justify-between"
+            >
+              <p className="text-xs text-slate-500">
+                Page {currentPage} of {pageCount} · {filteredMonthRows.length}{" "}
+                records
+              </p>
+              <div className="flex gap-2">
+                {currentPage > 1 ? (
+                  <Link
+                    href={pageHref(currentPage - 1)}
+                    className="inline-flex min-h-10 items-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold"
+                  >
+                    Previous
+                  </Link>
+                ) : null}
+                {currentPage < pageCount ? (
+                  <Link
+                    href={pageHref(currentPage + 1)}
+                    className="inline-flex min-h-10 items-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold"
+                  >
+                    Next
+                  </Link>
+                ) : null}
+              </div>
+            </nav>
+          ) : null}
         </section>
       )}
     </main>

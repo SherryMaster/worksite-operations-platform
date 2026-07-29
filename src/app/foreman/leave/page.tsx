@@ -1,5 +1,7 @@
-import { ClipboardList } from "lucide-react";
+import { ArrowLeft, Plus } from "lucide-react";
+import Link from "next/link";
 
+import { PageHeader } from "@/components/operations/page-header";
 import { LeaveRequestForm } from "@/components/phase5/leave-request-form";
 import { LeaveRequestList } from "@/components/phase5/leave-request-list";
 import {
@@ -20,7 +22,7 @@ const resultMessages: Record<string, string> = {
 export default async function ForemanLeavePage({
   searchParams,
 }: {
-  searchParams: Promise<{ result?: string }>;
+  searchParams: Promise<{ result?: string; view?: string }>;
 }) {
   const params = await searchParams;
   const [options, requests] = await Promise.all([
@@ -30,19 +32,34 @@ export default async function ForemanLeavePage({
   const resultMessage = params.result
     ? resultMessages[params.result]
     : undefined;
+  const showingForm =
+    params.view === "new" ||
+    Boolean(params.result && !params.result.startsWith("submitted"));
 
   return (
-    <main className="min-h-[calc(100vh-9rem)] px-4 pb-24 pt-7">
-      <p className="font-heading text-xs font-semibold uppercase tracking-[0.22em] text-violet-700">
-        Current project
-      </p>
-      <h1 className="mt-2 font-heading text-4xl font-semibold uppercase leading-none">
-        Worker leave
-      </h1>
-      <p className="mt-3 text-sm leading-6 text-slate-600">
-        Submit full calendar days for an assigned worker. Every approved day is
-        unpaid and has zero payable hours.
-      </p>
+    <main>
+      <PageHeader
+        eyebrow="Current project"
+        title={showingForm ? "New leave request" : "Leave requests"}
+        description={
+          showingForm
+            ? "Approved leave is a full unpaid calendar day with zero payable hours."
+            : undefined
+        }
+        action={
+          <Link
+            href={showingForm ? "/foreman/leave" : "/foreman/leave?view=new"}
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-violet-700 px-4 text-sm font-semibold text-white hover:bg-violet-800"
+          >
+            {showingForm ? (
+              <ArrowLeft className="size-4" aria-hidden="true" />
+            ) : (
+              <Plus className="size-4" aria-hidden="true" />
+            )}
+            {showingForm ? "Back to requests" : "New request"}
+          </Link>
+        }
+      />
 
       {resultMessage ? (
         <p
@@ -57,29 +74,19 @@ export default async function ForemanLeavePage({
         </p>
       ) : null}
 
-      <section className="mt-6 border border-violet-100 bg-white p-4">
-        <h2 className="flex items-center gap-2 text-lg font-semibold">
-          <ClipboardList
-            className="size-5 text-violet-700"
-            aria-hidden="true"
-          />
-          New request
-        </h2>
-        <div className="mt-4">
+      {showingForm ? (
+        <section className="mt-4 max-w-3xl rounded-lg border border-slate-200 bg-white p-4">
           <LeaveRequestForm
             compact
             leaveTypes={options.leaveTypes}
             workers={options.workers}
           />
-        </div>
-      </section>
-
-      <section className="mt-7" aria-label="Project leave requests">
-        <h2 className="mb-4 font-heading text-2xl font-semibold uppercase">
-          Request history
-        </h2>
-        <LeaveRequestList requests={requests} />
-      </section>
+        </section>
+      ) : (
+        <section className="mt-4" aria-label="Project leave requests">
+          <LeaveRequestList requests={requests} />
+        </section>
+      )}
     </main>
   );
 }

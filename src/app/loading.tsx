@@ -1,7 +1,7 @@
 export default function Loading() {
   return (
     <main
-      className="grid min-h-screen place-items-center bg-violet-950 text-white"
+      className="grid min-h-screen place-items-center bg-slate-100 text-slate-700"
       aria-live="polite"
       aria-busy="true"
     >

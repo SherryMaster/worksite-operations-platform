@@ -12,5 +12,5 @@ export default async function ForemanAttendanceHistory({
     ? (params.date as string)
     : malaysiaDateInputValue();
   const snapshot = await getForemanAttendanceSnapshot(workDate);
-  return <AttendanceWorkspace initialSnapshot={snapshot} />;
+  return <AttendanceWorkspace initialSnapshot={snapshot} context="history" />;
 }

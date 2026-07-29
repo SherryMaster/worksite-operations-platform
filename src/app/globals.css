@@ -72,7 +72,7 @@
   --chart-3: oklch(0.48 0.12 247);
   --chart-4: oklch(0.7 0.16 62);
   --chart-5: oklch(0.52 0.05 285);
-  --radius: 0.75rem;
+  --radius: 0.625rem;
   --sidebar: oklch(0.985 0.008 290);
   --sidebar-foreground: oklch(0.27 0.04 285);
   --sidebar-primary: oklch(0.48 0.19 292);
@@ -90,7 +90,7 @@
 
   html {
     @apply font-sans;
-    background: #f7f6fb;
+    background: #f6f7f9;
     -webkit-tap-highlight-color: rgb(109 40 217 / 12%);
     scroll-behavior: smooth;
   }
@@ -134,20 +134,14 @@
 @layer components {
   .app-workspace {
     min-height: 100dvh;
-    background:
-      radial-gradient(
-        circle at top right,
-        rgb(237 233 254 / 65%),
-        transparent 32rem
-      ),
-      var(--background);
+    background: #f6f7f9;
   }
 
   .app-workspace main {
     width: 100%;
-    max-width: 96rem;
+    max-width: 100rem;
     margin-inline: auto;
-    padding: 1.25rem 1rem calc(6.5rem + env(safe-area-inset-bottom));
+    padding: 1rem 1rem calc(5.75rem + env(safe-area-inset-bottom));
   }
 
   .app-workspace main > :first-child h1,
@@ -162,28 +156,42 @@
   }
 
   .app-workspace h1.font-heading {
-    font-size: clamp(1.85rem, 6vw, 3.5rem);
-    line-height: 1.08;
+    font-size: clamp(1.5rem, 5vw, 2.25rem) !important;
+    line-height: 1.2;
+    text-transform: none !important;
+    letter-spacing: -0.025em !important;
   }
 
   .app-workspace h2.font-heading {
-    line-height: 1.18;
+    line-height: 1.25;
+    text-transform: none !important;
+    letter-spacing: -0.015em !important;
+  }
+
+  .app-workspace h3.font-heading {
+    text-transform: none !important;
+    letter-spacing: -0.01em !important;
+  }
+
+  .app-workspace p.font-heading {
+    text-transform: none !important;
+    letter-spacing: 0 !important;
   }
 
   .app-workspace :is(article, section)[class*="bg-white"] {
-    border-radius: 1rem;
-    box-shadow: 0 1px 2px rgb(45 35 66 / 5%);
+    border-radius: 0.625rem;
+    box-shadow: 0 1px 2px rgb(15 23 42 / 4%);
   }
 
   .app-workspace :is(input, select, textarea) {
-    min-height: 2.75rem;
-    border-radius: 0.75rem;
+    min-height: 2.5rem;
+    border-radius: 0.5rem;
   }
 
   .app-workspace :is(button, a)[class*="inline-flex"],
   .app-workspace button[type="submit"] {
-    min-height: 2.75rem;
-    border-radius: 0.75rem;
+    min-height: 2.5rem;
+    border-radius: 0.5rem;
   }
 
   .app-workspace [class*="overflow-x-auto"] {
@@ -198,7 +206,13 @@
 
   @media (min-width: 1024px) {
     .app-workspace main {
-      padding: 2rem 2rem 3rem;
+      padding: 1.5rem 2rem 3rem;
     }
+  }
+}
+
+@media (max-width: 767px) {
+  .app-workspace :is(button, a, input, select)[class] {
+    scroll-margin-bottom: 5rem;
   }
 }
