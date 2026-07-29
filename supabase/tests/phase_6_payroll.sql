@@ -299,7 +299,7 @@ set local session_replication_role = origin;
 set local role authenticated;
 select set_config(
   'request.jwt.claims',
-  '{"sub":"user_phase6_ceo","role":"authenticated","fva":[0,-1]}',
+  '{"sub":"user_phase6_ceo","role":"authenticated"}',
   true
 );
 
@@ -551,7 +551,7 @@ select public.approve_payroll((select run_id from phase6_values));
 
 select set_config(
   'request.jwt.claims',
-  '{"sub":"user_phase6_foreman","role":"authenticated","fva":[0,-1]}',
+  '{"sub":"user_phase6_foreman","role":"authenticated"}',
   true
 );
 

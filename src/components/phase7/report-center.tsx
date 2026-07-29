@@ -88,18 +88,20 @@ export async function ReportCenter({
     "payroll-adjustments",
     "payment-status",
   ].includes(parsed.reportId);
+  const previewRows = report.rows.slice(0, 100);
+  const previewLimited = report.rows.length > previewRows.length;
 
   return (
     <main className="px-4 py-7 sm:px-8 lg:py-10">
-      <div className="flex flex-col gap-5 border-b border-stone-300 pb-7 lg:flex-row lg:items-end lg:justify-between">
+      <div className="flex flex-col gap-5 border-b border-violet-100 pb-7 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="font-heading text-xs font-semibold uppercase tracking-[0.23em] text-amber-700">
+          <p className="font-heading text-xs font-semibold uppercase tracking-[0.23em] text-violet-700">
             Operational visibility
           </p>
           <h1 className="mt-3 font-heading text-4xl font-semibold uppercase leading-none sm:text-6xl">
             Reports Center
           </h1>
-          <p className="mt-4 max-w-3xl text-sm leading-6 text-stone-600">
+          <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-600">
             Choose a predefined report, narrow it to the work you need, and
             download the same filtered rows as an Excel workbook.
           </p>
@@ -107,7 +109,7 @@ export async function ReportCenter({
         {role === "CEO" ? (
           <Link
             href="/ceo/imports"
-            className="inline-flex min-h-11 items-center justify-center gap-2 border border-stone-950 bg-white px-4 text-sm font-semibold hover:bg-stone-100"
+            className="inline-flex min-h-11 items-center justify-center gap-2 border border-violet-950 bg-white px-4 text-sm font-semibold hover:bg-violet-50"
           >
             <Sheet className="size-4" aria-hidden="true" />
             Open Import Center
@@ -116,15 +118,15 @@ export async function ReportCenter({
       </div>
 
       <form
-        className="mt-6 grid gap-4 border border-stone-300 bg-white p-4 md:grid-cols-2 xl:grid-cols-4"
+        className="mt-6 grid gap-4 border border-violet-100 bg-white p-4 md:grid-cols-2 xl:grid-cols-4"
         action={role === "CEO" ? "/ceo/reports" : "/foreman/reports"}
       >
-        <label className="text-xs font-semibold uppercase tracking-wider text-stone-600 md:col-span-2">
+        <label className="text-xs font-semibold uppercase tracking-wider text-slate-600 md:col-span-2">
           Report
           <select
             name="report"
             defaultValue={parsed.reportId}
-            className="mt-2 h-11 w-full border border-stone-300 bg-white px-3 text-sm font-medium normal-case tracking-normal"
+            className="mt-2 h-11 w-full border border-violet-100 bg-white px-3 text-sm font-medium normal-case tracking-normal"
           >
             {permittedReports.map((item) => (
               <option key={item.id} value={item.id}>
@@ -133,23 +135,23 @@ export async function ReportCenter({
             ))}
           </select>
         </label>
-        <label className="text-xs font-semibold uppercase tracking-wider text-stone-600 md:col-span-2">
+        <label className="text-xs font-semibold uppercase tracking-wider text-slate-600 md:col-span-2">
           Search within results
           <input
             name="query"
             defaultValue={parsed.filters.query}
             placeholder="Worker, project, status, reference…"
-            className="mt-2 h-11 w-full border border-stone-300 px-3 text-sm font-normal normal-case tracking-normal"
+            className="mt-2 h-11 w-full border border-violet-100 px-3 text-sm font-normal normal-case tracking-normal"
           />
         </label>
 
         {usesProject ? (
-          <label className="text-xs font-semibold uppercase tracking-wider text-stone-600">
+          <label className="text-xs font-semibold uppercase tracking-wider text-slate-600">
             Project
             <select
               name="projectId"
               defaultValue={parsed.filters.projectId ?? ""}
-              className="mt-2 h-11 w-full border border-stone-300 bg-white px-3 text-sm font-medium normal-case tracking-normal"
+              className="mt-2 h-11 w-full border border-violet-100 bg-white px-3 text-sm font-medium normal-case tracking-normal"
             >
               <option value="">All accessible projects</option>
               {projects.map((project) => (
@@ -162,12 +164,12 @@ export async function ReportCenter({
         ) : null}
 
         {usesWorker ? (
-          <label className="text-xs font-semibold uppercase tracking-wider text-stone-600">
+          <label className="text-xs font-semibold uppercase tracking-wider text-slate-600">
             Worker
             <select
               name="workerId"
               defaultValue={parsed.filters.workerId ?? ""}
-              className="mt-2 h-11 w-full border border-stone-300 bg-white px-3 text-sm font-medium normal-case tracking-normal"
+              className="mt-2 h-11 w-full border border-violet-100 bg-white px-3 text-sm font-medium normal-case tracking-normal"
             >
               <option value="">All accessible workers</option>
               {workers.map((worker) => (
@@ -180,71 +182,71 @@ export async function ReportCenter({
         ) : null}
 
         {usesDate ? (
-          <label className="text-xs font-semibold uppercase tracking-wider text-stone-600">
+          <label className="text-xs font-semibold uppercase tracking-wider text-slate-600">
             Work date
             <input
               name="date"
               type="date"
               defaultValue={parsed.filters.date ?? currentDate()}
-              className="mt-2 h-11 w-full border border-stone-300 px-3 text-sm font-medium normal-case tracking-normal"
+              className="mt-2 h-11 w-full border border-violet-100 px-3 text-sm font-medium normal-case tracking-normal"
             />
           </label>
         ) : null}
 
         {usesMonth ? (
-          <label className="text-xs font-semibold uppercase tracking-wider text-stone-600">
+          <label className="text-xs font-semibold uppercase tracking-wider text-slate-600">
             Month
             <input
               name="month"
               type="month"
               defaultValue={parsed.filters.month ?? currentMonth()}
-              className="mt-2 h-11 w-full border border-stone-300 px-3 text-sm font-medium normal-case tracking-normal"
+              className="mt-2 h-11 w-full border border-violet-100 px-3 text-sm font-medium normal-case tracking-normal"
             />
           </label>
         ) : null}
 
         {usesRange ? (
           <>
-            <label className="text-xs font-semibold uppercase tracking-wider text-stone-600">
+            <label className="text-xs font-semibold uppercase tracking-wider text-slate-600">
               From date
               <input
                 name="dateFrom"
                 type="date"
                 defaultValue={parsed.filters.dateFrom}
-                className="mt-2 h-11 w-full border border-stone-300 px-3 text-sm font-medium normal-case tracking-normal"
+                className="mt-2 h-11 w-full border border-violet-100 px-3 text-sm font-medium normal-case tracking-normal"
               />
             </label>
-            <label className="text-xs font-semibold uppercase tracking-wider text-stone-600">
+            <label className="text-xs font-semibold uppercase tracking-wider text-slate-600">
               To date
               <input
                 name="dateTo"
                 type="date"
                 defaultValue={parsed.filters.dateTo}
-                className="mt-2 h-11 w-full border border-stone-300 px-3 text-sm font-medium normal-case tracking-normal"
+                className="mt-2 h-11 w-full border border-violet-100 px-3 text-sm font-medium normal-case tracking-normal"
               />
             </label>
           </>
         ) : null}
 
         {parsed.reportId === "audit-activity" ? (
-          <label className="text-xs font-semibold uppercase tracking-wider text-stone-600">
+          <label className="text-xs font-semibold uppercase tracking-wider text-slate-600">
             Changed by
             <input
               name="actor"
               defaultValue={parsed.filters.actor}
-              placeholder="Person’s name"
-              className="mt-2 h-11 w-full border border-stone-300 px-3 text-sm font-normal normal-case tracking-normal"
+              placeholder="Person’s name…"
+              className="mt-2 h-11 w-full border border-violet-100 px-3 text-sm font-normal normal-case tracking-normal"
             />
           </label>
         ) : null}
 
         {usesStatus ? (
-          <label className="text-xs font-semibold uppercase tracking-wider text-stone-600">
+          <label className="text-xs font-semibold uppercase tracking-wider text-slate-600">
             Status
             <select
               name="status"
               defaultValue={parsed.filters.status ?? ""}
-              className="mt-2 h-11 w-full border border-stone-300 bg-white px-3 text-sm font-medium normal-case tracking-normal"
+              className="mt-2 h-11 w-full border border-violet-100 bg-white px-3 text-sm font-medium normal-case tracking-normal"
             >
               <option value="">All statuses</option>
               {parsed.reportId === "leave" ? (
@@ -286,14 +288,14 @@ export async function ReportCenter({
         <div className="flex items-end gap-2 md:col-span-2 xl:col-span-1">
           <FormSubmitButton
             pendingLabel="Loading report…"
-            className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 bg-stone-950 px-5 text-sm font-semibold text-white"
+            className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 bg-violet-700 px-5 text-sm font-semibold text-white"
           >
             <Filter className="size-4" aria-hidden="true" />
             Show Report
           </FormSubmitButton>
           <Link
             href={role === "CEO" ? "/ceo/reports" : "/foreman/reports"}
-            className="inline-flex min-h-11 items-center border border-stone-300 px-4 text-sm font-semibold"
+            className="inline-flex min-h-11 items-center border border-violet-100 px-4 text-sm font-semibold"
           >
             Clear
           </Link>
@@ -301,9 +303,9 @@ export async function ReportCenter({
       </form>
 
       <section className="mt-6" aria-labelledby="report-result-title">
-        <div className="flex flex-col gap-4 border-b border-stone-300 pb-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-4 border-b border-violet-100 pb-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-amber-700">
+            <p className="text-xs font-semibold uppercase tracking-wider text-violet-700">
               {report.rows.length} {report.rows.length === 1 ? "row" : "rows"}
             </p>
             <h2
@@ -312,7 +314,7 @@ export async function ReportCenter({
             >
               {report.title}
             </h2>
-            <p className="mt-2 max-w-3xl text-sm text-stone-600">
+            <p className="mt-2 max-w-3xl text-sm text-slate-600">
               {reportDescription(report.reportId)}
             </p>
           </div>
@@ -332,43 +334,51 @@ export async function ReportCenter({
           </p>
         ) : null}
 
+        {previewLimited ? (
+          <p className="mt-4 rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm text-violet-950">
+            Showing the first 100 of {report.rows.length.toLocaleString()} rows
+            to keep this preview responsive. Narrow the filters or download the
+            Excel file to review every row.
+          </p>
+        ) : null}
+
         {report.rows.length === 0 ? (
-          <div className="mt-4 border border-dashed border-stone-300 bg-white px-6 py-14 text-center">
+          <div className="mt-4 border border-dashed border-violet-100 bg-white px-6 py-14 text-center">
             <FileSearch
-              className="mx-auto size-8 text-stone-300"
+              className="mx-auto size-8 text-slate-300"
               aria-hidden="true"
             />
             <h3 className="mt-4 font-heading text-xl font-semibold uppercase">
               No matching records
             </h3>
-            <p className="mt-2 text-sm text-stone-500">
+            <p className="mt-2 text-sm text-slate-500">
               Try a wider date range or clear one of the filters.
             </p>
           </div>
         ) : (
           <>
-            <div className="mt-4 hidden overflow-x-auto border border-stone-300 bg-white md:block">
+            <div className="mt-4 hidden overflow-x-auto border border-violet-100 bg-white md:block">
               <table className="w-full min-w-max border-collapse text-left text-sm">
-                <thead className="bg-stone-950 text-white">
+                <thead className="bg-violet-950 text-white">
                   <tr>
                     {report.columns.map((column) => (
                       <th
                         key={column.key}
                         scope="col"
-                        className="border-r border-stone-700 px-3 py-3 text-xs font-semibold uppercase tracking-wider last:border-r-0"
+                        className="border-r border-violet-700 px-3 py-3 text-xs font-semibold uppercase tracking-wider last:border-r-0"
                       >
                         {column.label}
                       </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-stone-200">
-                  {report.rows.map((row, rowIndex) => (
+                <tbody className="divide-y divide-slate-200">
+                  {previewRows.map((row, rowIndex) => (
                     <tr key={rowIndex} className="align-top">
                       {report.columns.map((column) => (
                         <td
                           key={column.key}
-                          className="max-w-80 whitespace-pre-wrap px-3 py-3 text-stone-700"
+                          className="max-w-80 whitespace-pre-wrap px-3 py-3 text-slate-700"
                         >
                           {row[column.key] ?? "—"}
                         </td>
@@ -380,22 +390,22 @@ export async function ReportCenter({
             </div>
 
             <ol className="mt-4 space-y-3 md:hidden">
-              {report.rows.map((row, rowIndex) => (
+              {previewRows.map((row, rowIndex) => (
                 <li
                   key={rowIndex}
-                  className="border border-stone-300 bg-white p-4"
+                  className="border border-violet-100 bg-white p-4"
                 >
                   <BarChart3
-                    className="size-4 text-amber-700"
+                    className="size-4 text-violet-700"
                     aria-hidden="true"
                   />
                   <dl className="mt-3 grid gap-3">
                     {report.columns.map((column) => (
                       <div key={column.key}>
-                        <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-stone-500">
+                        <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-slate-500">
                           {column.label}
                         </dt>
-                        <dd className="mt-1 break-words text-sm text-stone-900">
+                        <dd className="mt-1 break-words text-sm text-slate-900">
                           {row[column.key] ?? "—"}
                         </dd>
                       </div>

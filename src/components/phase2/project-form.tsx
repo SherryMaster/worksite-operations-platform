@@ -54,7 +54,7 @@ export function ProjectForm({
   );
 
   const fieldClass =
-    "h-11 rounded-none border-stone-300 bg-white focus-visible:border-amber-600 focus-visible:ring-amber-600/20";
+    "h-11 rounded-xl border-violet-100 bg-white focus-visible:border-amber-600 focus-visible:ring-amber-600/20";
 
   return (
     <form action={formAction} className="space-y-8">
@@ -143,20 +143,20 @@ export function ProjectForm({
             defaultValue={defaults.notes ?? ""}
             maxLength={2000}
             rows={6}
-            className="rounded-none border-stone-300 bg-white"
+            className="rounded-xl border-violet-100 bg-white"
             aria-describedby="notes-error"
           />
           <FieldError errors={state.errors} name="notes" />
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-4 border-t border-stone-200 pt-6">
+      <div className="flex flex-wrap items-center gap-4 border-t border-slate-200 pt-6">
         <Button
           type="submit"
           size="lg"
           disabled={pending}
           aria-busy={pending}
-          className="rounded-none bg-stone-950 px-6 text-stone-100"
+          className="rounded-xl bg-violet-700 px-6 text-white"
         >
           {pending ? <Spinner aria-hidden="true" /> : null}
           {pending ? "Saving project…" : submitLabel}

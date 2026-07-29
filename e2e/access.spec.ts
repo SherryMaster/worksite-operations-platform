@@ -14,7 +14,10 @@ test("an unauthenticated visitor is sent to company sign-in", async ({
   ).toBeVisible();
 });
 
-test("the CEO can open the desktop application shell", async ({ page }) => {
+test("the CEO can open the responsive application shell", async ({
+  isMobile,
+  page,
+}) => {
   const { signInTicket } = await getPhaseOneTestUser("CEO");
 
   await page.goto("/sign-in");
@@ -29,17 +32,17 @@ test("the CEO can open the desktop application shell", async ({ page }) => {
     page.getByRole("heading", { name: "Company dashboard" }),
   ).toBeVisible({ timeout: 20_000 });
   await expect(page.getByLabel("Access verified")).toBeVisible();
+  await expect(
+    page.getByRole("navigation", {
+      name: isMobile ? "CEO mobile navigation" : "CEO navigation",
+    }),
+  ).toBeVisible();
 });
 
-test("a Foreman can work without MFA when the CEO leaves it off", async ({
+test("an active Foreman can open the assigned responsive workspace", async ({
   page,
 }) => {
-  const { signInTicket, mfaEnabled } = await getPhaseOneTestUser("FOREMAN");
-
-  test.skip(
-    mfaEnabled,
-    "The configured Clerk user already has MFA enrolled and requires a second-factor test helper.",
-  );
+  const { signInTicket } = await getPhaseOneTestUser("FOREMAN");
 
   await page.goto("/sign-in");
   await clerk.signIn({
@@ -53,6 +56,9 @@ test("a Foreman can work without MFA when the CEO leaves it off", async ({
     timeout: 20_000,
   });
   await expect(page.getByLabel("Work date")).toBeVisible();
+  await expect(
+    page.getByRole("navigation", { name: "Foreman navigation" }),
+  ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Company dashboard" }),
   ).not.toBeVisible();

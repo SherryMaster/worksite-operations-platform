@@ -36,10 +36,6 @@ test("the CEO can create, update, and audit a project from the app", async ({
   ).toBeVisible();
   await expect(page.getByLabel("Username")).toBeVisible();
   await expect(page.getByLabel("Initial Password")).toBeVisible();
-  await expect(
-    page.getByLabel("Require MFA for this account"),
-  ).not.toBeChecked();
-
   await page.goto("/ceo/projects/new");
 
   await page.getByLabel("Project name").fill(projectName);

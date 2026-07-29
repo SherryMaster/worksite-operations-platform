@@ -43,33 +43,33 @@ export default async function PayrollWorkerPage({
     <main className="px-5 py-8 sm:px-8 lg:py-10">
       <Link
         href={`/ceo/payroll/${run.id}`}
-        className="inline-flex items-center gap-2 text-sm font-semibold text-stone-600 hover:text-stone-950"
+        className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-950"
       >
         <ArrowLeft className="size-4" aria-hidden="true" />
         {payrollMonthLabel(run.payroll_month)} payroll
       </Link>
 
-      <div className="mt-5 flex flex-col gap-5 border-b border-stone-300 pb-8 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mt-5 flex flex-col gap-5 border-b border-violet-100 pb-8 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="font-heading text-xs font-semibold uppercase tracking-[0.23em] text-amber-700">
+          <p className="font-heading text-xs font-semibold uppercase tracking-[0.23em] text-violet-700">
             Worker payroll calculation
           </p>
           <h1 className="mt-3 font-heading text-5xl font-semibold uppercase leading-none sm:text-6xl">
             {worker.worker_name}
           </h1>
-          <p className="mt-4 text-sm text-stone-600">
+          <p className="mt-4 text-sm text-slate-600">
             {worker.primaryProjectName ?? "No primary project"} ·{" "}
             {payrollMonthLabel(run.payroll_month)}
           </p>
         </div>
         <div className="text-left sm:text-right">
-          <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
             Net pay
           </p>
           <p className="mt-2 font-heading text-4xl font-semibold">
             {formatSen(worker.net_pay_sen)}
           </p>
-          <p className="mt-1 text-sm text-stone-500">
+          <p className="mt-1 text-sm text-slate-500">
             {worker.payment_status === "PAID"
               ? "Paid"
               : run.status === "APPROVED"
@@ -86,7 +86,7 @@ export default async function PayrollWorkerPage({
               <p className="font-semibold text-amber-950">
                 {exception.message}
               </p>
-              <p className="mt-1 text-xs uppercase tracking-wider text-amber-700">
+              <p className="mt-1 text-xs uppercase tracking-wider text-violet-700">
                 {exception.work_date ?? "Worker total"} · blocking
               </p>
               {exception.project_id && exception.work_date ? (
@@ -102,7 +102,7 @@ export default async function PayrollWorkerPage({
         </section>
       ) : null}
 
-      <section className="mt-8 grid gap-px border border-stone-300 bg-stone-300 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="mt-8 grid gap-px border border-violet-100 bg-violet-100 sm:grid-cols-2 xl:grid-cols-4">
         {[
           {
             label: "Gross earnings",
@@ -123,7 +123,7 @@ export default async function PayrollWorkerPage({
         ].map((item) => (
           <article key={item.label} className="bg-white p-5">
             <p className="font-heading text-3xl font-semibold">{item.value}</p>
-            <h2 className="mt-2 text-xs font-semibold uppercase tracking-wider text-stone-500">
+            <h2 className="mt-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
               {item.label}
             </h2>
           </article>
@@ -132,13 +132,13 @@ export default async function PayrollWorkerPage({
 
       <section className="mt-8">
         <div className="mb-4 flex items-center gap-3">
-          <Clock3 className="size-5 text-amber-700" aria-hidden="true" />
+          <Clock3 className="size-5 text-violet-700" aria-hidden="true" />
           <h2 className="font-heading text-3xl font-semibold uppercase">
             Earnings by rate
           </h2>
         </div>
         {worker.buckets.length === 0 ? (
-          <p className="border border-stone-300 bg-white p-5 text-sm text-stone-500">
+          <p className="border border-violet-100 bg-white p-5 text-sm text-slate-500">
             No payable attendance was calculated.
           </p>
         ) : (
@@ -146,14 +146,14 @@ export default async function PayrollWorkerPage({
             {worker.buckets.map((bucket) => (
               <article
                 key={bucket.id}
-                className="border border-stone-300 bg-white p-5"
+                className="border border-violet-100 bg-white p-5"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <h3 className="font-semibold">
                       {categoryLabels[bucket.category]}
                     </h3>
-                    <p className="mt-1 text-sm text-stone-500">
+                    <p className="mt-1 text-sm text-slate-500">
                       {bucket.projectName}
                     </p>
                   </div>
@@ -161,7 +161,7 @@ export default async function PayrollWorkerPage({
                     {formatSen(bucket.amount_sen)}
                   </p>
                 </div>
-                <p className="mt-4 text-sm text-stone-600">
+                <p className="mt-4 text-sm text-slate-600">
                   {formatPayrollMinutes(bucket.minutes)} at{" "}
                   {formatSen(bucket.hourly_rate_sen)} per hour
                 </p>
@@ -173,7 +173,7 @@ export default async function PayrollWorkerPage({
 
       <section className="mt-8">
         <div className="mb-4 flex items-center gap-3">
-          <CalendarDays className="size-5 text-amber-700" aria-hidden="true" />
+          <CalendarDays className="size-5 text-violet-700" aria-hidden="true" />
           <h2 className="font-heading text-3xl font-semibold uppercase">
             Attendance and leave sources
           </h2>
@@ -189,12 +189,12 @@ export default async function PayrollWorkerPage({
               <Link
                 key={day.id}
                 href={`/ceo/attendance?view=day&project=${day.project_id}&date=${day.work_date}`}
-                className="border border-stone-300 bg-white p-4 hover:bg-stone-50"
+                className="border border-violet-100 bg-white p-4 hover:bg-slate-50"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-semibold">{formatDate(day.work_date)}</p>
-                    <p className="mt-1 text-xs text-stone-500">
+                    <p className="mt-1 text-xs text-slate-500">
                       {day.projectName} ·{" "}
                       {day.day_type.toLowerCase().replaceAll("_", " ")}
                     </p>
@@ -216,13 +216,13 @@ export default async function PayrollWorkerPage({
 
       <section className="mt-8">
         <div className="mb-4 flex items-center gap-3">
-          <ReceiptText className="size-5 text-amber-700" aria-hidden="true" />
+          <ReceiptText className="size-5 text-violet-700" aria-hidden="true" />
           <h2 className="font-heading text-3xl font-semibold uppercase">
             Adjustments
           </h2>
         </div>
         {worker.adjustments.length > 0 ? (
-          <div className="mb-4 divide-y divide-stone-200 border border-stone-300 bg-white">
+          <div className="mb-4 divide-y divide-slate-200 border border-violet-100 bg-white">
             {worker.adjustments.map((adjustment) => (
               <article
                 key={adjustment.id}
@@ -233,10 +233,10 @@ export default async function PayrollWorkerPage({
                     {adjustment.kind === "ADDITION" ? "Addition" : "Deduction"}{" "}
                     · {formatSen(adjustment.amount_sen)}
                   </p>
-                  <p className="mt-1 text-sm text-stone-600">
+                  <p className="mt-1 text-sm text-slate-600">
                     {adjustment.reason}
                   </p>
-                  <p className="mt-1 text-xs uppercase tracking-wider text-stone-400">
+                  <p className="mt-1 text-xs uppercase tracking-wider text-slate-400">
                     {adjustment.source === "CORRECTION"
                       ? "Generated from a paid-payroll correction"
                       : "CEO adjustment"}
@@ -259,7 +259,7 @@ export default async function PayrollWorkerPage({
             ))}
           </div>
         ) : (
-          <p className="mb-4 border border-stone-300 bg-white p-5 text-sm text-stone-500">
+          <p className="mb-4 border border-violet-100 bg-white p-5 text-sm text-slate-500">
             No additions or deductions are applied.
           </p>
         )}
@@ -273,7 +273,7 @@ export default async function PayrollWorkerPage({
 
       <section className="mt-8">
         <div className="mb-4 flex items-center gap-3">
-          <FileText className="size-5 text-amber-700" aria-hidden="true" />
+          <FileText className="size-5 text-violet-700" aria-hidden="true" />
           <h2 className="font-heading text-3xl font-semibold uppercase">
             Statement and payment
           </h2>
@@ -281,11 +281,11 @@ export default async function PayrollWorkerPage({
         {worker.statement ? (
           <Link
             href={`/ceo/payroll/statements/${worker.statement.id}`}
-            className="mb-4 flex items-center justify-between gap-4 border border-stone-300 bg-white p-5 hover:bg-stone-50"
+            className="mb-4 flex items-center justify-between gap-4 border border-violet-100 bg-white p-5 hover:bg-slate-50"
           >
             <div>
               <p className="font-semibold">Worker payroll statement</p>
-              <p className="mt-1 text-sm text-stone-500">
+              <p className="mt-1 text-sm text-slate-500">
                 {worker.statement.statement_number} · generated{" "}
                 {formatDateTime(worker.statement.generated_at)}
               </p>
@@ -293,7 +293,7 @@ export default async function PayrollWorkerPage({
             <FileText className="size-5" aria-hidden="true" />
           </Link>
         ) : (
-          <p className="mb-4 border border-stone-300 bg-white p-5 text-sm text-stone-500">
+          <p className="mb-4 border border-violet-100 bg-white p-5 text-sm text-slate-500">
             A statement is generated when the complete payroll run is approved.
           </p>
         )}
@@ -319,7 +319,7 @@ export default async function PayrollWorkerPage({
           </div>
         ) : run.status === "APPROVED" ? (
           <div>
-            <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-stone-700">
+            <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-700">
               <WalletCards className="size-4" aria-hidden="true" />
               Record one complete worker payment
             </div>

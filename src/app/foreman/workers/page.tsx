@@ -15,13 +15,13 @@ export default async function ForemanWorkersPage({
 
   return (
     <main className="min-h-[calc(100vh-9rem)] px-4 pb-24 pt-7">
-      <p className="font-heading text-xs font-semibold uppercase tracking-[0.22em] text-amber-700">
+      <p className="font-heading text-xs font-semibold uppercase tracking-[0.22em] text-violet-700">
         Current project
       </p>
       <h1 className="mt-2 font-heading text-4xl font-semibold uppercase leading-none">
         Workers
       </h1>
-      <p className="mt-3 text-sm leading-6 text-stone-600">
+      <p className="mt-3 text-sm leading-6 text-slate-600">
         Read-only details for workers currently assigned to your project.
       </p>
 
@@ -29,31 +29,31 @@ export default async function ForemanWorkersPage({
         <label>
           <span className="sr-only">Search current workers</span>
           <Search
-            className="pointer-events-none absolute left-3 top-3.5 size-4 text-stone-400"
+            className="pointer-events-none absolute left-3 top-3.5 size-4 text-slate-400"
             aria-hidden="true"
           />
           <input
             name="query"
             defaultValue={params.query}
             placeholder="Search name, phone, or identity…"
-            className="h-12 w-full border border-stone-300 bg-white pl-10 pr-24 text-sm"
+            className="h-12 w-full border border-violet-100 bg-white pl-10 pr-24 text-sm"
           />
         </label>
         <FormSubmitButton
           pendingLabel="Searching…"
-          className="absolute right-1 top-1 h-10 bg-stone-950 px-4 text-sm font-semibold text-white"
+          className="absolute right-1 top-1 h-11 bg-violet-700 px-4 text-sm font-semibold text-white"
         >
           Search
         </FormSubmitButton>
       </form>
 
       {workers.length === 0 ? (
-        <section className="mt-5 border border-dashed border-stone-300 bg-white px-5 py-14 text-center">
-          <Users className="mx-auto size-7 text-stone-400" aria-hidden="true" />
+        <section className="mt-5 border border-dashed border-violet-100 bg-white px-5 py-14 text-center">
+          <Users className="mx-auto size-7 text-slate-400" aria-hidden="true" />
           <h2 className="mt-4 font-heading text-xl font-semibold uppercase">
             No Workers Found
           </h2>
-          <p className="mt-2 text-sm text-stone-500">
+          <p className="mt-2 text-sm text-slate-500">
             No current assignment matches this search.
           </p>
         </section>
@@ -63,23 +63,23 @@ export default async function ForemanWorkersPage({
             <li key={worker.id}>
               <Link
                 href={`/foreman/workers/${worker.id}`}
-                className="block border border-stone-300 bg-white p-4 active:bg-amber-50"
+                className="block border border-violet-100 bg-white p-4 active:bg-amber-50"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="font-semibold">{worker.legal_name}</p>
-                    <p className="mt-1 text-xs text-stone-500">
+                    <p className="mt-1 text-xs text-slate-500">
                       {worker.tradeName ?? "No trade"} ·{" "}
                       {worker.skillName ?? "No skill level"}
                     </p>
                   </div>
                   <ArrowUpRight
-                    className="size-4 shrink-0 text-stone-400"
+                    className="size-4 shrink-0 text-slate-400"
                     aria-hidden="true"
                   />
                 </div>
-                <div className="mt-4 flex items-center justify-between border-t border-stone-200 pt-3 text-xs">
-                  <span className="text-stone-500">
+                <div className="mt-4 flex items-center justify-between border-t border-slate-200 pt-3 text-xs">
+                  <span className="text-slate-500">
                     {maskIdentifier(
                       worker.cnic_number ?? worker.passport_number,
                     )}

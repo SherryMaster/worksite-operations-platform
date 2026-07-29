@@ -48,7 +48,6 @@ const fieldLabels: Record<string, string> = {
   currency_code: "Currency",
   display_name: "Display name",
   end_date: "End date",
-  enrolled_mfa_methods_removed: "Authenticator and backup codes removed",
   ends_on: "Assignment end date",
   expiry_date: "Expiry date",
   file_kind: "File type",
@@ -56,7 +55,6 @@ const fieldLabels: Record<string, string> = {
   is_active: "Account status",
   legal_name: "Legal name",
   location: "Location",
-  mfa_required: "MFA requirement",
   name: "Name",
   notes: "Operational notes",
   project_id: "Project",
@@ -433,13 +431,6 @@ function describeAction(
           summary: `${actor} ${active ? "restored" : "stopped"} access for ${foreman}.`,
         };
       }
-      if (before.mfa_required !== after.mfa_required) {
-        const required = after.mfa_required === true;
-        return {
-          title: required ? "MFA required" : "MFA turned off",
-          summary: `${actor} ${required ? "required MFA for" : "turned MFA off for"} ${foreman}.`,
-        };
-      }
       return {
         title: "Foreman account updated",
         summary: `${actor} updated ${foreman}’s account.`,
@@ -448,11 +439,6 @@ function describeAction(
       return {
         title: "Foreman password changed",
         summary: `${actor} changed the password for ${foreman} and signed out existing sessions.`,
-      };
-    case "users.mfa_disabled":
-      return {
-        title: "MFA turned off",
-        summary: `${actor} turned MFA off for ${foreman} and removed the enrolled methods.`,
       };
     case "categories.insert": {
       const category = categoryName(input.entityType, after);
@@ -508,7 +494,6 @@ function formatValue(
   if (field === "foreman_user_id") return foremanName(input);
   if (field === "project_id") return input.projectName ?? "Project record";
   if (field === "is_active") return value === true ? "Active" : "Inactive";
-  if (field === "mfa_required") return value === true ? "Required" : "Off";
   if (field === "active_sessions_revoked") return value === true ? "Yes" : "No";
   if (
     typeof value === "string" &&

@@ -10,14 +10,14 @@ export function AppPageSkeleton({ compact = false }: { compact?: boolean }) {
     >
       <span className="sr-only">Loading workspace</span>
       <div className={cn("space-y-3", compact ? "" : "max-w-5xl")}>
-        <Skeleton className="h-3 w-28 rounded-none bg-stone-200" />
+        <Skeleton className="h-3 w-28 rounded-xl bg-slate-200" />
         <Skeleton
           className={cn(
-            "rounded-none bg-stone-200",
+            "rounded-xl bg-slate-200",
             compact ? "h-8 w-48" : "h-12 w-72",
           )}
         />
-        <Skeleton className="h-4 w-full max-w-xl rounded-none bg-stone-200" />
+        <Skeleton className="h-4 w-full max-w-xl rounded-xl bg-slate-200" />
       </div>
       <div
         className={cn(
@@ -28,14 +28,14 @@ export function AppPageSkeleton({ compact = false }: { compact?: boolean }) {
         {Array.from({ length: compact ? 4 : 6 }, (_, index) => (
           <section
             key={index}
-            className="space-y-4 border border-stone-200 bg-white p-5"
+            className="space-y-4 border border-slate-200 bg-white p-5"
           >
             <div className="flex items-center justify-between gap-4">
-              <Skeleton className="h-5 w-2/3 rounded-none bg-stone-200" />
-              <Skeleton className="h-7 w-16 rounded-none bg-stone-200" />
+              <Skeleton className="h-5 w-2/3 rounded-xl bg-slate-200" />
+              <Skeleton className="h-7 w-16 rounded-xl bg-slate-200" />
             </div>
-            <Skeleton className="h-3 w-1/2 rounded-none bg-stone-200" />
-            <Skeleton className="h-11 w-full rounded-none bg-stone-200" />
+            <Skeleton className="h-3 w-1/2 rounded-xl bg-slate-200" />
+            <Skeleton className="h-11 w-full rounded-xl bg-slate-200" />
           </section>
         ))}
       </div>

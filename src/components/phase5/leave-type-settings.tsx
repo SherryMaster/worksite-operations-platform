@@ -18,9 +18,9 @@ export function LeaveTypeSettings({
   return (
     <section id="leave-types" className="mt-8">
       <div className="mb-4 flex items-center gap-3">
-        <ClipboardList className="size-5 text-amber-700" aria-hidden="true" />
+        <ClipboardList className="size-5 text-violet-700" aria-hidden="true" />
         <div>
-          <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
+          <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-violet-700">
             Full-day unpaid leave
           </p>
           <h2 className="font-heading text-3xl font-semibold uppercase">
@@ -28,16 +28,16 @@ export function LeaveTypeSettings({
           </h2>
         </div>
       </div>
-      <article className="border border-stone-300 bg-white">
-        <div className="border-b border-stone-200 p-5">
-          <p className="text-sm leading-6 text-stone-600">
+      <article className="border border-violet-100 bg-white">
+        <div className="border-b border-slate-200 p-5">
+          <p className="text-sm leading-6 text-slate-600">
             Add only the company categories staff should select. Deactivating a
             type keeps it visible in historical requests.
           </p>
           <ManagedForm
             action={createLeaveTypeAction}
             submitLabel="Add leave type"
-            className="mt-4 max-w-xl border border-stone-200 bg-stone-50 p-4"
+            className="mt-4 max-w-xl border border-slate-200 bg-slate-50 p-4"
           >
             <Label htmlFor="leave-type-name">New leave type</Label>
             <Input
@@ -46,16 +46,16 @@ export function LeaveTypeSettings({
               required
               minLength={2}
               maxLength={80}
-              className="mt-2 h-11 rounded-none bg-white"
+              className="mt-2 h-11 rounded-xl bg-white"
             />
           </ManagedForm>
         </div>
         {leaveTypes.length === 0 ? (
-          <p className="p-6 text-sm text-stone-500">
+          <p className="p-6 text-sm text-slate-500">
             No leave types configured. Add one before staff submit leave.
           </p>
         ) : (
-          <div className="divide-y divide-stone-200">
+          <div className="divide-y divide-slate-200">
             {leaveTypes.map((leaveType) => (
               <div
                 key={leaveType.id}
@@ -63,7 +63,7 @@ export function LeaveTypeSettings({
               >
                 <div>
                   <p className="font-semibold">{leaveType.name}</p>
-                  <p className="mt-1 text-xs text-stone-500">
+                  <p className="mt-1 text-xs text-slate-500">
                     {leaveType.is_active
                       ? "Available for new requests"
                       : "Inactive · history retained"}

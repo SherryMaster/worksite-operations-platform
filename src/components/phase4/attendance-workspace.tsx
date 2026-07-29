@@ -142,7 +142,7 @@ function AttendanceListSkeleton() {
   return (
     <div className="space-y-3" aria-label="Loading attendance" aria-busy="true">
       {[0, 1, 2].map((item) => (
-        <div key={item} className="border border-stone-300 bg-white p-4">
+        <div key={item} className="border border-violet-100 bg-white p-4">
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-2">
               <Skeleton className="h-5 w-40" />
@@ -238,24 +238,24 @@ function CorrectionPanel({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end bg-stone-950/60 sm:items-center sm:justify-center"
+      className="fixed inset-0 z-50 flex items-end bg-violet-950/60 sm:items-center sm:justify-center"
       role="dialog"
       aria-modal="true"
       aria-labelledby="correction-title"
     >
       <form
         onSubmit={submit}
-        className="max-h-[92vh] w-full overflow-y-auto bg-white p-5 shadow-2xl sm:max-w-2xl sm:border sm:border-stone-300 sm:p-6"
+        className="max-h-[92dvh] w-full overflow-y-auto rounded-t-3xl bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl sm:max-w-2xl sm:rounded-2xl sm:border sm:border-violet-100 sm:p-6"
       >
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-amber-700">
+            <p className="text-xs font-semibold uppercase tracking-wider text-violet-700">
               Permanent audited correction
             </p>
             <h2 id="correction-title" className="mt-1 text-xl font-semibold">
               Correct {worker.legalName}
             </h2>
-            <p className="mt-1 text-xs text-stone-500">
+            <p className="mt-1 text-xs text-slate-500">
               Times use Malaysia time. Removing every session clears attendance
               for this date without erasing its history.
             </p>
@@ -264,7 +264,7 @@ function CorrectionPanel({
             type="button"
             onClick={onClose}
             aria-label="Close correction"
-            className="grid size-11 shrink-0 place-items-center border border-stone-300"
+            className="grid size-11 shrink-0 place-items-center border border-violet-100"
           >
             <X className="size-5" aria-hidden="true" />
           </button>
@@ -272,7 +272,7 @@ function CorrectionPanel({
 
         <div className="mt-5 space-y-4">
           {editable.map((session, sessionIndex) => (
-            <section key={session.key} className="border border-stone-300 p-4">
+            <section key={session.key} className="border border-violet-100 p-4">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold">Session {sessionIndex + 1}</h3>
                 <button
@@ -282,14 +282,14 @@ function CorrectionPanel({
                       current.filter((item) => item.key !== session.key),
                     )
                   }
-                  className="inline-flex min-h-10 items-center gap-2 px-2 text-sm text-red-700"
+                  className="inline-flex min-h-11 items-center gap-2 px-2 text-sm text-red-700"
                 >
                   <Trash2 className="size-4" aria-hidden="true" />
                   Remove
                 </button>
               </div>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <label className="text-xs font-semibold text-stone-600">
+                <label className="text-xs font-semibold text-slate-600">
                   Enter
                   <input
                     required
@@ -301,10 +301,10 @@ function CorrectionPanel({
                         enteredAt: event.target.value,
                       }))
                     }
-                    className="mt-1 h-11 w-full border border-stone-300 px-3 text-sm"
+                    className="mt-1 h-11 w-full border border-violet-100 px-3 text-sm"
                   />
                 </label>
-                <label className="text-xs font-semibold text-stone-600">
+                <label className="text-xs font-semibold text-slate-600">
                   Exit (leave blank if incomplete)
                   <input
                     type="datetime-local"
@@ -315,7 +315,7 @@ function CorrectionPanel({
                         exitedAt: event.target.value,
                       }))
                     }
-                    className="mt-1 h-11 w-full border border-stone-300 px-3 text-sm"
+                    className="mt-1 h-11 w-full border border-violet-100 px-3 text-sm"
                   />
                 </label>
               </div>
@@ -325,7 +325,7 @@ function CorrectionPanel({
                   key={attendanceBreak.key}
                   className="mt-3 grid gap-3 border-l-2 border-amber-300 pl-3 sm:grid-cols-[1fr_1fr_auto]"
                 >
-                  <label className="text-xs font-semibold text-stone-600">
+                  <label className="text-xs font-semibold text-slate-600">
                     Break {breakIndex + 1} start
                     <input
                       required
@@ -341,10 +341,10 @@ function CorrectionPanel({
                           ),
                         }))
                       }
-                      className="mt-1 h-11 w-full border border-stone-300 px-3 text-sm"
+                      className="mt-1 h-11 w-full border border-violet-100 px-3 text-sm"
                     />
                   </label>
-                  <label className="text-xs font-semibold text-stone-600">
+                  <label className="text-xs font-semibold text-slate-600">
                     Break end
                     <input
                       type="datetime-local"
@@ -359,7 +359,7 @@ function CorrectionPanel({
                           ),
                         }))
                       }
-                      className="mt-1 h-11 w-full border border-stone-300 px-3 text-sm"
+                      className="mt-1 h-11 w-full border border-violet-100 px-3 text-sm"
                     />
                   </label>
                   <button
@@ -373,7 +373,7 @@ function CorrectionPanel({
                       }))
                     }
                     aria-label={`Remove break ${breakIndex + 1}`}
-                    className="mt-auto grid size-11 place-items-center border border-stone-300 text-red-700"
+                    className="mt-auto grid size-11 place-items-center border border-violet-100 text-red-700"
                   >
                     <Trash2 className="size-4" aria-hidden="true" />
                   </button>
@@ -394,7 +394,7 @@ function CorrectionPanel({
                     ],
                   }))
                 }
-                className="mt-3 inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-amber-800"
+                className="mt-3 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-amber-800"
               >
                 <Plus className="size-4" aria-hidden="true" />
                 Add break
@@ -416,7 +416,7 @@ function CorrectionPanel({
               },
             ])
           }
-          className="mt-4 inline-flex min-h-11 items-center gap-2 border border-stone-300 px-4 text-sm font-semibold"
+          className="mt-4 inline-flex min-h-11 items-center gap-2 border border-violet-100 px-4 text-sm font-semibold"
         >
           <Plus className="size-4" aria-hidden="true" />
           Add session
@@ -430,8 +430,8 @@ function CorrectionPanel({
             maxLength={500}
             value={note}
             onChange={(event) => setNote(event.target.value)}
-            placeholder="Explain what was corrected for the audit history."
-            className="mt-2 min-h-24 w-full border border-stone-300 p-3 text-sm"
+            placeholder="Explain what was corrected for the audit history…"
+            className="mt-2 min-h-24 w-full border border-violet-100 p-3 text-sm"
           />
         </label>
 
@@ -439,13 +439,13 @@ function CorrectionPanel({
           <button
             type="button"
             onClick={onClose}
-            className="min-h-12 border border-stone-300 px-4 font-semibold"
+            className="min-h-12 border border-violet-100 px-4 font-semibold"
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="min-h-12 bg-stone-950 px-4 font-semibold text-white"
+            className="min-h-12 bg-violet-700 px-4 font-semibold text-white"
           >
             Save correction
           </button>
@@ -864,15 +864,15 @@ export function AttendanceWorkspace({
   if (!snapshot) {
     return (
       <main className="px-4 pb-24 pt-8 sm:px-6">
-        <div className="border border-dashed border-stone-300 bg-white p-8 text-center">
+        <div className="border border-dashed border-violet-100 bg-white p-8 text-center">
           <WifiOff
-            className="mx-auto size-8 text-stone-400"
+            className="mx-auto size-8 text-slate-400"
             aria-hidden="true"
           />
           <h1 className="mt-4 text-2xl font-semibold">
             No saved attendance yet
           </h1>
-          <p className="mt-2 text-sm text-stone-600">
+          <p className="mt-2 text-sm text-slate-600">
             Open Today once while online after a project and workers are
             assigned. The compact worksite list will then remain available
             during temporary connection loss.
@@ -890,11 +890,11 @@ export function AttendanceWorkspace({
 
   return (
     <main className="px-4 pb-28 pt-6 sm:px-6">
-      <section className="border border-stone-300 bg-white">
-        <div className="border-b border-stone-200 bg-stone-950 p-4 text-white">
+      <section className="border border-violet-100 bg-white">
+        <div className="border-b border-slate-200 bg-violet-950 p-4 text-white">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-amber-400">
+              <p className="text-xs font-semibold uppercase tracking-wider text-orange-300">
                 {mode === "CEO" ? "Attendance review" : "Today at the worksite"}
               </p>
               <h1 className="mt-1 text-2xl font-semibold">
@@ -919,17 +919,17 @@ export function AttendanceWorkspace({
           </div>
         </div>
         <div className="grid gap-4 p-4 sm:grid-cols-2">
-          <label className="text-xs font-semibold uppercase tracking-wider text-stone-600">
+          <label className="text-xs font-semibold uppercase tracking-wider text-slate-600">
             Work date
             <input
               type="date"
               disabled={loadingDate}
               value={selectedWorkDate}
               onChange={(event) => void changeDate(event.target.value)}
-              className="mt-2 h-12 w-full border border-stone-300 bg-white px-3 text-base font-medium normal-case tracking-normal"
+              className="mt-2 h-12 w-full border border-violet-100 bg-white px-3 text-base font-medium normal-case tracking-normal"
             />
           </label>
-          <label className="text-xs font-semibold uppercase tracking-wider text-stone-600">
+          <label className="text-xs font-semibold uppercase tracking-wider text-slate-600">
             Day type
             <select
               disabled={loadingDate}
@@ -940,7 +940,7 @@ export function AttendanceWorkspace({
                   workDate: snapshot.workDate,
                 })
               }
-              className="mt-2 h-12 w-full border border-stone-300 bg-white px-3 text-base font-medium normal-case tracking-normal"
+              className="mt-2 h-12 w-full border border-violet-100 bg-white px-3 text-base font-medium normal-case tracking-normal"
             >
               <option value="NORMAL">Normal day</option>
               <option value="SUNDAY">Sunday</option>
@@ -948,11 +948,11 @@ export function AttendanceWorkspace({
             </select>
           </label>
         </div>
-        <div className="flex flex-wrap items-center gap-2 border-t border-stone-200 px-4 py-3 text-xs">
-          <span className="inline-flex items-center gap-1.5 font-semibold text-stone-700">
+        <div className="flex flex-wrap items-center gap-2 border-t border-slate-200 px-4 py-3 text-xs">
+          <span className="inline-flex items-center gap-1.5 font-semibold text-slate-700">
             {syncingNow ? (
               <LoaderCircle
-                className="size-3.5 animate-spin text-amber-700"
+                className="size-3.5 animate-spin text-violet-700"
                 aria-hidden="true"
               />
             ) : (
@@ -998,7 +998,7 @@ export function AttendanceWorkspace({
               );
               await synchronize(snapshot.projectId, snapshot.workDate);
             }}
-            className="ml-auto inline-flex min-h-10 items-center gap-2 px-2 font-semibold text-amber-800 disabled:text-stone-400"
+            className="ml-auto inline-flex min-h-11 items-center gap-2 px-2 font-semibold text-amber-800 disabled:text-slate-400"
           >
             <RefreshCw
               className={cn("size-3.5", syncingNow && "animate-spin")}
@@ -1022,14 +1022,14 @@ export function AttendanceWorkspace({
         <label className="relative block">
           <span className="sr-only">Search workers</span>
           <Search
-            className="pointer-events-none absolute left-3 top-3.5 size-5 text-stone-400"
+            className="pointer-events-none absolute left-3 top-3.5 size-5 text-slate-400"
             aria-hidden="true"
           />
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search worker, trade, or skill"
-            className="h-12 w-full border border-stone-300 bg-white pl-11 pr-3 text-base"
+            placeholder="Search worker, trade, or skill…"
+            className="h-12 w-full border border-violet-100 bg-white pl-11 pr-3 text-base"
           />
         </label>
         <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
@@ -1049,11 +1049,12 @@ export function AttendanceWorkspace({
               key={value}
               type="button"
               onClick={() => setFilter(value)}
+              aria-pressed={filter === value}
               className={cn(
-                "min-h-10 shrink-0 border px-3 text-xs font-semibold",
+                "min-h-11 shrink-0 border px-3 text-xs font-semibold",
                 filter === value
-                  ? "border-stone-950 bg-stone-950 text-white"
-                  : "border-stone-300 bg-white text-stone-700",
+                  ? "border-violet-950 bg-violet-950 text-white"
+                  : "border-violet-100 bg-white text-slate-700",
               )}
             >
               {label}
@@ -1066,13 +1067,13 @@ export function AttendanceWorkspace({
         {loadingDate ? (
           <AttendanceListSkeleton />
         ) : workerViews.length === 0 ? (
-          <div className="border border-dashed border-stone-300 bg-white p-8 text-center">
+          <div className="border border-dashed border-violet-100 bg-white p-8 text-center">
             <CalendarDays
-              className="mx-auto size-7 text-stone-400"
+              className="mx-auto size-7 text-slate-400"
               aria-hidden="true"
             />
             <h2 className="mt-3 font-semibold">No workers match this view</h2>
-            <p className="mt-1 text-sm text-stone-500">
+            <p className="mt-1 text-sm text-slate-500">
               Clear the search or choose another status.
             </p>
           </div>
@@ -1080,12 +1081,12 @@ export function AttendanceWorkspace({
           workerViews.map(({ calculation, localAction, state, worker }) => (
             <article
               key={worker.id}
-              className="border border-stone-300 bg-white p-4"
+              className="border border-violet-100 bg-white p-4"
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h2 className="text-lg font-semibold">{worker.legalName}</h2>
-                  <p className="mt-0.5 text-xs text-stone-500">
+                  <p className="mt-0.5 text-xs text-slate-500">
                     {[worker.tradeName, worker.skillName]
                       .filter(Boolean)
                       .join(" · ") || "No classification"}
@@ -1098,7 +1099,7 @@ export function AttendanceWorkspace({
                       ? "border-emerald-200 bg-emerald-50 text-emerald-800"
                       : state.label === "On break"
                         ? "border-amber-200 bg-amber-50 text-amber-900"
-                        : "border-stone-200 bg-stone-50 text-stone-700",
+                        : "border-slate-200 bg-slate-50 text-slate-700",
                   )}
                 >
                   {worker.approvedLeaveType ? "Approved leave" : state.label}
@@ -1106,11 +1107,11 @@ export function AttendanceWorkspace({
               </div>
 
               {state.ordered.length > 0 ? (
-                <div className="mt-3 space-y-1 border-t border-stone-100 pt-3 text-xs text-stone-600">
+                <div className="mt-3 space-y-1 border-t border-slate-100 pt-3 text-xs text-slate-600">
                   {state.ordered.map((session, index) => (
                     <p key={session.id} className="flex justify-between gap-3">
                       <span>Session {index + 1}</span>
-                      <span className="font-medium tabular-nums text-stone-900">
+                      <span className="font-medium tabular-nums text-slate-900">
                         {malaysiaTime(session.enteredAt)} –{" "}
                         {malaysiaTime(session.exitedAt)}
                       </span>
@@ -1194,7 +1195,7 @@ export function AttendanceWorkspace({
                           occurredAt: new Date().toISOString(),
                         })
                       }
-                      className="col-span-2 inline-flex min-h-12 items-center justify-center gap-2 bg-amber-600 px-4 font-semibold text-stone-950"
+                      className="col-span-2 inline-flex min-h-12 items-center justify-center gap-2 bg-amber-600 px-4 font-semibold text-slate-950"
                     >
                       <Coffee className="size-5" aria-hidden="true" />
                       End break
@@ -1223,7 +1224,7 @@ export function AttendanceWorkspace({
                             sessionId: state.openSession?.id,
                           })
                         }
-                        className="inline-flex min-h-12 items-center justify-center gap-2 bg-stone-950 px-3 font-semibold text-white"
+                        className="inline-flex min-h-12 items-center justify-center gap-2 bg-violet-700 px-3 font-semibold text-white"
                       >
                         <LogOut className="size-5" aria-hidden="true" />
                         Exit
@@ -1233,7 +1234,7 @@ export function AttendanceWorkspace({
                   <button
                     type="button"
                     onClick={() => setCorrectingWorker(worker)}
-                    className="col-span-2 inline-flex min-h-11 items-center justify-center gap-2 border border-stone-300 px-4 text-sm font-semibold"
+                    className="col-span-2 inline-flex min-h-11 items-center justify-center gap-2 border border-violet-100 px-4 text-sm font-semibold"
                   >
                     <Pencil className="size-4" aria-hidden="true" />
                     Correct times
@@ -1246,11 +1247,11 @@ export function AttendanceWorkspace({
       </section>
 
       {projectActions.length > 0 ? (
-        <details className="mt-5 border border-stone-300 bg-white p-4">
+        <details className="mt-5 border border-violet-100 bg-white p-4">
           <summary className="cursor-pointer text-sm font-semibold">
             Device synchronization history
           </summary>
-          <ol className="mt-3 divide-y divide-stone-100">
+          <ol className="mt-3 divide-y divide-slate-100">
             {[...projectActions]
               .reverse()
               .slice(0, 20)
@@ -1274,7 +1275,7 @@ export function AttendanceWorkspace({
                     </span>
                   </div>
                   {action.message ? (
-                    <p className="mt-1 text-stone-500">{action.message}</p>
+                    <p className="mt-1 text-slate-500">{action.message}</p>
                   ) : null}
                 </li>
               ))}

@@ -22,13 +22,13 @@ export default async function EditProjectPage({
     <main className="px-5 py-8 sm:px-8 lg:py-10">
       <Link
         href={`/ceo/projects/${project.id}`}
-        className="inline-flex items-center gap-2 text-sm text-stone-600 hover:text-stone-950"
+        className="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-slate-950"
       >
         <ChevronLeft className="size-4" aria-hidden="true" />
         Back to project
       </Link>
       <div className="mt-6 max-w-4xl">
-        <p className="font-heading text-xs font-semibold uppercase tracking-[0.23em] text-amber-700">
+        <p className="font-heading text-xs font-semibold uppercase tracking-[0.23em] text-violet-700">
           Project record
         </p>
         <h1 className="mt-3 font-heading text-5xl font-semibold uppercase leading-none sm:text-6xl">
@@ -36,7 +36,7 @@ export default async function EditProjectPage({
         </h1>
       </div>
 
-      <section className="mt-8 max-w-4xl border border-stone-300 bg-white p-5 sm:p-8">
+      <section className="mt-8 max-w-4xl border border-violet-100 bg-white p-5 sm:p-8">
         <ProjectForm
           action={updateProjectAction.bind(null, project.id)}
           defaults={{

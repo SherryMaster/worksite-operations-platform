@@ -12,7 +12,7 @@ export function DeviceSignOutButton() {
         type="button"
         onClick={() => void clearAttendanceDeviceData()}
         aria-label="Sign out and remove saved attendance from this device"
-        className="grid size-8 touch-manipulation place-items-center border border-stone-700 text-stone-300 hover:border-stone-500 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+        className="grid size-11 touch-manipulation place-items-center rounded-xl border border-violet-100 bg-white text-slate-500 shadow-sm hover:border-violet-200 hover:text-violet-700 focus-visible:ring-2 focus-visible:ring-violet-500"
       >
         <LogOut className="size-4" aria-hidden="true" />
       </button>

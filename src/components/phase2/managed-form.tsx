@@ -37,7 +37,7 @@ export function ManagedForm({
           size="lg"
           disabled={pending}
           aria-busy={pending}
-          className="rounded-none bg-stone-950 px-5 text-stone-100"
+          className="rounded-xl bg-violet-700 px-5 text-white shadow-sm hover:bg-violet-800"
         >
           {pending ? <Spinner aria-hidden="true" /> : null}
           {pending ? "Saving…" : submitLabel}

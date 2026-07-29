@@ -52,20 +52,18 @@ describe("Phase 2 validation", () => {
     });
   });
 
-  it("accepts CEO-created Foreman credentials with optional email and MFA", () => {
+  it("accepts CEO-created Foreman credentials with optional email", () => {
     const result = foremanAccountSchema.safeParse({
       firstName: "Ali",
       lastName: "",
       username: "ali_foreman",
       emailAddress: "",
       initialPassword: "Example#4821",
-      mfaRequired: undefined,
     });
 
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.emailAddress).toBeNull();
-      expect(result.data.mfaRequired).toBe(false);
     }
   });
 });

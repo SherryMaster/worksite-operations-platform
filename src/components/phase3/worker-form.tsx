@@ -72,9 +72,9 @@ export function WorkerForm({
 
   return (
     <form action={formAction} className="space-y-8">
-      <section className="border border-stone-300 bg-white">
-        <div className="border-b border-stone-200 p-5">
-          <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
+      <section className="border border-violet-100 bg-white">
+        <div className="border-b border-slate-200 p-5">
+          <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-violet-700">
             Permanent profile
           </p>
           <h2 className="mt-1 font-heading text-2xl font-semibold uppercase">
@@ -91,7 +91,7 @@ export function WorkerForm({
               required
               maxLength={160}
               autoComplete="off"
-              className="h-11 rounded-none"
+              className="h-11 rounded-xl"
             />
             <FieldError field="legalName" state={state} />
           </div>
@@ -105,7 +105,7 @@ export function WorkerForm({
               required
               maxLength={40}
               autoComplete="off"
-              className="h-11 rounded-none"
+              className="h-11 rounded-xl"
             />
             <FieldError field="phoneNumber" state={state} />
           </div>
@@ -118,7 +118,7 @@ export function WorkerForm({
               defaultValue={values.alternatePhone}
               maxLength={40}
               autoComplete="off"
-              className="h-11 rounded-none"
+              className="h-11 rounded-xl"
             />
           </div>
           <div className="space-y-2">
@@ -128,7 +128,7 @@ export function WorkerForm({
               name="nationality"
               defaultValue={values.nationality}
               maxLength={80}
-              className="h-11 rounded-none"
+              className="h-11 rounded-xl"
             />
           </div>
           <div className="space-y-2">
@@ -138,7 +138,7 @@ export function WorkerForm({
               name="address"
               defaultValue={values.address}
               maxLength={500}
-              className="h-11 rounded-none"
+              className="h-11 rounded-xl"
             />
           </div>
           <div className="space-y-2">
@@ -149,7 +149,7 @@ export function WorkerForm({
               defaultValue={values.cnicNumber}
               maxLength={40}
               spellCheck={false}
-              className="h-11 rounded-none"
+              className="h-11 rounded-xl"
             />
             <FieldError field="cnicNumber" state={state} />
           </div>
@@ -161,18 +161,18 @@ export function WorkerForm({
               defaultValue={values.passportNumber}
               maxLength={40}
               spellCheck={false}
-              className="h-11 rounded-none"
+              className="h-11 rounded-xl"
             />
-            <p className="text-xs text-stone-500">
+            <p className="text-xs text-slate-500">
               At least one CNIC or passport number is required.
             </p>
           </div>
         </div>
       </section>
 
-      <section className="border border-stone-300 bg-white">
-        <div className="border-b border-stone-200 p-5">
-          <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
+      <section className="border border-violet-100 bg-white">
+        <div className="border-b border-slate-200 p-5">
+          <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-violet-700">
             Work authorization
           </p>
           <h2 className="mt-1 font-heading text-2xl font-semibold uppercase">
@@ -190,7 +190,7 @@ export function WorkerForm({
               defaultValue={values.workPermitNumber}
               maxLength={60}
               spellCheck={false}
-              className="h-11 rounded-none"
+              className="h-11 rounded-xl"
             />
           </div>
           <div className="space-y-2">
@@ -200,7 +200,7 @@ export function WorkerForm({
               name="workPermitIssueDate"
               type="date"
               defaultValue={values.workPermitIssueDate}
-              className="h-11 rounded-none"
+              className="h-11 rounded-xl"
             />
           </div>
           <div className="space-y-2">
@@ -210,7 +210,7 @@ export function WorkerForm({
               name="workPermitExpiryDate"
               type="date"
               defaultValue={values.workPermitExpiryDate}
-              className="h-11 rounded-none"
+              className="h-11 rounded-xl"
             />
             <FieldError field="workPermitExpiryDate" state={state} />
           </div>
@@ -221,7 +221,7 @@ export function WorkerForm({
               name="tradeId"
               defaultValue={values.tradeId}
               required
-              className="h-11 w-full border border-stone-300 bg-white px-3 text-sm"
+              className="h-11 w-full border border-violet-100 bg-white px-3 text-sm"
             >
               <option value="">Select trade</option>
               {trades.map((trade) => (
@@ -239,7 +239,7 @@ export function WorkerForm({
               name="skillLevelId"
               defaultValue={values.skillLevelId}
               required
-              className="h-11 w-full border border-stone-300 bg-white px-3 text-sm"
+              className="h-11 w-full border border-violet-100 bg-white px-3 text-sm"
             >
               <option value="">Select skill level</option>
               {skills.map((skill) => (
@@ -258,7 +258,7 @@ export function WorkerForm({
               inputMode="decimal"
               defaultValue={values.foodDeduction}
               required
-              className="h-11 rounded-none"
+              className="h-11 rounded-xl"
             />
             <FieldError field="foodDeduction" state={state} />
           </div>
@@ -266,9 +266,9 @@ export function WorkerForm({
       </section>
 
       {create ? (
-        <section className="border border-stone-300 bg-white">
-          <div className="border-b border-stone-200 p-5">
-            <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
+        <section className="border border-violet-100 bg-white">
+          <div className="border-b border-slate-200 p-5">
+            <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-violet-700">
               Initial history
             </p>
             <h2 className="mt-1 font-heading text-2xl font-semibold uppercase">
@@ -283,7 +283,7 @@ export function WorkerForm({
                 name="employmentStatus"
                 defaultValue={values.employmentStatus}
                 required
-                className="h-11 w-full border border-stone-300 bg-white px-3 text-sm"
+                className="h-11 w-full border border-violet-100 bg-white px-3 text-sm"
               >
                 <option value="ACTIVE">Active</option>
                 <option value="SUSPENDED">Suspended</option>
@@ -298,7 +298,7 @@ export function WorkerForm({
                 type="date"
                 defaultValue={values.employmentStartsOn}
                 required
-                className="h-11 rounded-none"
+                className="h-11 rounded-xl"
               />
             </div>
             <div className="space-y-2">
@@ -309,7 +309,7 @@ export function WorkerForm({
                 inputMode="decimal"
                 defaultValue={values.hourlyRate}
                 required
-                className="h-11 rounded-none"
+                className="h-11 rounded-xl"
               />
               <FieldError field="hourlyRate" state={state} />
             </div>
@@ -321,7 +321,7 @@ export function WorkerForm({
                 type="date"
                 defaultValue={values.rateStartsOn}
                 required
-                className="h-11 rounded-none"
+                className="h-11 rounded-xl"
               />
             </div>
             <div className="space-y-2">
@@ -330,7 +330,7 @@ export function WorkerForm({
                 id="projectId"
                 name="projectId"
                 defaultValue={values.projectId}
-                className="h-11 w-full border border-stone-300 bg-white px-3 text-sm"
+                className="h-11 w-full border border-violet-100 bg-white px-3 text-sm"
               >
                 <option value="">Awaiting assignment</option>
                 {projects.map((project) => (
@@ -350,21 +350,21 @@ export function WorkerForm({
                 type="date"
                 defaultValue={values.assignmentStartsOn}
                 required
-                className="h-11 rounded-none"
+                className="h-11 rounded-xl"
               />
             </div>
           </div>
         </section>
       ) : null}
 
-      <section className="border border-stone-300 bg-white p-5">
+      <section className="border border-violet-100 bg-white p-5">
         <Label htmlFor="notes">Operational Notes (Optional)</Label>
         <Textarea
           id="notes"
           name="notes"
           defaultValue={values.notes}
           maxLength={2000}
-          className="mt-2 min-h-28 rounded-none"
+          className="mt-2 min-h-28 rounded-xl"
         />
       </section>
 
@@ -400,14 +400,14 @@ export function WorkerForm({
           size="lg"
           disabled={pending}
           aria-busy={pending}
-          className="rounded-none bg-stone-950 px-6 text-white"
+          className="rounded-xl bg-violet-700 px-6 text-white"
         >
           {pending ? <Spinner aria-hidden="true" /> : null}
           {pending ? "Saving…" : create ? "Create Worker" : "Save Worker"}
         </Button>
         <Link
           href={create ? "/ceo/workers" : ".."}
-          className="text-sm font-semibold text-stone-600 hover:text-stone-950"
+          className="text-sm font-semibold text-slate-600 hover:text-slate-950"
         >
           Cancel
         </Link>

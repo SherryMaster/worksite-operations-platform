@@ -49,14 +49,14 @@ export default async function EditWorkerPage({
 
   return (
     <main className="px-5 py-8 sm:px-8 lg:py-10">
-      <div className="border-b border-stone-300 pb-8">
-        <p className="font-heading text-xs font-semibold uppercase tracking-[0.23em] text-amber-700">
+      <div className="border-b border-violet-100 pb-8">
+        <p className="font-heading text-xs font-semibold uppercase tracking-[0.23em] text-violet-700">
           Worker profile
         </p>
         <h1 className="mt-3 font-heading text-5xl font-semibold uppercase leading-none">
           Edit {worker.legal_name}
         </h1>
-        <p className="mt-4 text-sm text-stone-600">
+        <p className="mt-4 text-sm text-slate-600">
           Profile, trade, skill, and deduction changes preserve their audit and
           effective history.
         </p>

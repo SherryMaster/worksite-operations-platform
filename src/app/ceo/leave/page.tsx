@@ -43,14 +43,14 @@ export default async function CeoLeavePage({
 
   return (
     <main className="px-5 py-8 sm:px-8 lg:py-10">
-      <div className="border-b border-stone-300 pb-8">
-        <p className="font-heading text-xs font-semibold uppercase tracking-[0.23em] text-amber-700">
+      <div className="border-b border-violet-100 pb-8">
+        <p className="font-heading text-xs font-semibold uppercase tracking-[0.23em] text-violet-700">
           Full-day unpaid leave
         </p>
         <h1 className="mt-3 font-heading text-5xl font-semibold uppercase leading-none sm:text-6xl">
           Leave review
         </h1>
-        <p className="mt-4 max-w-3xl text-sm leading-6 text-stone-600">
+        <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-600">
           Submit requests, review pending leave first, resolve attendance
           conflicts, and approve or reject with a permanent audit history.
           Approved days have zero payable hours.
@@ -70,12 +70,12 @@ export default async function CeoLeavePage({
         </p>
       ) : null}
 
-      <details className="mt-6 border border-stone-300 bg-white">
+      <details className="mt-6 border border-violet-100 bg-white">
         <summary className="flex cursor-pointer items-center gap-2 p-5 font-semibold">
-          <Plus className="size-4 text-amber-700" aria-hidden="true" />
+          <Plus className="size-4 text-violet-700" aria-hidden="true" />
           Submit leave on behalf of a worker
         </summary>
-        <div className="border-t border-stone-200 p-5">
+        <div className="border-t border-slate-200 p-5">
           <LeaveRequestForm
             leaveTypes={options.leaveTypes}
             workers={options.workers}
@@ -83,13 +83,13 @@ export default async function CeoLeavePage({
         </div>
       </details>
 
-      <form className="mt-6 grid gap-3 border border-stone-300 bg-white p-4 lg:grid-cols-[1fr_1fr_1fr_auto]">
-        <label className="text-xs font-semibold uppercase tracking-wider text-stone-600">
+      <form className="mt-6 grid gap-3 border border-violet-100 bg-white p-4 lg:grid-cols-[1fr_1fr_1fr_auto]">
+        <label className="text-xs font-semibold uppercase tracking-wider text-slate-600">
           Status
           <select
             name="status"
             defaultValue={params.status ?? ""}
-            className="mt-2 h-11 w-full border border-stone-300 px-3 text-sm normal-case tracking-normal"
+            className="mt-2 h-11 w-full border border-violet-100 px-3 text-sm normal-case tracking-normal"
           >
             <option value="">All statuses</option>
             <option value="PENDING">Pending</option>
@@ -97,12 +97,12 @@ export default async function CeoLeavePage({
             <option value="REJECTED">Rejected</option>
           </select>
         </label>
-        <label className="text-xs font-semibold uppercase tracking-wider text-stone-600">
+        <label className="text-xs font-semibold uppercase tracking-wider text-slate-600">
           Project
           <select
             name="project"
             defaultValue={params.project ?? ""}
-            className="mt-2 h-11 w-full border border-stone-300 px-3 text-sm normal-case tracking-normal"
+            className="mt-2 h-11 w-full border border-violet-100 px-3 text-sm normal-case tracking-normal"
           >
             <option value="">All projects</option>
             {options.projects.map((project) => (
@@ -112,12 +112,12 @@ export default async function CeoLeavePage({
             ))}
           </select>
         </label>
-        <label className="text-xs font-semibold uppercase tracking-wider text-stone-600">
+        <label className="text-xs font-semibold uppercase tracking-wider text-slate-600">
           Worker
           <select
             name="worker"
             defaultValue={params.worker ?? ""}
-            className="mt-2 h-11 w-full border border-stone-300 px-3 text-sm normal-case tracking-normal"
+            className="mt-2 h-11 w-full border border-violet-100 px-3 text-sm normal-case tracking-normal"
           >
             <option value="">All workers</option>
             {options.workers.map((worker) => (
@@ -132,7 +132,7 @@ export default async function CeoLeavePage({
         </label>
         <FormSubmitButton
           pendingLabel="Filtering…"
-          className="min-h-11 self-end bg-stone-950 px-5 text-sm font-semibold text-white"
+          className="min-h-11 self-end bg-violet-700 px-5 text-sm font-semibold text-white"
         >
           Filter
         </FormSubmitButton>
@@ -143,7 +143,7 @@ export default async function CeoLeavePage({
           <h2 className="font-heading text-2xl font-semibold uppercase">
             Requests
           </h2>
-          <span className="inline-flex items-center gap-2 text-sm text-stone-500">
+          <span className="inline-flex items-center gap-2 text-sm text-slate-500">
             <ClipboardList className="size-4" aria-hidden="true" />
             {requests.length} shown
           </span>

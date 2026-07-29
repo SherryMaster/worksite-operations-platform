@@ -30,7 +30,7 @@ set local role authenticated;
 
 select set_config(
   'request.jwt.claims',
-  '{"sub":"user_phase7_ceo","role":"authenticated","fva":[0,-1]}',
+  '{"sub":"user_phase7_ceo","role":"authenticated"}',
   true
 );
 
@@ -182,7 +182,7 @@ $$;
 
 select set_config(
   'request.jwt.claims',
-  '{"sub":"user_phase7_foreman","role":"authenticated","fva":[0,-1]}',
+  '{"sub":"user_phase7_foreman","role":"authenticated"}',
   true
 );
 

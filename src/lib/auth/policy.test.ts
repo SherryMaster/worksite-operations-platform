@@ -1,74 +1,20 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  destinationForAccess,
-  evaluateAccess,
-  hasCurrentSecondFactor,
-} from "@/lib/auth/policy";
+import { destinationForAccess, evaluateAccess } from "@/lib/auth/policy";
 
 describe("application access policy", () => {
-  it("authorizes an active CEO without making MFA mandatory", () => {
+  it("authorizes active CEO and Foreman accounts", () => {
     expect(
       evaluateAccess({
-        applicationUser: {
-          role: "CEO",
-          is_active: true,
-          mfa_required: false,
-        },
-        currentSessionFva: [0, -1],
-        hasEnrolledSecondFactor: false,
+        role: "CEO",
+        is_active: true,
       }),
     ).toEqual({ role: "CEO", status: "AUTHORIZED" });
-  });
-
-  it("authorizes a Foreman when the CEO leaves MFA optional", () => {
-    expect(
-      evaluateAccess({
-        applicationUser: {
-          role: "FOREMAN",
-          is_active: true,
-          mfa_required: false,
-        },
-        currentSessionFva: [0, -1],
-        hasEnrolledSecondFactor: false,
-      }),
-    ).toEqual({ role: "FOREMAN", status: "AUTHORIZED" });
-  });
-
-  it("requires a verified second factor only when the CEO enables it", () => {
-    expect(
-      evaluateAccess({
-        applicationUser: {
-          role: "FOREMAN",
-          is_active: true,
-          mfa_required: true,
-        },
-        currentSessionFva: [0, -1],
-        hasEnrolledSecondFactor: true,
-      }),
-    ).toEqual({ role: "FOREMAN", status: "MFA_REQUIRED" });
 
     expect(
       evaluateAccess({
-        applicationUser: {
-          role: "FOREMAN",
-          is_active: true,
-          mfa_required: true,
-        },
-        currentSessionFva: [0, 0],
-        hasEnrolledSecondFactor: false,
-      }),
-    ).toEqual({ role: "FOREMAN", status: "MFA_REQUIRED" });
-
-    expect(
-      evaluateAccess({
-        applicationUser: {
-          role: "FOREMAN",
-          is_active: true,
-          mfa_required: true,
-        },
-        currentSessionFva: [0, 0],
-        hasEnrolledSecondFactor: true,
+        role: "FOREMAN",
+        is_active: true,
       }),
     ).toEqual({ role: "FOREMAN", status: "AUTHORIZED" });
   });
@@ -76,30 +22,12 @@ describe("application access policy", () => {
   it("denies inactive and unmapped identities", () => {
     expect(
       evaluateAccess({
-        applicationUser: {
-          role: "FOREMAN",
-          is_active: false,
-          mfa_required: false,
-        },
-        currentSessionFva: [0, 0],
-        hasEnrolledSecondFactor: true,
+        role: "FOREMAN",
+        is_active: false,
       }),
     ).toEqual({ role: "FOREMAN", status: "INACTIVE" });
 
-    expect(
-      evaluateAccess({
-        applicationUser: null,
-        currentSessionFva: [0, 0],
-        hasEnrolledSecondFactor: true,
-      }),
-    ).toEqual({ role: null, status: "UNMAPPED" });
-  });
-
-  it("rejects malformed second-factor claims", () => {
-    expect(hasCurrentSecondFactor(undefined)).toBe(false);
-    expect(hasCurrentSecondFactor([0, "-1"])).toBe(false);
-    expect(hasCurrentSecondFactor([0, -1])).toBe(false);
-    expect(hasCurrentSecondFactor([0, 12])).toBe(true);
+    expect(evaluateAccess(null)).toEqual({ role: null, status: "UNMAPPED" });
   });
 
   it("routes each result to its usable frontend state", () => {
@@ -107,8 +35,8 @@ describe("application access policy", () => {
       "/ceo",
     );
     expect(
-      destinationForAccess({ role: "FOREMAN", status: "MFA_REQUIRED" }),
-    ).toBe("/access/mfa-required");
+      destinationForAccess({ role: "FOREMAN", status: "AUTHORIZED" }),
+    ).toBe("/foreman");
     expect(destinationForAccess({ role: null, status: "UNMAPPED" })).toBe(
       "/access/unmapped",
     );

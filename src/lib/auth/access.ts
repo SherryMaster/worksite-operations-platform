@@ -1,6 +1,6 @@
 import "server-only";
 
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 
 import { logger } from "@/lib/server/logger";
@@ -15,7 +15,7 @@ import {
 export { destinationForAccess } from "@/lib/auth/policy";
 
 export async function getCurrentAccess(): Promise<ApplicationAccess> {
-  const { userId, sessionClaims } = await auth();
+  const { userId } = await auth();
 
   if (!userId) {
     redirect("/sign-in");
@@ -25,7 +25,7 @@ export async function getCurrentAccess(): Promise<ApplicationAccess> {
 
   const { data, error } = await supabase
     .from("application_users")
-    .select("role,is_active,mfa_required")
+    .select("role,is_active")
     .eq("clerk_user_id", userId)
     .maybeSingle();
 
@@ -37,15 +37,7 @@ export async function getCurrentAccess(): Promise<ApplicationAccess> {
     throw new Error("Application access could not be verified.");
   }
 
-  const claims = sessionClaims as { fva?: unknown } | null;
-  const needsMfaEnrollmentCheck = data?.role === "FOREMAN" && data.mfa_required;
-  const user = needsMfaEnrollmentCheck ? await currentUser() : null;
-
-  return evaluateAccess({
-    applicationUser: data,
-    currentSessionFva: claims?.fva,
-    hasEnrolledSecondFactor: user?.twoFactorEnabled ?? false,
-  });
+  return evaluateAccess(data);
 }
 
 export async function requireRole(requiredRole: ApplicationRole) {

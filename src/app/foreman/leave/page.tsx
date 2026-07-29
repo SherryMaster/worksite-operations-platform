@@ -33,13 +33,13 @@ export default async function ForemanLeavePage({
 
   return (
     <main className="min-h-[calc(100vh-9rem)] px-4 pb-24 pt-7">
-      <p className="font-heading text-xs font-semibold uppercase tracking-[0.22em] text-amber-700">
+      <p className="font-heading text-xs font-semibold uppercase tracking-[0.22em] text-violet-700">
         Current project
       </p>
       <h1 className="mt-2 font-heading text-4xl font-semibold uppercase leading-none">
         Worker leave
       </h1>
-      <p className="mt-3 text-sm leading-6 text-stone-600">
+      <p className="mt-3 text-sm leading-6 text-slate-600">
         Submit full calendar days for an assigned worker. Every approved day is
         unpaid and has zero payable hours.
       </p>
@@ -57,9 +57,12 @@ export default async function ForemanLeavePage({
         </p>
       ) : null}
 
-      <section className="mt-6 border border-stone-300 bg-white p-4">
+      <section className="mt-6 border border-violet-100 bg-white p-4">
         <h2 className="flex items-center gap-2 text-lg font-semibold">
-          <ClipboardList className="size-5 text-amber-700" aria-hidden="true" />
+          <ClipboardList
+            className="size-5 text-violet-700"
+            aria-hidden="true"
+          />
           New request
         </h2>
         <div className="mt-4">

@@ -52,7 +52,9 @@ test("the CEO filters reports, exports Excel, and previews an invalid import", a
     );
   await page.getByRole("button", { name: "Preview Import" }).click();
   await expect(
-    page.getByText("The workbook contains no import rows."),
+    page.getByRole("cell", {
+      name: "The workbook contains no import rows.",
+    }),
   ).toBeVisible({ timeout: 30_000 });
   await expect(
     page.getByRole("button", { name: "Commit This Import" }),

@@ -15,7 +15,7 @@ set local role authenticated;
 
 select set_config(
   'request.jwt.claims',
-  '{"sub":"user_phase1_ceo","role":"authenticated","fva":[0,-1]}',
+  '{"sub":"user_phase1_ceo","role":"authenticated"}',
   true
 );
 
@@ -30,14 +30,14 @@ begin
   end if;
 
   if not private.can_access_application() then
-    raise exception 'Active CEO should be authorized without mandatory MFA';
+    raise exception 'Active CEO should be authorized';
   end if;
 end
 $$;
 
 select set_config(
   'request.jwt.claims',
-  '{"sub":"user_phase1_foreman","role":"authenticated","fva":[0,-1]}',
+  '{"sub":"user_phase1_foreman","role":"authenticated"}',
   true
 );
 
@@ -48,52 +48,14 @@ begin
   end if;
 
   if not private.can_access_application() then
-    raise exception 'Foreman should be authorized while MFA is optional';
+    raise exception 'Active Foreman should be authorized';
   end if;
 end
 $$;
 
 select set_config(
   'request.jwt.claims',
-  '{"sub":"user_phase1_ceo","role":"authenticated","fva":[0,-1]}',
-  true
-);
-
-update public.application_users
-set mfa_required = true
-where clerk_user_id = 'user_phase1_foreman';
-
-select set_config(
-  'request.jwt.claims',
-  '{"sub":"user_phase1_foreman","role":"authenticated","fva":[0,-1]}',
-  true
-);
-
-do $$
-begin
-  if private.can_access_application() then
-    raise exception 'Foreman must be denied when required MFA is not verified';
-  end if;
-end
-$$;
-
-select set_config(
-  'request.jwt.claims',
-  '{"sub":"user_phase1_foreman","role":"authenticated","fva":[0,0]}',
-  true
-);
-
-do $$
-begin
-  if not private.can_access_application() then
-    raise exception 'Foreman with required and verified MFA should be authorized';
-  end if;
-end
-$$;
-
-select set_config(
-  'request.jwt.claims',
-  '{"sub":"user_phase1_inactive","role":"authenticated","fva":[0,0]}',
+  '{"sub":"user_phase1_inactive","role":"authenticated"}',
   true
 );
 
