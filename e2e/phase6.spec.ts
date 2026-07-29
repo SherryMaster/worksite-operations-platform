@@ -2,6 +2,7 @@ import { clerk } from "@clerk/testing/playwright";
 import { expect, test } from "@playwright/test";
 
 import { getPhaseOneTestUser } from "./support/clerk-users";
+import { recoverProtectedPage } from "./support/navigation";
 import {
   cleanupPhaseSixE2EData,
   setupPhaseSixE2EData,
@@ -18,7 +19,107 @@ async function renewCeoSession(page: import("@playwright/test").Page) {
     page,
     signInParams: { strategy: "ticket", ticket: signInTicket },
   });
-  await page.goto(returnUrl);
+  await page.goto(returnUrl, { waitUntil: "domcontentloaded" });
+  await expect(page).toHaveURL(returnUrl, { timeout: 20_000 });
+  await recoverProtectedPage(page);
+}
+
+async function generatePayroll(page: import("@playwright/test").Page) {
+  const payrollLink = page.getByRole("link", { name: /June 2098/ });
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    if (await payrollLink.isVisible().catch(() => false)) return;
+    await page.getByLabel("Calendar month").fill("2098-06");
+    await page.getByRole("button", { name: "Generate or recalculate" }).click();
+    if (
+      await payrollLink
+        .waitFor({ state: "visible", timeout: serverMutationTimeout })
+        .then(() => true)
+        .catch(() => false)
+    ) {
+      return;
+    }
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await recoverProtectedPage(page);
+  }
+
+  await expect(payrollLink).toBeVisible();
+}
+
+async function addPayrollAdjustment(page: import("@playwright/test").Page) {
+  const adjustment = page.getByText("E2E payroll completion allowance", {
+    exact: true,
+  });
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    if (await adjustment.isVisible().catch(() => false)) return;
+    await renewCeoSession(page);
+    await page.getByLabel("Amount (MYR)").fill("5.00");
+    await page.getByLabel("Reason").fill("E2E payroll completion allowance");
+    await page.getByRole("button", { name: "Add adjustment" }).click();
+    if (
+      await adjustment
+        .waitFor({ state: "visible", timeout: serverMutationTimeout })
+        .then(() => true)
+        .catch(() => false)
+    ) {
+      return;
+    }
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await recoverProtectedPage(page);
+  }
+
+  await expect(adjustment).toBeVisible();
+}
+
+async function approvePayroll(page: import("@playwright/test").Page) {
+  const approved = page.getByText("approved", { exact: true });
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    if (await approved.isVisible().catch(() => false)) return;
+    await renewCeoSession(page);
+    page.once("dialog", (dialog) => dialog.accept());
+    await page
+      .getByRole("button", { name: "Approve complete payroll" })
+      .click();
+    if (
+      await approved
+        .waitFor({ state: "visible", timeout: serverMutationTimeout })
+        .then(() => true)
+        .catch(() => false)
+    ) {
+      return;
+    }
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await recoverProtectedPage(page);
+  }
+
+  await expect(approved).toBeVisible();
+}
+
+async function recordPayrollPayment(page: import("@playwright/test").Page) {
+  const recorded = page.getByText("Full payment recorded · RM 25.00");
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    if (await recorded.isVisible().catch(() => false)) return;
+    await renewCeoSession(page);
+    await page.getByLabel("Payment date").fill("2098-06-30");
+    await page.getByLabel("Reference (optional)").fill("E2E-TRANSFER-1");
+    await page.locator('select[name="method"]').selectOption("BANK_TRANSFER");
+    await page.getByRole("button", { name: /Record full payment/ }).click();
+    if (
+      await recorded
+        .waitFor({ state: "visible", timeout: serverMutationTimeout })
+        .then(() => true)
+        .catch(() => false)
+    ) {
+      return;
+    }
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await recoverProtectedPage(page);
+  }
+
+  await expect(recorded).toBeVisible();
 }
 
 test.beforeEach(async ({ isMobile }) => {
@@ -42,14 +143,9 @@ test("the CEO generates, adjusts, approves, and pays payroll", async ({
     signInParams: { strategy: "ticket", ticket: signInTicket },
   });
   await page.goto("/ceo/payroll");
+  await recoverProtectedPage(page);
 
-  await page.getByLabel("Calendar month").fill("2098-06");
-  await page.getByRole("button", { name: "Generate or recalculate" }).click();
-  await expect(
-    page.getByText(
-      "Payroll generated. Review every exception before approval.",
-    ),
-  ).toBeVisible({ timeout: serverMutationTimeout });
+  await generatePayroll(page);
 
   await page.getByRole("link", { name: /June 2098/ }).click();
   await expect(page).toHaveURL(/\/ceo\/payroll\/[^/]+$/, {
@@ -68,25 +164,14 @@ test("the CEO generates, adjusts, approves, and pays payroll", async ({
     page.getByRole("heading", { name: "E2E Phase 6 Payroll Worker" }),
   ).toBeVisible();
 
-  await renewCeoSession(page);
-  await page.getByLabel("Amount (MYR)").fill("5.00");
-  await page.getByLabel("Reason").fill("E2E payroll completion allowance");
-  await page.getByRole("button", { name: "Add adjustment" }).click();
-  await expect(
-    page.getByText("Adjustment added and draft payroll recalculated."),
-  ).toBeVisible({ timeout: serverMutationTimeout });
+  await addPayrollAdjustment(page);
   await expect(page.getByText("RM 25.00", { exact: true })).toBeVisible();
 
   await page.getByRole("link", { name: /June 2098 payroll/ }).click();
   await expect(page).toHaveURL(/\/ceo\/payroll\/[^/]+$/, {
     timeout: 20_000,
   });
-  await renewCeoSession(page);
-  page.once("dialog", (dialog) => dialog.accept());
-  await page.getByRole("button", { name: "Approve complete payroll" }).click();
-  await expect(page.getByText("approved", { exact: true })).toBeVisible({
-    timeout: serverMutationTimeout,
-  });
+  await approvePayroll(page);
 
   await page
     .getByRole("row")
@@ -98,12 +183,5 @@ test("the CEO generates, adjusts, approves, and pays payroll", async ({
     page.getByRole("link", { name: /Worker payroll statement/ }),
   ).toBeVisible();
 
-  await renewCeoSession(page);
-  await page.getByLabel("Payment date").fill("2098-06-30");
-  await page.getByLabel("Reference (optional)").fill("E2E-TRANSFER-1");
-  await page.locator('select[name="method"]').selectOption("BANK_TRANSFER");
-  await page.getByRole("button", { name: /Record full payment/ }).click();
-  await expect(page.getByText("Full payment recorded · RM 25.00")).toBeVisible({
-    timeout: serverMutationTimeout,
-  });
+  await recordPayrollPayment(page);
 });

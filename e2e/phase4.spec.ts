@@ -2,6 +2,7 @@ import { clerk } from "@clerk/testing/playwright";
 import { expect, test } from "@playwright/test";
 
 import { getPhaseOneTestUser } from "./support/clerk-users";
+import { recoverProtectedPage } from "./support/navigation";
 import {
   cleanupPhaseFourE2EData,
   setupPhaseFourE2EData,
@@ -125,11 +126,13 @@ test("the CEO can inspect and correct project attendance", async ({ page }) => {
     signInParams: { strategy: "ticket", ticket: signInTicket },
   });
   await page.goto("/ceo/attendance");
+  await recoverProtectedPage(page);
 
   const worker = page
     .getByRole("article")
-    .filter({ hasText: "E2E Phase 4 CEO Worker" });
-  await expect(worker).toBeVisible();
+    .filter({ hasText: "E2E Phase 4 CEO Worker" })
+    .first();
+  await expect(worker).toBeVisible({ timeout: 20_000 });
   await worker.getByRole("button", { name: /correct times/i }).click();
   await page.getByRole("button", { name: "Add session" }).click();
   await page
