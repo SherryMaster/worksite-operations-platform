@@ -16,16 +16,14 @@ export function LeaveTypeSettings({
   leaveTypes: Tables<"leave_types">[];
 }) {
   return (
-    <section id="leave-types" className="mt-8">
+    <section id="leave-types" className="mt-6">
       <div className="mb-4 flex items-center gap-3">
         <ClipboardList className="size-5 text-violet-700" aria-hidden="true" />
         <div>
-          <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-violet-700">
+          <p className="text-xs font-semibold text-slate-500">
             Full-day unpaid leave
           </p>
-          <h2 className="font-heading text-3xl font-semibold uppercase">
-            Leave types
-          </h2>
+          <h2 className="font-heading text-xl font-semibold">Leave types</h2>
         </div>
       </div>
       <article className="border border-violet-100 bg-white">

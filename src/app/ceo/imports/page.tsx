@@ -25,9 +25,8 @@ export default async function ImportCenterPage() {
   return (
     <main>
       <PageHeader
-        eyebrow="Administration"
         title="Import center"
-        description="Move legacy data through a fixed template, row-level validation, a no-change preview, duplicate protection, and reconciled commit history."
+        description="Prepare, validate, and commit company records."
         action={
           <div className="flex flex-wrap gap-2">
             <a
@@ -48,47 +47,22 @@ export default async function ImportCenterPage() {
         }
       />
 
-      <div className="mt-4 grid gap-2 lg:grid-cols-3">
-        {[
-          [
-            "1. Copy into the template",
-            "Keep the five sheet names and headers unchanged. The legacy workbook itself is never modified.",
-          ],
-          [
-            "2. Preview and correct",
-            "Every rejected row names its sheet, row, field, and correction. No company records change during preview.",
-          ],
-          [
-            "3. Commit and reconcile",
-            "Valid projects, workers, assignments, rates, and private documents commit together and appear across the app.",
-          ],
-        ].map(([title, description]) => (
-          <div
-            key={title}
-            className="rounded-lg border border-slate-200 bg-white p-3"
-          >
-            <h2 className="font-semibold">{title}</h2>
-            <p className="mt-1 text-sm leading-5 text-slate-600">
-              {description}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-4 flex items-start gap-3 border border-amber-300 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
-        <FileWarning className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
-        <p>
-          The two supplied SAFAR workbooks are representative legacy
-          attendance/payroll samples, not the complete company structure. They
-          must be copied into the fixed template and completed with missing
-          project, identity, employment, trade, skill, rate, and document
-          information. The app will not invent those values.
+      <details className="mt-4 rounded-lg border border-amber-200 bg-amber-50">
+        <summary className="flex cursor-pointer items-center gap-2 p-3 text-sm font-semibold text-amber-950">
+          <FileWarning className="size-4 shrink-0" aria-hidden="true" />
+          Before importing legacy workbooks
+        </summary>
+        <p className="border-t border-amber-200 p-3 text-sm leading-6 text-amber-950">
+          Copy records into the fixed template and complete missing project,
+          identity, employment, trade, skill, rate, and document information.
+          Preview identifies row-level corrections without changing company
+          data.
         </p>
-      </div>
+      </details>
 
       <ImportWorkspace />
 
-      <section className="mt-8" aria-labelledby="import-history-title">
+      <section className="mt-6" aria-labelledby="import-history-title">
         <div className="flex items-center gap-3 border-b border-violet-100 pb-3">
           <History className="size-5 text-violet-700" aria-hidden="true" />
           <div>
@@ -96,7 +70,7 @@ export default async function ImportCenterPage() {
               id="import-history-title"
               className="font-heading text-lg font-semibold"
             >
-              Reconciliation History
+              Reconciliation history
             </h2>
             <p className="mt-1 text-sm text-slate-500">
               Recent previews and committed row totals.

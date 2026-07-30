@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowUpRight, Search, Users } from "lucide-react";
+import { AlertTriangle, ChevronRight, Search, Users } from "lucide-react";
 import Link from "next/link";
 
 import { FormSubmitButton } from "@/components/form-submit-button";
@@ -34,13 +34,9 @@ export default async function ForemanWorkersPage({
 
   return (
     <main>
-      <PageHeader
-        eyebrow="Current project"
-        title="Workers"
-        description="Read-only details for workers currently assigned to your project."
-      />
+      <PageHeader title="Workers" description={`${workers.total} assigned`} />
 
-      <form action="/foreman/workers" className="relative mt-4 max-w-xl">
+      <form action="/foreman/workers" className="relative mt-3 max-w-xl">
         <label>
           <span className="sr-only">Search current workers</span>
           <Search
@@ -51,21 +47,18 @@ export default async function ForemanWorkersPage({
             name="query"
             defaultValue={params.query}
             placeholder="Search name, phone, or identity…"
-            className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-24 text-sm"
+            autoComplete="off"
+            className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-14 text-sm"
           />
         </label>
         <FormSubmitButton
           pendingLabel="Searching…"
-          className="absolute right-1 top-1 h-9 bg-violet-700 px-4 text-sm font-semibold text-white"
+          className="absolute right-1 top-1 size-9 min-h-9 bg-violet-700 p-0 text-white"
         >
-          Search
+          <Search className="size-4" aria-hidden="true" />
+          <span className="sr-only">Search workers</span>
         </FormSubmitButton>
       </form>
-
-      <p className="mt-4 text-sm text-slate-600">
-        <strong className="tabular-nums text-slate-950">{workers.total}</strong>{" "}
-        assigned workers
-      </p>
 
       {workers.items.length === 0 ? (
         <section className="mt-5 border border-dashed border-violet-100 bg-white px-5 py-14 text-center">
@@ -82,11 +75,27 @@ export default async function ForemanWorkersPage({
           {workers.items.map((worker) => (
             <CompactRecord
               key={worker.id}
-              action={
-                <ArrowUpRight
-                  className="size-4 shrink-0 text-slate-400"
+              leading={
+                <span
                   aria-hidden="true"
-                />
+                  className="grid size-9 place-items-center rounded-full bg-violet-50 text-xs font-semibold text-violet-800"
+                >
+                  {worker.legal_name
+                    .split(/\s+/)
+                    .slice(0, 2)
+                    .map((part) => part[0])
+                    .join("")
+                    .toUpperCase()}
+                </span>
+              }
+              action={
+                <Link
+                  href={`/foreman/workers/${worker.id}`}
+                  aria-label={`Open ${worker.legal_name}`}
+                  className="grid size-10 place-items-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-violet-700"
+                >
+                  <ChevronRight className="size-4" aria-hidden="true" />
+                </Link>
               }
             >
               <Link
@@ -124,7 +133,8 @@ export default async function ForemanWorkersPage({
           className="mt-4 flex items-center justify-between"
         >
           <p className="text-xs text-slate-500">
-            Page {workers.page} of {workers.pageCount}
+            Showing {(workers.page - 1) * 50 + 1}–
+            {Math.min(workers.page * 50, workers.total)} of {workers.total}
           </p>
           <div className="flex gap-2">
             {workers.page > 1 ? (

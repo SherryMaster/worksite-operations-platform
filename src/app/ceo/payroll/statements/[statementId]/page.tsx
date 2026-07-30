@@ -60,13 +60,13 @@ export default async function PayrollStatementPage({
         <PrintStatementButton />
       </div>
 
-      <article className="border border-violet-100 bg-white p-6 sm:p-10 print:border-0">
+      <article className="rounded-lg border border-slate-200 bg-white p-5 sm:p-10 print:border-0">
         <header className="flex flex-col gap-5 border-b-2 border-violet-950 pb-6 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
               {companyName}
             </p>
-            <h1 className="mt-3 font-heading text-4xl font-semibold uppercase">
+            <h1 className="mt-2 font-heading text-2xl font-semibold sm:text-3xl">
               Monthly payroll statement
             </h1>
             <p className="mt-2 text-sm text-slate-500">
@@ -74,7 +74,7 @@ export default async function PayrollStatementPage({
             </p>
           </div>
           <div className="sm:text-right">
-            <p className="font-heading text-2xl font-semibold uppercase">
+            <p className="font-heading text-xl font-semibold">
               {payrollMonthLabel(data.run.payroll_month)}
             </p>
             <p className="mt-2 text-sm text-slate-500">
@@ -104,9 +104,7 @@ export default async function PayrollStatementPage({
         </section>
 
         <section className="mt-8">
-          <h2 className="font-heading text-2xl font-semibold uppercase">
-            Earnings
-          </h2>
+          <h2 className="font-heading text-lg font-semibold">Earnings</h2>
           <div className="mt-3 overflow-hidden border border-violet-100">
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
@@ -154,7 +152,7 @@ export default async function PayrollStatementPage({
 
         <section className="mt-8 grid gap-6 sm:grid-cols-2">
           <div>
-            <h2 className="font-heading text-2xl font-semibold uppercase">
+            <h2 className="font-heading text-lg font-semibold">
               Additions and deductions
             </h2>
             <dl className="mt-3 divide-y divide-slate-200 border border-violet-100 text-sm">
@@ -185,7 +183,7 @@ export default async function PayrollStatementPage({
             </dl>
           </div>
           <div>
-            <h2 className="font-heading text-2xl font-semibold uppercase">
+            <h2 className="font-heading text-lg font-semibold">
               Attendance and unpaid leave
             </h2>
             <div className="mt-3 max-h-80 divide-y divide-slate-200 overflow-auto border border-violet-100 text-sm print:max-h-none print:overflow-visible">

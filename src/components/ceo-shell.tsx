@@ -23,14 +23,14 @@ export function CeoShell({ children }: { children: React.ReactNode }) {
           </span>
         </div>
         <CeoNavigation />
-        <div className="mt-auto hidden rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs leading-5 text-slate-600 xl:block">
+        <div className="mt-auto hidden border-t border-slate-200 px-2 pt-4 text-xs leading-5 text-slate-500 xl:block">
           <p className="font-semibold text-slate-900">CEO workspace</p>
-          <p>Company-wide operations and oversight.</p>
+          <p>Company-wide operations</p>
         </div>
       </aside>
 
       <div className="md:pl-20 xl:pl-64">
-        <header className="sticky top-0 z-30 flex min-h-14 items-center justify-between border-b border-slate-200 bg-white/95 px-4 py-2 backdrop-blur sm:px-6">
+        <header className="sticky top-0 z-30 flex min-h-14 items-center justify-between border-b border-slate-200 bg-white/98 px-3 py-2 sm:px-5">
           <div className="flex min-w-0 items-center gap-3">
             <div className="md:hidden">
               <BrandMark compact />

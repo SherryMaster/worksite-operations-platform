@@ -211,17 +211,47 @@ export function ImportWorkspace() {
   }
 
   const pending = state === "previewing" || state === "committing";
+  const activeStep =
+    state === "complete"
+      ? 3
+      : state === "committing" || preview?.canCommit
+        ? 3
+        : preview
+          ? 2
+          : state === "previewing"
+            ? 2
+            : 1;
 
   return (
-    <section className="mt-6 border border-violet-100 bg-white p-5 sm:p-6">
+    <section className="mt-4 rounded-lg border border-slate-200 bg-white p-4 sm:p-6">
+      <ol
+        className="mb-5 grid grid-cols-4 overflow-hidden rounded-lg border border-slate-200"
+        aria-label="Import progress"
+      >
+        {["Prepare", "Upload", "Validate", "Commit"].map((label, index) => (
+          <li
+            key={label}
+            className={
+              index === activeStep
+                ? "border-b-2 border-violet-700 bg-violet-50 px-1 py-2 text-center text-xs font-semibold text-violet-800"
+                : index < activeStep
+                  ? "border-b-2 border-emerald-500 px-1 py-2 text-center text-xs font-medium text-emerald-700"
+                  : "border-b-2 border-transparent px-1 py-2 text-center text-xs text-slate-400"
+            }
+            aria-current={index === activeStep ? "step" : undefined}
+          >
+            {label}
+          </li>
+        ))}
+      </ol>
       <div className="flex items-start gap-3">
         <FileSpreadsheet
           className="mt-1 size-6 shrink-0 text-violet-700"
           aria-hidden="true"
         />
         <div>
-          <h2 className="font-heading text-2xl font-semibold uppercase">
-            Preview a fixed-template workbook
+          <h2 className="font-heading text-xl font-semibold">
+            Upload a completed template
           </h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
             Preview never changes company records. If the WorkerDocuments sheet
@@ -235,7 +265,7 @@ export function ImportWorkspace() {
         onSubmit={previewWorkbook}
         className="mt-5 grid gap-4 border-t border-slate-200 pt-5 lg:grid-cols-2"
       >
-        <label className="text-xs font-semibold uppercase tracking-wider text-slate-600">
+        <label className="text-xs font-semibold text-slate-600">
           Import workbook (.xlsx)
           <input
             name="workbook"
@@ -246,7 +276,7 @@ export function ImportWorkspace() {
             className="mt-2 block min-h-11 w-full border border-violet-100 bg-slate-50 p-2 text-sm file:mr-3 file:border-0 file:bg-violet-700 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white"
           />
         </label>
-        <label className="text-xs font-semibold uppercase tracking-wider text-slate-600">
+        <label className="text-xs font-semibold text-slate-600">
           Matching document files (when listed)
           <input
             name="documents"
@@ -267,7 +297,7 @@ export function ImportWorkspace() {
           ) : (
             <Upload className="size-4" aria-hidden="true" />
           )}
-          {state === "previewing" ? "Validating workbook…" : "Preview Import"}
+          {state === "previewing" ? "Validating workbook…" : "Validate import"}
         </button>
       </form>
 
@@ -320,7 +350,7 @@ export function ImportWorkspace() {
 
           {preview.issues.length > 0 ? (
             <div className="mt-5">
-              <h3 className="font-heading text-xl font-semibold uppercase">
+              <h3 className="font-heading text-lg font-semibold">
                 Rows to correct ({preview.issues.length})
               </h3>
               <ol className="mt-3 space-y-3 md:hidden">
@@ -399,7 +429,7 @@ export function ImportWorkspace() {
                 )}
                 {state === "committing"
                   ? "Committing import…"
-                  : "Commit This Import"}
+                  : "Commit import"}
               </button>
             </div>
           ) : null}

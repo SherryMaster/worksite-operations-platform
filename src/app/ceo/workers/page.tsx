@@ -1,4 +1,10 @@
-import { AlertTriangle, ArrowUpRight, UserPlus, Users } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowUpRight,
+  ChevronRight,
+  UserPlus,
+  Users,
+} from "lucide-react";
 import Link from "next/link";
 
 import { FormSubmitButton } from "@/components/form-submit-button";
@@ -69,9 +75,8 @@ export default async function WorkersPage({
   return (
     <main>
       <PageHeader
-        eyebrow="Workforce"
         title="Workers"
-        description="Search worker identities, current assignments, employment state, and document warnings."
+        description={`${total} matching workers`}
         action={
           <Link
             href="/ceo/workers/new"
@@ -88,7 +93,7 @@ export default async function WorkersPage({
           action="/ceo/workers"
           searchDefaultValue={params.query}
           searchName="query"
-          searchPlaceholder="Search name, phone, CNIC, or passport"
+          searchPlaceholder="Search workers"
           activeFilterCount={activeFilterCount}
           filterTitle="Filter workers"
         >
@@ -152,10 +157,9 @@ export default async function WorkersPage({
         </DataViewToolbar>
       </form>
 
-      <div className="mt-4 flex items-center justify-between">
-        <p className="text-sm text-slate-600">
-          <strong className="tabular-nums text-slate-950">{total}</strong>{" "}
-          matching workers
+      <div className="mt-3 flex items-center justify-between">
+        <p className="text-xs text-slate-500">
+          Showing {visibleWorkers.length} of {total}
         </p>
         <p className="text-xs text-slate-500">
           Page {currentPage} of {pageCount}
@@ -253,7 +257,7 @@ export default async function WorkersPage({
               <CompactRecord
                 key={worker.id}
                 action={
-                  <ArrowUpRight
+                  <ChevronRight
                     className="size-4 text-slate-400"
                     aria-hidden="true"
                   />
@@ -296,7 +300,7 @@ export default async function WorkersPage({
       {pageCount > 1 ? (
         <nav
           aria-label="Worker pages"
-          className="mt-6 flex items-center justify-end gap-2"
+          className="mt-4 flex items-center justify-between gap-2"
         >
           {currentPage > 1 ? (
             <Link

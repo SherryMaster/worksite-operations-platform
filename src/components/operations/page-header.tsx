@@ -20,27 +20,25 @@ export function PageHeader({
   return (
     <header
       className={cn(
-        "flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-end sm:justify-between",
+        "flex min-w-0 items-start justify-between gap-3",
         className,
       )}
     >
       <div className="min-w-0">
         {eyebrow ? (
-          <p className="flex items-center gap-2 text-xs font-semibold text-violet-700">
+          <p className="flex items-center gap-1.5 text-[0.6875rem] font-semibold text-violet-700">
             {Icon ? <Icon className="size-4" aria-hidden="true" /> : null}
             {eyebrow}
           </p>
         ) : null}
-        <h1 className="mt-1 font-heading font-semibold text-slate-950">
-          {title}
-        </h1>
+        <h1 className="font-heading font-semibold text-slate-950">{title}</h1>
         {description ? (
-          <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">
+          <p className="mt-0.5 max-w-3xl text-xs leading-5 text-slate-500 sm:text-sm">
             {description}
           </p>
         ) : null}
       </div>
-      {action ? <div className="shrink-0">{action}</div> : null}
+      {action ? <div className="shrink-0 self-center">{action}</div> : null}
     </header>
   );
 }

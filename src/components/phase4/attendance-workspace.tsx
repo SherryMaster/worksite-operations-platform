@@ -4,14 +4,17 @@ import {
   AlertTriangle,
   CalendarDays,
   Check,
+  ChevronRight,
   Coffee,
   LoaderCircle,
   LogIn,
   LogOut,
+  MoreHorizontal,
   Pencil,
   Plus,
   RefreshCw,
   Search,
+  SlidersHorizontal,
   Trash2,
   WifiOff,
   X,
@@ -20,6 +23,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AppPageSkeleton } from "@/components/app-page-skeleton";
 import { SyncCenter } from "@/components/operations/sync-center";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { calculateAttendance, formatMinutes } from "@/lib/phase4/calculations";
@@ -52,6 +63,18 @@ type WorkerFilter =
 
 const SYNC_REQUEST_TIMEOUT_MS = 15_000;
 const SYNC_RETRY_DELAY_MS = 5_000;
+const ATTENDANCE_PAGE_SIZE = 20;
+
+const workerFilters = [
+  ["ALL", "All"],
+  ["NOT_ENTERED", "Not entered"],
+  ["ON_SITE", "On site"],
+  ["ON_BREAK", "On break"],
+  ["EXITED", "Exited"],
+  ["LEAVE", "Approved leave"],
+  ["INCOMPLETE", "Incomplete"],
+  ["INVALID", "Invalid"],
+] as const satisfies ReadonlyArray<readonly [WorkerFilter, string]>;
 
 function malaysiaTime(timestamp: string | null) {
   if (!timestamp) return "—";
@@ -60,6 +83,15 @@ function malaysiaTime(timestamp: string | null) {
     minute: "2-digit",
     timeZone: "Asia/Kuala_Lumpur",
   }).format(new Date(timestamp));
+}
+
+function malaysiaDateLabel(value: string) {
+  return new Intl.DateTimeFormat("en-MY", {
+    day: "numeric",
+    month: "short",
+    timeZone: "Asia/Kuala_Lumpur",
+    weekday: "short",
+  }).format(new Date(`${value}T00:00:00+08:00`));
 }
 
 function malaysiaDateTimeInput(timestamp: string | null) {
@@ -140,24 +172,86 @@ function actionWorkerId(
 
 function AttendanceListSkeleton() {
   return (
-    <div className="space-y-3" aria-label="Loading attendance" aria-busy="true">
-      {[0, 1, 2].map((item) => (
-        <div key={item} className="border border-violet-100 bg-white p-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-2">
-              <Skeleton className="h-5 w-40" />
-              <Skeleton className="h-3 w-28" />
-            </div>
-            <Skeleton className="h-7 w-20" />
+    <div
+      className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+      aria-label="Loading attendance"
+      aria-busy="true"
+    >
+      {[0, 1, 2, 3, 4, 5].map((item) => (
+        <div
+          key={item}
+          className="flex min-h-18 items-center gap-3 border-b border-slate-100 px-3 py-2 last:border-0"
+        >
+          <Skeleton className="size-9 shrink-0 rounded-full" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <Skeleton className="h-4 w-36" />
+            <Skeleton className="h-3 w-28" />
           </div>
-          <Skeleton className="mt-5 h-12 w-full" />
-          <Skeleton className="mt-2 h-11 w-full" />
+          <Skeleton className="h-9 w-16 shrink-0" />
         </div>
       ))}
       <span className="sr-only" role="status">
         Loading attendance for the selected date.
       </span>
     </div>
+  );
+}
+
+function AttendanceFilterSheet({
+  filter,
+  onChange,
+}: {
+  filter: WorkerFilter;
+  onChange: (filter: WorkerFilter) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger
+        render={
+          <button
+            type="button"
+            className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700"
+          />
+        }
+      >
+        <SlidersHorizontal className="size-3.5" aria-hidden="true" />
+        More filters
+      </SheetTrigger>
+      <SheetContent
+        side="bottom"
+        className="max-h-[82dvh] overflow-y-auto overscroll-contain rounded-t-xl border-slate-200 pb-[calc(1rem+env(safe-area-inset-bottom))]"
+      >
+        <SheetHeader className="border-b border-slate-200 px-4 py-4 text-left">
+          <SheetTitle>Filter workers</SheetTitle>
+          <SheetDescription>
+            Show the attendance state you need to act on.
+          </SheetDescription>
+        </SheetHeader>
+        <div className="grid grid-cols-2 gap-2 p-4">
+          {workerFilters.map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={filter === value}
+              onClick={() => {
+                onChange(value);
+                setOpen(false);
+              }}
+              className={cn(
+                "min-h-11 rounded-lg border px-3 text-left text-sm font-semibold",
+                filter === value
+                  ? "border-violet-700 bg-violet-50 text-violet-800"
+                  : "border-slate-200 bg-white text-slate-700",
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -238,26 +332,25 @@ function CorrectionPanel({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end bg-violet-950/60 sm:items-center sm:justify-center"
+      className="fixed inset-0 z-50 flex items-end bg-slate-950/35 sm:items-center sm:justify-center"
       role="dialog"
       aria-modal="true"
       aria-labelledby="correction-title"
     >
       <form
         onSubmit={submit}
-        className="max-h-[92dvh] w-full overflow-y-auto rounded-t-3xl bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl sm:max-w-2xl sm:rounded-2xl sm:border sm:border-violet-100 sm:p-6"
+        className="max-h-[92dvh] w-full overflow-y-auto overscroll-contain rounded-t-xl bg-white p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-2xl sm:max-w-2xl sm:rounded-xl sm:border sm:border-slate-200 sm:p-5"
       >
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-violet-700">
-              Permanent audited correction
+            <p className="text-xs font-semibold text-violet-700">
+              Attendance correction
             </p>
             <h2 id="correction-title" className="mt-1 text-xl font-semibold">
-              Correct {worker.legalName}
+              Correct attendance
             </h2>
             <p className="mt-1 text-xs text-slate-500">
-              Times use Malaysia time. Removing every session clears attendance
-              for this date without erasing its history.
+              {worker.legalName} · {workDate} · Malaysia time
             </p>
           </div>
           <button
@@ -470,6 +563,7 @@ export function AttendanceWorkspace({
   const online = useOnlineStatus();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<WorkerFilter>("ALL");
+  const [visibleCount, setVisibleCount] = useState(ATTENDANCE_PAGE_SIZE);
   const [message, setMessage] = useState<string | null>(null);
   const [correctingWorker, setCorrectingWorker] =
     useState<AttendanceWorker | null>(null);
@@ -778,6 +872,7 @@ export function AttendanceWorkspace({
   async function changeDate(workDate: string) {
     if (!snapshot) return;
     setSelectedWorkDate(workDate);
+    setVisibleCount(ATTENDANCE_PAGE_SIZE);
     setLoadingDate(true);
     try {
       if (navigator.onLine) {
@@ -847,6 +942,17 @@ export function AttendanceWorkspace({
           (!normalizedQuery || searchable.includes(normalizedQuery)) &&
           filterMatches
         );
+      })
+      .sort((left, right) => {
+        const leftIssue =
+          left.calculation.status === "INCOMPLETE" ||
+          left.calculation.status === "INVALID" ||
+          left.localAction?.state === "NEEDS_ATTENTION";
+        const rightIssue =
+          right.calculation.status === "INCOMPLETE" ||
+          right.calculation.status === "INVALID" ||
+          right.localAction?.state === "NEEDS_ATTENTION";
+        return Number(rightIssue) - Number(leftIssue);
       });
   }, [actions, filter, query, snapshot]);
 
@@ -934,64 +1040,63 @@ export function AttendanceWorkspace({
 
   return (
     <WorkspaceRoot>
-      <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-        <div className="border-b border-slate-200 p-4">
-          <p className="text-xs font-semibold text-violet-700">
-            {mode === "CEO"
-              ? "Attendance review"
-              : context === "history"
-                ? "Attendance history"
-                : "Live operations"}
-          </p>
-          <h1 className="mt-1 font-heading text-2xl font-semibold">
-            {mode === "CEO"
-              ? snapshot.projectName
-              : context === "history"
-                ? "Attendance"
-                : "Today"}
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            {mode === "CEO"
-              ? "Review recorded time and make traceable corrections."
-              : context === "history"
-                ? `Review or correct attendance for ${snapshot.projectName}.`
-                : snapshot.projectName}
-          </p>
-        </div>
-        <div className="grid gap-3 p-3 sm:grid-cols-2 sm:p-4">
-          <label className="text-xs font-semibold text-slate-600">
-            Work date
-            <input
-              type="date"
-              disabled={
-                loadingDate || (mode === "FOREMAN" && context === "today")
-              }
-              value={selectedWorkDate}
-              onChange={(event) => void changeDate(event.target.value)}
-              className="mt-1.5 h-10 w-full border border-slate-200 bg-white px-3 text-sm font-medium"
-            />
-          </label>
-          <label className="text-xs font-semibold text-slate-600">
-            Day type
-            <select
-              disabled={loadingDate}
-              value={snapshot.dayType}
-              onChange={(event) =>
-                void enqueue("SET_DAY_TYPE", {
-                  dayType: event.target.value,
-                  workDate: snapshot.workDate,
-                })
-              }
-              className="mt-1.5 h-10 w-full border border-slate-200 bg-white px-3 text-sm font-medium"
-            >
-              <option value="NORMAL">Normal day</option>
-              <option value="SUNDAY">Sunday</option>
-              <option value="PUBLIC_HOLIDAY">Public holiday</option>
-            </select>
-          </label>
-        </div>
-        {!online || syncingNow || pendingCount > 0 || attentionCount > 0 ? (
-          <div className="flex flex-wrap items-center gap-2 border-t border-slate-200 bg-slate-50 px-4 py-2 text-xs">
+      {mode === "FOREMAN" ? (
+        <section className="flex flex-wrap items-end justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[0.6875rem] font-semibold text-violet-700">
+              {context === "history" ? "Attendance history" : "Live operations"}
+            </p>
+            <h1 className="font-heading text-xl font-semibold">
+              {context === "history" ? "Attendance" : "Today"}
+            </h1>
+            <p className="truncate text-xs text-slate-500">
+              {snapshot.projectName}
+            </p>
+          </div>
+          <div className="flex items-end gap-2">
+            {context === "history" ? (
+              <label className="text-[0.625rem] font-semibold text-slate-500">
+                Work date
+                <input
+                  type="date"
+                  disabled={loadingDate}
+                  value={selectedWorkDate}
+                  onChange={(event) => void changeDate(event.target.value)}
+                  className="mt-1 block h-10 w-[9.75rem] border border-slate-200 bg-white px-2 text-xs font-medium"
+                />
+              </label>
+            ) : (
+              <span className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700">
+                <CalendarDays className="size-3.5" aria-hidden="true" />
+                {malaysiaDateLabel(selectedWorkDate)}
+              </span>
+            )}
+            <label className="text-[0.625rem] font-semibold text-slate-500">
+              <span className="sr-only">Day type</span>
+              <select
+                aria-label="Day type"
+                disabled={loadingDate}
+                value={snapshot.dayType}
+                onChange={(event) =>
+                  void enqueue("SET_DAY_TYPE", {
+                    dayType: event.target.value,
+                    workDate: snapshot.workDate,
+                  })
+                }
+                className="block h-10 max-w-[8.75rem] border border-slate-200 bg-white px-2 text-xs font-medium"
+              >
+                <option value="NORMAL">Normal day</option>
+                <option value="SUNDAY">Sunday</option>
+                <option value="PUBLIC_HOLIDAY">Public holiday</option>
+              </select>
+            </label>
+          </div>
+        </section>
+      ) : null}
+
+      {!online || syncingNow || pendingCount > 0 || attentionCount > 0 ? (
+        <section className="mt-3 rounded-lg border border-slate-200 bg-white">
+          <div className="flex flex-wrap items-center gap-2 bg-slate-50 px-3 py-2 text-xs">
             <span className="inline-flex items-center gap-1.5 font-semibold text-slate-700">
               {!online ? (
                 <WifiOff
@@ -1058,26 +1163,33 @@ export function AttendanceWorkspace({
               {syncingNow ? "Syncing…" : "Retry sync"}
             </button>
           </div>
-        ) : null}
-      </section>
+        </section>
+      ) : null}
 
       <section
         aria-label="Attendance summary"
-        className="mt-3 grid grid-cols-3 overflow-hidden rounded-lg border border-slate-200 bg-white sm:grid-cols-6"
+        className="mt-3 grid grid-cols-5 overflow-hidden rounded-lg border border-slate-200 bg-white"
       >
         {[
           ["Expected", snapshot.workers.length],
           ["Not entered", liveSummary.notEntered],
           ["On site", liveSummary.onSite],
           ["On break", liveSummary.onBreak],
-          ["Exited", liveSummary.exited],
           ["Issues", liveSummary.issues + attentionCount],
         ].map(([label, value]) => (
           <div
             key={label}
-            className="border-r border-slate-200 px-2 py-2.5 text-center last:border-0 sm:px-3"
+            className={cn(
+              "border-r border-slate-200 px-1 py-2 text-center last:border-0 sm:px-3",
+              label === "Issues" && Number(value) > 0 && "bg-red-50",
+            )}
           >
-            <p className="text-lg font-semibold tabular-nums text-slate-950">
+            <p
+              className={cn(
+                "text-base font-semibold tabular-nums text-slate-950 sm:text-lg",
+                label === "Issues" && Number(value) > 0 && "text-red-700",
+              )}
+            >
               {value}
             </p>
             <p className="truncate text-[0.625rem] text-slate-500 sm:text-xs">
@@ -1097,58 +1209,68 @@ export function AttendanceWorkspace({
       ) : null}
 
       <section className="mt-3">
-        <label className="relative block">
-          <span className="sr-only">Search workers</span>
-          <Search
-            className="pointer-events-none absolute left-3 top-3.5 size-5 text-slate-400"
-            aria-hidden="true"
-          />
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search worker, trade, or skill…"
-            className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-11 pr-3 text-sm"
-          />
-        </label>
-        <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-          {(
-            [
-              ["ALL", "All"],
-              ["NOT_ENTERED", "Not entered"],
-              ["ON_SITE", "On site"],
-              ["ON_BREAK", "On break"],
-              ["EXITED", "Exited"],
-              ["LEAVE", "Approved leave"],
-              ["INCOMPLETE", "Incomplete"],
-              ["INVALID", "Invalid"],
-            ] as const
-          ).map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => setFilter(value)}
-              aria-pressed={filter === value}
-              className={cn(
-                "min-h-9 shrink-0 rounded-full border px-3 text-xs font-semibold",
-                filter === value
-                  ? "border-violet-700 bg-violet-700 text-white"
-                  : "border-slate-200 bg-white text-slate-700",
-              )}
-            >
-              {label}
-            </button>
-          ))}
+        <div className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-20 rounded-lg border border-slate-200 bg-white p-2 shadow-sm md:static">
+          <label className="relative block">
+            <span className="sr-only">Search workers</span>
+            <Search
+              className="pointer-events-none absolute left-3 top-3.5 size-4 text-slate-400"
+              aria-hidden="true"
+            />
+            <input
+              type="search"
+              autoComplete="off"
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setVisibleCount(ATTENDANCE_PAGE_SIZE);
+              }}
+              placeholder="Search worker, trade, or skill…"
+              className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-3 text-sm"
+            />
+          </label>
+          <div className="mt-2 grid grid-cols-4 gap-1.5">
+            {workerFilters.slice(0, 3).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => {
+                  setFilter(value);
+                  setVisibleCount(ATTENDANCE_PAGE_SIZE);
+                }}
+                aria-pressed={filter === value}
+                className={cn(
+                  "min-h-10 rounded-lg border px-2 text-xs font-semibold",
+                  filter === value
+                    ? "border-violet-700 bg-violet-50 text-violet-800"
+                    : "border-slate-200 bg-white text-slate-700",
+                )}
+              >
+                {label}
+              </button>
+            ))}
+            <AttendanceFilterSheet
+              filter={filter}
+              onChange={(value) => {
+                setFilter(value);
+                setVisibleCount(ATTENDANCE_PAGE_SIZE);
+              }}
+            />
+          </div>
+          {filter !== "ALL" &&
+          !workerFilters.slice(0, 3).some(([value]) => value === filter) ? (
+            <p className="mt-2 text-xs font-semibold text-violet-700">
+              Filter:{" "}
+              {workerFilters.find(([value]) => value === filter)?.[1] ?? filter}
+            </p>
+          ) : null}
         </div>
       </section>
 
-      <section
-        className="mt-3 grid gap-2 md:grid-cols-2 2xl:grid-cols-3"
-        aria-label="Worker attendance"
-      >
+      <section className="mt-3" aria-label="Worker attendance">
         {loadingDate ? (
           <AttendanceListSkeleton />
         ) : workerViews.length === 0 ? (
-          <div className="border border-dashed border-violet-100 bg-white p-8 text-center">
+          <div className="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center">
             <CalendarDays
               className="mx-auto size-7 text-slate-400"
               aria-hidden="true"
@@ -1157,182 +1279,241 @@ export function AttendanceWorkspace({
             <p className="mt-1 text-sm text-slate-500">
               Clear the search or choose another status.
             </p>
+            <button
+              type="button"
+              onClick={() => {
+                setFilter("ALL");
+                setQuery("");
+                setVisibleCount(ATTENDANCE_PAGE_SIZE);
+              }}
+              className="mt-4 min-h-10 rounded-lg border border-slate-200 px-3 text-sm font-semibold"
+            >
+              Clear search and filters
+            </button>
           </div>
         ) : (
-          workerViews.map(({ calculation, localAction, state, worker }) => (
-            <article
-              key={worker.id}
-              className="rounded-lg border border-slate-200 bg-white p-3"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h2 className="text-sm font-semibold">{worker.legalName}</h2>
-                  <p className="mt-0.5 text-xs text-slate-500">
-                    {[worker.tradeName, worker.skillName]
-                      .filter(Boolean)
-                      .join(" · ") || "No classification"}
-                  </p>
-                </div>
-                <span
-                  className={cn(
-                    "shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold",
-                    state.label === "On site"
-                      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                      : state.label === "On break"
-                        ? "border-amber-200 bg-amber-50 text-amber-900"
-                        : "border-slate-200 bg-slate-50 text-slate-700",
-                  )}
-                >
-                  {worker.approvedLeaveType ? "Approved leave" : state.label}
-                </span>
-              </div>
+          <>
+            <div className="overflow-visible rounded-lg border border-slate-200 bg-white">
+              {workerViews
+                .slice(0, visibleCount)
+                .map(({ calculation, localAction, state, worker }) => {
+                  const hasIssue =
+                    calculation.status === "INCOMPLETE" ||
+                    calculation.status === "INVALID" ||
+                    localAction?.state === "NEEDS_ATTENTION";
+                  const firstSession = state.ordered[0];
+                  const lastSession = state.ordered.at(-1);
+                  return (
+                    <article
+                      key={worker.id}
+                      className={cn(
+                        "relative flex min-h-18 items-center gap-3 border-b border-slate-100 px-3 py-2 last:border-0",
+                        hasIssue && "bg-red-50/45",
+                      )}
+                    >
+                      <div
+                        aria-hidden="true"
+                        className={cn(
+                          "grid size-9 shrink-0 place-items-center rounded-full bg-slate-100 text-xs font-semibold text-slate-700",
+                          hasIssue && "bg-red-100 text-red-800",
+                        )}
+                      >
+                        {worker.legalName
+                          .split(/\s+/)
+                          .slice(0, 2)
+                          .map((part) => part[0])
+                          .join("")
+                          .toUpperCase()}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <h2 className="truncate text-sm font-semibold">
+                            {worker.legalName}
+                          </h2>
+                          <span
+                            className={cn(
+                              "shrink-0 rounded-full border px-1.5 py-0.5 text-[0.625rem] font-semibold",
+                              hasIssue
+                                ? "border-red-200 bg-red-50 text-red-800"
+                                : state.label === "On site"
+                                  ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                                  : state.label === "On break"
+                                    ? "border-amber-200 bg-amber-50 text-amber-900"
+                                    : "border-slate-200 bg-slate-50 text-slate-700",
+                            )}
+                          >
+                            {worker.approvedLeaveType
+                              ? "Approved leave"
+                              : hasIssue
+                                ? "Issue"
+                                : state.label}
+                          </span>
+                        </div>
+                        <p className="mt-0.5 truncate text-xs text-slate-500">
+                          {[worker.tradeName, worker.skillName]
+                            .filter(Boolean)
+                            .join(" · ") || "No classification"}
+                        </p>
+                        {hasIssue ? (
+                          <p className="mt-1 truncate text-xs font-medium text-red-700">
+                            {localAction?.state === "NEEDS_ATTENTION"
+                              ? actionStateLabel(localAction)
+                              : calculation.exceptions[0]?.message}
+                          </p>
+                        ) : state.ordered.length > 0 ? (
+                          <p className="mt-1 truncate text-xs tabular-nums text-slate-600">
+                            {malaysiaTime(firstSession?.enteredAt ?? null)}–
+                            {malaysiaTime(lastSession?.exitedAt ?? null)}
+                            {" · "}
+                            {formatMinutes(calculation.totalPayableMinutes)}
+                          </p>
+                        ) : null}
+                        {localAction && !hasIssue ? (
+                          <p
+                            role="status"
+                            className="mt-1 inline-flex items-center gap-1 text-[0.6875rem] font-semibold text-amber-800"
+                          >
+                            {localAction.state === "SYNCING" ? (
+                              <LoaderCircle
+                                className="size-3 animate-spin"
+                                aria-hidden="true"
+                              />
+                            ) : (
+                              <Check className="size-3" aria-hidden="true" />
+                            )}
+                            {actionStateLabel(localAction)}
+                          </p>
+                        ) : null}
+                      </div>
 
-              {state.ordered.length > 0 ? (
-                <div className="mt-3 space-y-1 border-t border-slate-100 pt-3 text-xs text-slate-600">
-                  {state.ordered.map((session, index) => (
-                    <p key={session.id} className="flex justify-between gap-3">
-                      <span>Session {index + 1}</span>
-                      <span className="font-medium tabular-nums text-slate-900">
-                        {malaysiaTime(session.enteredAt)} –{" "}
-                        {malaysiaTime(session.exitedAt)}
-                      </span>
-                    </p>
-                  ))}
-                  <p className="flex justify-between gap-3 pt-1 font-semibold">
-                    <span>Payable time</span>
-                    <span>
-                      {formatMinutes(calculation.totalPayableMinutes)}
-                    </span>
-                  </p>
-                </div>
-              ) : null}
+                      {worker.approvedLeaveType ? null : mode === "CEO" ||
+                        context === "history" ? (
+                        <button
+                          type="button"
+                          onClick={() => setCorrectingWorker(worker)}
+                          aria-label={`Review attendance for ${worker.legalName}`}
+                          className="grid size-11 shrink-0 place-items-center rounded-lg text-violet-700 hover:bg-violet-50"
+                        >
+                          <ChevronRight className="size-5" aria-hidden="true" />
+                        </button>
+                      ) : hasIssue ? (
+                        <button
+                          type="button"
+                          onClick={() => setCorrectingWorker(worker)}
+                          className="inline-flex min-h-10 shrink-0 items-center rounded-lg bg-red-700 px-3 text-xs font-semibold text-white"
+                        >
+                          Fix
+                        </button>
+                      ) : !state.openSession ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void enqueue("ENTER", {
+                              occurredAt: new Date().toISOString(),
+                              sessionId: crypto.randomUUID(),
+                              workerId: worker.id,
+                              workDate: snapshot.workDate,
+                            })
+                          }
+                          className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-lg bg-violet-700 px-3 text-xs font-semibold text-white"
+                        >
+                          <LogIn className="size-4" aria-hidden="true" />
+                          Enter
+                        </button>
+                      ) : state.openBreak ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void enqueue("END_BREAK", {
+                              breakId: state.openBreak?.id,
+                              occurredAt: new Date().toISOString(),
+                            })
+                          }
+                          className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-lg bg-amber-600 px-3 text-xs font-semibold text-slate-950"
+                        >
+                          <Coffee className="size-4" aria-hidden="true" />
+                          End break
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void enqueue("EXIT", {
+                              occurredAt: new Date().toISOString(),
+                              sessionId: state.openSession?.id,
+                            })
+                          }
+                          className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-lg bg-violet-700 px-3 text-xs font-semibold text-white"
+                        >
+                          <LogOut className="size-4" aria-hidden="true" />
+                          Exit
+                        </button>
+                      )}
 
-              {calculation.exceptions.length > 0 ? (
-                <div className="mt-3 flex gap-2 bg-red-50 p-3 text-xs text-red-900">
-                  <AlertTriangle
-                    className="mt-0.5 size-4 shrink-0"
-                    aria-hidden="true"
-                  />
-                  <span>{calculation.exceptions[0].message}</span>
-                </div>
-              ) : null}
-
-              {localAction ? (
-                <p
-                  role="status"
-                  className={cn(
-                    "mt-3 inline-flex items-center gap-1.5 text-xs font-semibold",
-                    localAction.state === "NEEDS_ATTENTION"
-                      ? "text-red-700"
-                      : "text-amber-800",
-                  )}
-                >
-                  {localAction.state === "SYNCING" ? (
-                    <LoaderCircle
-                      className="size-3.5 animate-spin"
-                      aria-hidden="true"
-                    />
-                  ) : localAction.state === "NEEDS_ATTENTION" ? (
-                    <AlertTriangle className="size-3.5" aria-hidden="true" />
-                  ) : (
-                    <Check className="size-3.5" aria-hidden="true" />
-                  )}
-                  {actionStateLabel(localAction)}
-                </p>
-              ) : null}
-
-              {worker.approvedLeaveType ? (
-                <div className="mt-4 border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950">
-                  <p className="font-semibold">{worker.approvedLeaveType}</p>
-                  <p className="mt-1">
-                    Full-day unpaid leave · 0 payable hours. Attendance entry is
-                    blocked for this date.
-                  </p>
-                </div>
-              ) : mode === "CEO" || context === "history" ? (
+                      {mode === "FOREMAN" &&
+                      context === "today" &&
+                      !worker.approvedLeaveType &&
+                      !hasIssue ? (
+                        <details className="group relative shrink-0">
+                          <summary
+                            aria-label={`More attendance actions for ${worker.legalName}`}
+                            className="grid size-10 cursor-pointer list-none place-items-center rounded-lg text-slate-500 hover:bg-slate-100"
+                          >
+                            <MoreHorizontal
+                              className="size-4"
+                              aria-hidden="true"
+                            />
+                          </summary>
+                          <div className="absolute right-0 z-30 mt-1 min-w-44 rounded-lg border border-slate-200 bg-white p-1 shadow-lg">
+                            {state.openSession && !state.openBreak ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  void enqueue("START_BREAK", {
+                                    breakId: crypto.randomUUID(),
+                                    occurredAt: new Date().toISOString(),
+                                    sessionId: state.openSession?.id,
+                                  })
+                                }
+                                className="flex min-h-10 w-full items-center gap-2 rounded-md px-3 text-left text-sm font-medium hover:bg-amber-50"
+                              >
+                                <Coffee className="size-4" aria-hidden="true" />
+                                Start break
+                              </button>
+                            ) : null}
+                            <button
+                              type="button"
+                              onClick={() => setCorrectingWorker(worker)}
+                              className="flex min-h-10 w-full items-center gap-2 rounded-md px-3 text-left text-sm font-medium hover:bg-slate-50"
+                            >
+                              <Pencil className="size-4" aria-hidden="true" />
+                              Correct times
+                            </button>
+                          </div>
+                        </details>
+                      ) : null}
+                    </article>
+                  );
+                })}
+            </div>
+            <div className="mt-3 flex items-center justify-between gap-3">
+              <p className="text-xs text-slate-500">
+                Showing 1–{Math.min(visibleCount, workerViews.length)} of{" "}
+                {workerViews.length}
+              </p>
+              {visibleCount < workerViews.length ? (
                 <button
                   type="button"
-                  onClick={() => setCorrectingWorker(worker)}
-                  className="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 text-sm font-semibold hover:bg-slate-50"
+                  onClick={() =>
+                    setVisibleCount((current) => current + ATTENDANCE_PAGE_SIZE)
+                  }
+                  className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-violet-700"
                 >
-                  <Pencil className="size-4" aria-hidden="true" />
-                  Review or correct times
+                  Load next 20
                 </button>
-              ) : (
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  {!state.openSession ? (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        void enqueue("ENTER", {
-                          occurredAt: new Date().toISOString(),
-                          sessionId: crypto.randomUUID(),
-                          workerId: worker.id,
-                          workDate: snapshot.workDate,
-                        })
-                      }
-                      className="col-span-2 inline-flex min-h-12 items-center justify-center gap-2 bg-emerald-700 px-4 font-semibold text-white"
-                    >
-                      <LogIn className="size-5" aria-hidden="true" />
-                      Enter
-                    </button>
-                  ) : state.openBreak ? (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        void enqueue("END_BREAK", {
-                          breakId: state.openBreak?.id,
-                          occurredAt: new Date().toISOString(),
-                        })
-                      }
-                      className="col-span-2 inline-flex min-h-12 items-center justify-center gap-2 bg-amber-600 px-4 font-semibold text-slate-950"
-                    >
-                      <Coffee className="size-5" aria-hidden="true" />
-                      End break
-                    </button>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          void enqueue("START_BREAK", {
-                            breakId: crypto.randomUUID(),
-                            occurredAt: new Date().toISOString(),
-                            sessionId: state.openSession?.id,
-                          })
-                        }
-                        className="inline-flex min-h-12 items-center justify-center gap-2 border border-amber-500 bg-amber-50 px-3 font-semibold text-amber-950"
-                      >
-                        <Coffee className="size-5" aria-hidden="true" />
-                        Start break
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          void enqueue("EXIT", {
-                            occurredAt: new Date().toISOString(),
-                            sessionId: state.openSession?.id,
-                          })
-                        }
-                        className="inline-flex min-h-12 items-center justify-center gap-2 bg-violet-700 px-3 font-semibold text-white"
-                      >
-                        <LogOut className="size-5" aria-hidden="true" />
-                        Exit
-                      </button>
-                    </>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setCorrectingWorker(worker)}
-                    className="col-span-2 inline-flex min-h-11 items-center justify-center gap-2 border border-violet-100 px-4 text-sm font-semibold"
-                  >
-                    <Pencil className="size-4" aria-hidden="true" />
-                    Correct times
-                  </button>
-                </div>
-              )}
-            </article>
-          ))
+              ) : null}
+            </div>
+          </>
         )}
       </section>
 

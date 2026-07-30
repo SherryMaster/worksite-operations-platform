@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 
 import { updateWorkerAction } from "@/app/ceo/workers/actions";
 import {
@@ -48,20 +50,24 @@ export default async function EditWorkerPage({
   };
 
   return (
-    <main className="px-5 py-8 sm:px-8 lg:py-10">
-      <div className="border-b border-violet-100 pb-8">
-        <p className="font-heading text-xs font-semibold uppercase tracking-[0.23em] text-violet-700">
-          Worker profile
-        </p>
-        <h1 className="mt-3 font-heading text-5xl font-semibold uppercase leading-none">
+    <main>
+      <Link
+        href={`/ceo/workers/${worker.id}`}
+        className="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-slate-950"
+      >
+        <ChevronLeft className="size-4" aria-hidden="true" />
+        Back to worker
+      </Link>
+      <div className="mt-4 max-w-3xl">
+        <h1 className="font-heading text-2xl font-semibold sm:text-3xl">
           Edit {worker.legal_name}
         </h1>
-        <p className="mt-4 text-sm text-slate-600">
+        <p className="mt-2 text-sm text-slate-600">
           Profile, trade, skill, and deduction changes preserve their audit and
           effective history.
         </p>
       </div>
-      <div className="mt-8">
+      <div className="mt-5 max-w-3xl">
         <WorkerForm
           action={updateWorkerAction.bind(null, worker.id)}
           mode="edit"

@@ -114,10 +114,9 @@ export default async function AuditPage({
   return (
     <main>
       <PageHeader
-        eyebrow="Company activity"
         icon={ShieldCheck}
         title="Audit log"
-        description="See who changed a company record, what happened, and the values before and after. Technical references remain available for support."
+        description="Read company activity in plain language. Technical references stay collapsed."
       />
 
       <form action="/ceo/audit" className="mt-4">
@@ -266,7 +265,7 @@ export default async function AuditPage({
                 <details className="group mt-3 border-t border-slate-100 pt-3">
                   <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-semibold text-amber-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600">
                     <History className="size-4" aria-hidden="true" />
-                    View Change Details
+                    View change details
                     <ChevronDown
                       className="ml-1 size-4 transition-transform group-open:rotate-180"
                       aria-hidden="true"
@@ -338,7 +337,7 @@ export default async function AuditPage({
 
                   <details className="mt-4 border-l-2 border-slate-200 pl-4 text-xs text-slate-500">
                     <summary className="cursor-pointer font-semibold text-slate-600">
-                      Technical Reference
+                      Technical reference
                     </summary>
                     <dl className="mt-3 grid gap-2 sm:grid-cols-2">
                       <div>

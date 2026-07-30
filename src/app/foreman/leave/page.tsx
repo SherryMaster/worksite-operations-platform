@@ -22,7 +22,11 @@ const resultMessages: Record<string, string> = {
 export default async function ForemanLeavePage({
   searchParams,
 }: {
-  searchParams: Promise<{ result?: string; view?: string }>;
+  searchParams: Promise<{
+    result?: string;
+    status?: "ALL" | "APPROVED" | "PENDING" | "REJECTED";
+    view?: string;
+  }>;
 }) {
   const params = await searchParams;
   const [options, requests] = await Promise.all([
@@ -35,12 +39,22 @@ export default async function ForemanLeavePage({
   const showingForm =
     params.view === "new" ||
     Boolean(params.result && !params.result.startsWith("submitted"));
+  const selectedStatus = params.status ?? "PENDING";
+  const visibleRequests =
+    selectedStatus === "ALL"
+      ? requests
+      : requests.filter((request) => request.status === selectedStatus);
+  const statuses = [
+    ["PENDING", "Pending"],
+    ["APPROVED", "Approved"],
+    ["REJECTED", "Rejected"],
+    ["ALL", "All"],
+  ] as const;
 
   return (
     <main>
       <PageHeader
-        eyebrow="Current project"
-        title={showingForm ? "New leave request" : "Leave requests"}
+        title={showingForm ? "New leave request" : "Leave"}
         description={
           showingForm
             ? "Approved leave is a full unpaid calendar day with zero payable hours."
@@ -75,7 +89,7 @@ export default async function ForemanLeavePage({
       ) : null}
 
       {showingForm ? (
-        <section className="mt-4 max-w-3xl rounded-lg border border-slate-200 bg-white p-4">
+        <section className="mt-3 max-w-3xl rounded-lg border border-slate-200 bg-white p-4">
           <LeaveRequestForm
             compact
             leaveTypes={options.leaveTypes}
@@ -83,8 +97,36 @@ export default async function ForemanLeavePage({
           />
         </section>
       ) : (
-        <section className="mt-4" aria-label="Project leave requests">
-          <LeaveRequestList requests={requests} />
+        <section className="mt-3" aria-label="Project leave requests">
+          <nav
+            aria-label="Leave request status"
+            className="mb-3 grid grid-cols-4 border-b border-slate-200"
+          >
+            {statuses.map(([value, label]) => {
+              const count =
+                value === "ALL"
+                  ? requests.length
+                  : requests.filter((request) => request.status === value)
+                      .length;
+              const active = selectedStatus === value;
+              return (
+                <Link
+                  key={value}
+                  href={`/foreman/leave?status=${value}`}
+                  aria-current={active ? "page" : undefined}
+                  className={`flex min-h-11 items-center justify-center gap-1 border-b-2 px-1 text-xs font-semibold ${
+                    active
+                      ? "border-violet-700 text-violet-700"
+                      : "border-transparent text-slate-500"
+                  }`}
+                >
+                  {label}
+                  <span className="tabular-nums">{count}</span>
+                </Link>
+              );
+            })}
+          </nav>
+          <LeaveRequestList requests={visibleRequests} />
         </section>
       )}
     </main>

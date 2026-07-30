@@ -47,6 +47,7 @@ describe("responsive role navigation", () => {
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /More/ })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /More/ }));
+    expect(screen.getByRole("link", { name: /Leave/ })).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: /Import center/ }),
     ).toBeInTheDocument();

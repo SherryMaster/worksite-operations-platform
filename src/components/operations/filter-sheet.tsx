@@ -47,14 +47,14 @@ export function FilterSheet({
       </SheetTrigger>
       <SheetContent
         side="bottom"
-        className="max-h-[88dvh] overflow-y-auto rounded-t-xl border-slate-200 pb-[calc(1rem+env(safe-area-inset-bottom))]"
+        className="max-h-[88dvh] overflow-y-auto overscroll-contain rounded-t-xl border-slate-200 pb-[calc(1rem+env(safe-area-inset-bottom))]"
       >
         <SheetHeader className="border-b border-slate-200 px-5 py-4 text-left">
           <SheetTitle>{title}</SheetTitle>
           <SheetDescription>{description}</SheetDescription>
         </SheetHeader>
         {formAction ? (
-          <form action={formAction} className="space-y-3 p-5">
+          <form action={formAction} className="space-y-3 p-4">
             {Object.entries(hiddenFields ?? {}).map(([name, value]) =>
               value ? (
                 <input key={name} type="hidden" name={name} value={value} />
@@ -63,7 +63,7 @@ export function FilterSheet({
             {children}
           </form>
         ) : (
-          <div className="p-5">{children}</div>
+          <div className="p-4">{children}</div>
         )}
       </SheetContent>
     </Sheet>

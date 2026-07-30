@@ -32,7 +32,7 @@ export function DataViewToolbar({
   return (
     <div
       className={cn(
-        "rounded-lg border border-slate-200 bg-white p-3 shadow-sm",
+        "sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-20 rounded-lg border border-slate-200 bg-white p-2.5 shadow-sm md:static",
         className,
       )}
     >
@@ -48,7 +48,8 @@ export function DataViewToolbar({
             name={searchName}
             defaultValue={searchDefaultValue}
             placeholder={searchPlaceholder}
-            className="h-10 bg-white pl-9"
+            autoComplete="off"
+            className="h-11 bg-white pl-9 md:h-10"
           />
         </label>
         {children ? (

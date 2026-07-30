@@ -124,7 +124,7 @@ function MobileNavigation({ pathname }: { pathname: string }) {
             <button
               type="button"
               className={cn(
-                "relative flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[0.68rem] font-medium transition-colors",
+                "relative flex min-h-15 flex-col items-center justify-center gap-1 rounded-md px-1 text-[0.68rem] font-medium transition-colors",
                 moreActive || moreOpen
                   ? "text-violet-700"
                   : "text-slate-500 hover:text-violet-700",
@@ -147,15 +147,13 @@ function MobileNavigation({ pathname }: { pathname: string }) {
           className="max-h-[82dvh] rounded-t-xl border-slate-200 pb-[calc(1rem+env(safe-area-inset-bottom))]"
         >
           <SheetHeader className="border-b border-slate-200 px-5 py-4">
-            <SheetTitle className="text-lg font-semibold">
-              Company Workspace
-            </SheetTitle>
+            <SheetTitle className="text-lg font-semibold">More</SheetTitle>
             <SheetDescription>
-              Payroll, reporting, and company administration.
+              Review and manage company operations.
             </SheetDescription>
           </SheetHeader>
           <div className="px-3 pb-3">
-            {groups.slice(1).map((group) => {
+            {groups.map((group) => {
               const items = mobileMore.filter((item) => item.group === group);
               if (items.length === 0) return null;
               return (

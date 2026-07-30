@@ -6,7 +6,6 @@ import {
   FileWarning,
   HardHat,
   ReceiptText,
-  Settings,
   UserRoundCheck,
   Users,
 } from "lucide-react";
@@ -55,7 +54,7 @@ export default async function CeoDashboard() {
       value: activeForemen,
       detail: `${data.unassignedActiveForemen.length} awaiting assignment`,
       icon: HardHat,
-      href: "/ceo/settings#users",
+      href: "/ceo/settings?section=users",
     },
     {
       label: "Active workers",
@@ -76,50 +75,19 @@ export default async function CeoDashboard() {
   return (
     <main>
       <PageHeader
-        eyebrow="Operations overview"
-        title="Company dashboard"
-        description="Review workforce operations, current priorities, and company activity."
+        title="Dashboard"
         action={
           <Link
             href="/ceo/projects/new"
             className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-violet-700 px-4 text-sm font-semibold text-white hover:bg-violet-800"
           >
-            Create project
+            New project
             <ArrowUpRight className="size-4" aria-hidden="true" />
           </Link>
         }
       />
 
-      <section
-        aria-label="Company summary"
-        className="mt-4 grid grid-cols-2 gap-2 xl:grid-cols-4"
-      >
-        {metrics.map(({ label, value, detail, icon: Icon, href }) => (
-          <Link
-            key={label}
-            href={href}
-            className="group rounded-lg border border-slate-200 bg-white p-3 shadow-sm hover:border-violet-200 hover:bg-violet-50/40 sm:p-4"
-          >
-            <div className="flex items-start justify-between">
-              <Icon className="size-5 text-violet-700" aria-hidden="true" />
-              <ArrowUpRight
-                className="size-4 text-slate-300 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-slate-700"
-                aria-hidden="true"
-              />
-            </div>
-            <p className="mt-3 text-2xl font-semibold tabular-nums sm:text-3xl">
-              {value}
-            </p>
-            <h2 className="mt-1 text-sm font-semibold">{label}</h2>
-            <p className="mt-1 text-xs text-slate-500">{detail}</p>
-          </Link>
-        ))}
-      </section>
-
-      <section
-        id="action-required"
-        className="mt-5 grid gap-4 xl:grid-cols-[1.4fr_0.6fr]"
-      >
+      <section id="action-required" className="mt-4">
         <article className="border border-slate-200 bg-white">
           <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
             <div>
@@ -209,7 +177,7 @@ export default async function CeoDashboard() {
                 ) : null}
                 {data.unassignedActiveForemen.length > 0 ? (
                   <Link
-                    href="/ceo/settings#users"
+                    href="/ceo/settings?section=users"
                     className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-slate-50"
                   >
                     <div>
@@ -269,7 +237,7 @@ export default async function CeoDashboard() {
                 ) : null}
                 {!data.companyConfigured ? (
                   <Link
-                    href="/ceo/settings#company"
+                    href="/ceo/settings?section=company"
                     className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-slate-50"
                   >
                     <div>
@@ -287,27 +255,31 @@ export default async function CeoDashboard() {
             )}
           </div>
         </article>
+      </section>
 
-        <aside className="rounded-lg border border-slate-200 bg-white p-4">
-          <Settings className="size-5 text-violet-700" aria-hidden="true" />
-          <p className="mt-4 text-xs font-semibold text-violet-700">
-            Quick access
-          </p>
-          <h2 className="mt-1 font-heading text-lg font-semibold">
-            Workforce administration
-          </h2>
-          <p className="mt-2 text-sm leading-5 text-slate-600">
-            Manage worker profiles, employment history, rates, assignments, and
-            documents.
-          </p>
+      <section
+        aria-label="Company summary"
+        className="mt-4 grid grid-cols-2 overflow-hidden rounded-lg border border-slate-200 bg-white xl:grid-cols-4"
+      >
+        {metrics.map(({ label, value, detail, icon: Icon, href }) => (
           <Link
-            href="/ceo/workers"
-            className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-violet-800 hover:bg-violet-50"
+            key={label}
+            href={href}
+            className="group flex min-h-20 items-center gap-3 border-b border-r border-slate-200 p-3 hover:bg-violet-50/40 [&:nth-child(2n)]:border-r-0 xl:border-b-0 xl:[&:nth-child(2n)]:border-r"
           >
-            Open workers
-            <ArrowUpRight className="size-4" aria-hidden="true" />
+            <Icon
+              className="size-4 shrink-0 text-violet-700"
+              aria-hidden="true"
+            />
+            <div className="min-w-0">
+              <p className="text-xl font-semibold tabular-nums">{value}</p>
+              <h2 className="truncate text-xs font-semibold">{label}</h2>
+              <p className="mt-0.5 hidden truncate text-[0.6875rem] text-slate-500 sm:block">
+                {detail}
+              </p>
+            </div>
           </Link>
-        </aside>
+        ))}
       </section>
     </main>
   );
