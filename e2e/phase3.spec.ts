@@ -35,19 +35,40 @@ test("the CEO can create, find, update, and audit a worker", async ({
   await page.getByLabel("Phone Number").fill("+60123456789");
   await page.getByLabel("Nationality").fill("Pakistan");
   await page.getByLabel("Passport Number").fill(`E2E-P3-${suffix}`);
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(
+    page.getByRole("heading", {
+      name: "Permit and classification",
+      exact: true,
+    }),
+  ).toBeVisible();
+
   await page.getByLabel("Trade").selectOption({ label: "E2E Phase 3 Trade" });
   await page
     .getByLabel("Skill Level")
     .selectOption({ label: "E2E Phase 3 Skill" });
-  await page.getByLabel("Monthly Food Deduction").fill("120.00");
+  await page.getByLabel("Monthly Food Deduction (MYR)").fill("120.00");
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(
+    page.getByRole("heading", {
+      name: "Employment, rate, and assignment",
+      exact: true,
+    }),
+  ).toBeVisible();
+
   await page.getByLabel("Employment Start Date").fill("2026-07-24");
-  await page.getByLabel("Hourly Rate").fill("15.50");
+  await page.getByLabel("Hourly Rate (MYR)").fill("15.50");
   await page.getByLabel("Rate Effective Date").fill("2026-07-24");
   await page
-    .getByLabel("Initial Project")
+    .getByLabel("Initial Project (Optional)")
     .selectOption({ label: "E2E Phase 3 Project" });
   await page.getByLabel("Assignment Effective Date").fill("2026-07-24");
-  await page.getByRole("button", { name: "Create Worker" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Final notes", exact: true }),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "Create worker" }).click();
 
   await expect(page).toHaveURL(/\/ceo\/workers\/[a-f0-9-]+$/, {
     timeout: 20_000,
@@ -61,9 +82,20 @@ test("the CEO can create, find, update, and audit a worker", async ({
   ).toBeVisible();
   await expect(page.getByText("RM 15.50", { exact: true })).toBeVisible();
 
-  await page.getByRole("link", { name: "Edit Worker" }).click();
+  await page.getByRole("link", { name: "Edit worker" }).click();
   await page.getByLabel("Phone Number").fill("+60129876543");
-  await page.getByRole("button", { name: "Save Worker" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(
+    page.getByRole("heading", {
+      name: "Permit and classification",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Final notes", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Save worker" }).click();
   await expect(page.getByText("Worker profile saved.")).toBeVisible({
     timeout: 20_000,
   });

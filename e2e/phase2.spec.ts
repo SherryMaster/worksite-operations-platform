@@ -18,7 +18,7 @@ test.afterEach(async ({ isMobile }) => {
   }
 });
 
-test("the CEO can create, update, and audit a project from the app", async ({
+test("@smoke the CEO can create, update, and audit a project from the app", async ({
   page,
 }) => {
   test.slow();
@@ -42,6 +42,10 @@ test("the CEO can create, update, and audit a project from the app", async ({
   await page.getByLabel("Client").fill("Phase 2 Client");
   await page.getByLabel("Contractor").fill("Phase 2 Contractor");
   await page.getByLabel("Location").fill("Kuala Lumpur");
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Schedule and notes", exact: true }),
+  ).toBeVisible();
   await page.getByLabel("Start date").fill("2026-07-24");
   await page
     .getByLabel("Operational notes")
@@ -56,6 +60,10 @@ test("the CEO can create, update, and audit a project from the app", async ({
 
   await page.getByRole("link", { name: "Edit project" }).click();
   await page.getByLabel("Client").fill("Updated Phase 2 Client");
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Schedule and notes", exact: true }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Save project" }).click();
 
   await expect(page.getByText("Project details saved.")).toBeVisible({

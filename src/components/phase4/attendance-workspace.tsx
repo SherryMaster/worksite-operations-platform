@@ -910,14 +910,17 @@ export function AttendanceWorkspace({
           snapshot.dayType,
           snapshot.workDate,
         );
-        const localAction = [...actions]
+        const latestWorkerAction = [...actions]
           .reverse()
           .find(
             (action) =>
               action.projectId === snapshot.projectId &&
-              action.state !== "SYNCED" &&
               actionWorkerId(action, snapshot) === worker.id,
           );
+        const localAction =
+          latestWorkerAction?.state === "SYNCED"
+            ? undefined
+            : latestWorkerAction;
         return { calculation, localAction, sessions, state, worker };
       })
       .filter(({ calculation, state, worker }) => {
@@ -936,7 +939,9 @@ export function AttendanceWorkspace({
           (filter === "ON_BREAK" && state.label === "On break") ||
           (filter === "EXITED" && state.label === "Exited") ||
           (filter === "LEAVE" && Boolean(worker.approvedLeaveType)) ||
-          (filter === "INCOMPLETE" && calculation.status === "INCOMPLETE") ||
+          (filter === "INCOMPLETE" &&
+            calculation.status === "INCOMPLETE" &&
+            (context !== "today" || !state.openSession)) ||
           (filter === "INVALID" && calculation.status === "INVALID");
         return (
           (!normalizedQuery || searchable.includes(normalizedQuery)) &&
@@ -945,16 +950,18 @@ export function AttendanceWorkspace({
       })
       .sort((left, right) => {
         const leftIssue =
-          left.calculation.status === "INCOMPLETE" ||
+          (left.calculation.status === "INCOMPLETE" &&
+            (context !== "today" || !left.state.openSession)) ||
           left.calculation.status === "INVALID" ||
           left.localAction?.state === "NEEDS_ATTENTION";
         const rightIssue =
-          right.calculation.status === "INCOMPLETE" ||
+          (right.calculation.status === "INCOMPLETE" &&
+            (context !== "today" || !right.state.openSession)) ||
           right.calculation.status === "INVALID" ||
           right.localAction?.state === "NEEDS_ATTENTION";
         return Number(rightIssue) - Number(leftIssue);
       });
-  }, [actions, filter, query, snapshot]);
+  }, [actions, context, filter, query, snapshot]);
 
   const projectActions = snapshot
     ? actions.filter((action) => action.projectId === snapshot.projectId)
@@ -990,8 +997,8 @@ export function AttendanceWorkspace({
             summary.notEntered += 1;
           }
           if (
-            calculation.status === "INCOMPLETE" ||
-            calculation.status === "INVALID"
+            calculation.status === "INVALID" ||
+            (calculation.status === "INCOMPLETE" && !state.openSession)
           ) {
             summary.issues += 1;
           }
@@ -1298,7 +1305,8 @@ export function AttendanceWorkspace({
                 .slice(0, visibleCount)
                 .map(({ calculation, localAction, state, worker }) => {
                   const hasIssue =
-                    calculation.status === "INCOMPLETE" ||
+                    (calculation.status === "INCOMPLETE" &&
+                      (context !== "today" || !state.openSession)) ||
                     calculation.status === "INVALID" ||
                     localAction?.state === "NEEDS_ATTENTION";
                   const firstSession = state.ordered[0];
