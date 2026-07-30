@@ -35,7 +35,7 @@ test.afterEach(async ({ isMobile }, testInfo) => {
   }
 });
 
-test("@smoke a Foreman records a complete multi-session attendance day", async ({
+test("a Foreman records a complete multi-session attendance day", async ({
   page,
 }) => {
   test.slow();
