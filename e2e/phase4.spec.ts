@@ -133,7 +133,11 @@ test("the CEO can inspect and correct project attendance", async ({ page }) => {
     .filter({ hasText: "E2E Phase 4 CEO Worker" })
     .first();
   await expect(worker).toBeVisible({ timeout: 20_000 });
-  await worker.getByRole("button", { name: /correct times/i }).click();
+  await worker
+    .getByRole("button", {
+      name: "Review attendance for E2E Phase 4 CEO Worker",
+    })
+    .click();
   await page.getByRole("button", { name: "Add session" }).click();
   await page
     .getByLabel("Reason for correction")

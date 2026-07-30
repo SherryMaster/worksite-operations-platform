@@ -7,7 +7,7 @@ on:
       - main
 
 concurrency:
-  group: phase-${{ github.workflow }}
+  group: phase-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
