@@ -1,4 +1,4 @@
-import { ArrowUpRight, FolderPlus, MapPin } from "lucide-react";
+import { ArrowUpRight, ChevronRight, FolderPlus, MapPin } from "lucide-react";
 import Link from "next/link";
 
 import { FormSubmitButton } from "@/components/form-submit-button";
@@ -53,16 +53,15 @@ export default async function ProjectsPage({
   return (
     <main>
       <PageHeader
-        eyebrow="Project register"
         title="Projects"
-        description="Search current worksites and retain completed project history."
+        description={`${projects.length} of ${allProjects.length} projects`}
         action={
           <Link
             href="/ceo/projects/new"
             className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-violet-700 px-4 text-sm font-semibold text-white hover:bg-violet-800"
           >
             <FolderPlus className="size-4" aria-hidden="true" />
-            Create project
+            New project
           </Link>
         }
       />
@@ -106,7 +105,7 @@ export default async function ProjectsPage({
             className="mx-auto size-8 text-violet-700"
             aria-hidden="true"
           />
-          <h2 className="mt-5 font-heading text-2xl font-semibold uppercase">
+          <h2 className="mt-5 font-heading text-xl font-semibold">
             {query || status ? "No matching projects" : "No projects yet"}
           </h2>
           <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
@@ -177,27 +176,29 @@ export default async function ProjectsPage({
               <Link
                 key={project.id}
                 href={`/ceo/projects/${project.id}`}
-                className="block border-b border-slate-200 p-3 last:border-0"
+                className="flex min-h-20 items-center gap-3 border-b border-slate-200 px-3 py-2.5 last:border-0 hover:bg-slate-50"
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-3">
                     <h2 className="text-sm font-semibold">{project.name}</h2>
-                    <p className="mt-1 text-sm text-slate-500">
-                      {project.client_name}
-                    </p>
+                    <StatusBadge status={project.status} />
                   </div>
-                  <StatusBadge status={project.status} />
+                  <p className="mt-1 flex items-center gap-1.5 truncate text-xs text-slate-500">
+                    <MapPin className="size-3.5 shrink-0" aria-hidden="true" />
+                    {project.client_name} · {project.location}
+                  </p>
+                  <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
+                    <span>{workerCounts[project.id] ?? 0} workers</span>
+                    <span aria-hidden="true">·</span>
+                    <span className="truncate">
+                      {project.currentForeman?.displayName ?? "No Foreman"}
+                    </span>
+                  </div>
                 </div>
-                <p className="mt-2 flex items-center gap-2 text-xs text-slate-600">
-                  <MapPin className="size-4" aria-hidden="true" />
-                  {project.location}
-                </p>
-                <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
-                  <span>
-                    {project.currentForeman?.displayName ?? "No Foreman"}
-                  </span>
-                  <span>{workerCounts[project.id] ?? 0} workers</span>
-                </div>
+                <ChevronRight
+                  className="size-4 shrink-0 text-slate-400"
+                  aria-hidden="true"
+                />
               </Link>
             ))}
           </div>

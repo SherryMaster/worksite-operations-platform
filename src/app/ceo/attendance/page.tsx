@@ -2,6 +2,7 @@ import {
   AlertTriangle,
   CalendarDays,
   CheckCircle2,
+  ChevronRight,
   Clock3,
   Search,
 } from "lucide-react";
@@ -94,9 +95,8 @@ export default async function CeoAttendancePage({
     <main>
       <div>
         <PageHeader
-          eyebrow="Company attendance"
-          title="Attendance oversight"
-          description="Review daily records, payable time, exceptions, and permanent corrections across every project."
+          title="Attendance"
+          description="Review daily records, payable time, and exceptions."
         />
 
         <form className="mt-4 grid gap-3 rounded-lg border border-slate-200 bg-white p-3 md:grid-cols-[1.4fr_1fr_auto]">
@@ -198,33 +198,33 @@ export default async function CeoAttendancePage({
       ) : (
         <section className="pt-4">
           <div className="grid grid-cols-3 overflow-hidden rounded-lg border border-slate-200 bg-white">
-            <div className="border-r border-slate-200 p-3">
+            <div className="border-r border-slate-200 p-2.5 sm:p-3">
               <CheckCircle2
                 className="size-5 text-emerald-700"
                 aria-hidden="true"
               />
-              <p className="mt-2 text-2xl font-semibold tabular-nums">
+              <p className="mt-1 text-xl font-semibold tabular-nums sm:text-2xl">
                 {allMonthRows.length}
               </p>
               <p className="mt-1 text-xs text-slate-500">
                 Recorded worker-days
               </p>
             </div>
-            <div className="border-r border-slate-200 p-3">
+            <div className="border-r border-slate-200 p-2.5 sm:p-3">
               <AlertTriangle
                 className="size-5 text-red-700"
                 aria-hidden="true"
               />
-              <p className="mt-2 text-2xl font-semibold tabular-nums">
+              <p className="mt-1 text-xl font-semibold tabular-nums sm:text-2xl">
                 {exceptionRows}
               </p>
               <p className="mt-1 text-xs text-slate-500">
                 Days needing correction
               </p>
             </div>
-            <div className="p-3">
+            <div className="p-2.5 sm:p-3">
               <Clock3 className="size-5 text-violet-700" aria-hidden="true" />
-              <p className="mt-2 text-2xl font-semibold tabular-nums">
+              <p className="mt-1 text-xl font-semibold tabular-nums sm:text-2xl">
                 {formatMinutes(
                   allMonthRows.reduce(
                     (total, row) => total + row.totalMinutes,
@@ -255,37 +255,45 @@ export default async function CeoAttendancePage({
             </label>
           </form>
 
-          <div className="mt-4 grid gap-3 md:hidden">
+          <div className="mt-4 overflow-hidden rounded-lg border border-slate-200 bg-white md:hidden">
             {monthRows.map((row) => (
-              <article
+              <details
                 key={`${row.date}:${row.workerId}:mobile`}
-                className="border border-violet-100 bg-white p-4"
+                className="group border-b border-slate-200 last:border-0"
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold">{row.workerName}</p>
+                <summary className="flex min-h-20 cursor-pointer list-none items-center gap-3 px-3 py-2.5">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="truncate text-sm font-semibold">
+                        {row.workerName}
+                      </p>
+                      <span
+                        className={cn(
+                          "shrink-0 text-xs font-semibold",
+                          row.status === "LEAVE"
+                            ? "text-blue-700"
+                            : row.exceptionCount > 0
+                              ? "text-red-700"
+                              : "text-emerald-700",
+                        )}
+                      >
+                        {row.status === "LEAVE"
+                          ? "On leave"
+                          : row.exceptionCount > 0
+                            ? "Needs correction"
+                            : "Complete"}
+                      </span>
+                    </div>
                     <p className="mt-1 text-xs tabular-nums text-slate-500">
-                      {row.date}
+                      {row.date} · {formatMinutes(row.totalMinutes)} payable
                     </p>
                   </div>
-                  <span
-                    className={cn(
-                      "inline-flex shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold",
-                      row.status === "LEAVE"
-                        ? "border-blue-200 bg-blue-50 text-blue-800"
-                        : row.exceptionCount > 0
-                          ? "border-red-200 bg-red-50 text-red-800"
-                          : "border-emerald-200 bg-emerald-50 text-emerald-800",
-                    )}
-                  >
-                    {row.status === "LEAVE"
-                      ? "On leave"
-                      : row.exceptionCount > 0
-                        ? "Needs correction"
-                        : "Complete"}
-                  </span>
-                </div>
-                <dl className="mt-4 grid grid-cols-2 gap-3 rounded-xl bg-slate-50 p-3 text-sm">
+                  <ChevronRight
+                    className="size-4 shrink-0 text-slate-400 transition-transform duration-200 group-open:rotate-90"
+                    aria-hidden="true"
+                  />
+                </summary>
+                <dl className="grid grid-cols-2 gap-3 border-t border-slate-100 bg-slate-50 p-3 text-sm">
                   <div>
                     <dt className="text-xs text-slate-500">Normal</dt>
                     <dd className="mt-1 font-semibold">
@@ -318,11 +326,11 @@ export default async function CeoAttendancePage({
                 ) : null}
                 <Link
                   href={`/ceo/attendance?view=day&project=${projectId}&date=${row.date}`}
-                  className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-violet-50 px-4 text-sm font-semibold text-violet-800"
+                  className="m-3 mt-0 inline-flex min-h-10 items-center justify-center rounded-lg bg-violet-50 px-4 text-sm font-semibold text-violet-800"
                 >
                   Inspect day
                 </Link>
-              </article>
+              </details>
             ))}
             {monthRows.length === 0 ? (
               <p className="rounded-2xl border border-dashed border-violet-200 bg-white px-5 py-10 text-center text-sm text-slate-500">

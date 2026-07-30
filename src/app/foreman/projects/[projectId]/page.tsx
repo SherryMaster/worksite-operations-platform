@@ -1,10 +1,4 @@
-import {
-  ArrowUpRight,
-  CalendarDays,
-  ChevronLeft,
-  ShieldCheck,
-  Users,
-} from "lucide-react";
+import { ArrowUpRight, CalendarDays, ChevronLeft, Users } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -26,7 +20,7 @@ export default async function ForemanProjectPage({
   if (!project) notFound();
 
   return (
-    <main className="min-h-[calc(100vh-9rem)] px-4 pb-24 pt-6">
+    <main>
       <Link
         href="/foreman"
         className="inline-flex items-center gap-2 text-sm text-slate-600"
@@ -34,19 +28,19 @@ export default async function ForemanProjectPage({
         <ChevronLeft className="size-4" aria-hidden="true" />
         Back to Today
       </Link>
-      <div className="mt-6 flex items-start justify-between gap-3">
+      <div className="mt-4 flex items-start justify-between gap-3">
         <div>
-          <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-violet-700">
+          <p className="text-xs font-semibold text-slate-500">
             Assigned project
           </p>
-          <h1 className="mt-2 font-heading text-4xl font-semibold uppercase leading-none">
+          <h1 className="mt-1 font-heading text-2xl font-semibold">
             {project.name}
           </h1>
         </div>
         <StatusBadge status={project.status} />
       </div>
 
-      <section className="mt-6 border border-violet-100 bg-white">
+      <section className="mt-4 overflow-hidden rounded-lg border border-slate-200 bg-white">
         <dl className="divide-y divide-slate-200">
           {[
             ["Client", project.client_name],
@@ -59,17 +53,15 @@ export default async function ForemanProjectPage({
               key={label}
               className="grid grid-cols-[7rem_1fr] gap-3 px-4 py-4"
             >
-              <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                {label}
-              </dt>
+              <dt className="text-xs font-semibold text-slate-500">{label}</dt>
               <dd className="text-sm font-medium">{value}</dd>
             </div>
           ))}
         </dl>
       </section>
 
-      <section className="mt-4 border border-violet-100 bg-white p-5">
-        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+      <section className="mt-4 rounded-lg border border-slate-200 bg-white p-4">
+        <p className="text-xs font-semibold text-slate-500">
           Operational notes
         </p>
         <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">
@@ -77,37 +69,34 @@ export default async function ForemanProjectPage({
         </p>
       </section>
 
-      <div className="mt-4 flex items-start gap-3 border border-emerald-200 bg-emerald-50 p-4 text-emerald-900">
-        <ShieldCheck className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
-        <div>
-          <p className="text-sm font-semibold">Project scope verified</p>
-          <p className="mt-1 text-xs leading-5 text-emerald-800">
-            The server and database confirmed this is your current assignment.
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-4 border border-violet-100 bg-violet-50 p-4">
-        <Users className="size-5 text-violet-700" aria-hidden="true" />
-        <p className="mt-3 text-sm font-semibold">
-          {workers.length} current {workers.length === 1 ? "worker" : "workers"}
-        </p>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <Link
           href="/foreman/workers"
-          className="mt-3 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-amber-800"
+          className="flex min-h-20 items-center gap-3 rounded-lg border border-slate-200 bg-white p-4"
         >
-          Open worker list
+          <Users className="size-5 text-violet-700" aria-hidden="true" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold">
+              {workers.length} current{" "}
+              {workers.length === 1 ? "worker" : "workers"}
+            </p>
+            <p className="mt-1 text-xs text-slate-500">Open worker list</p>
+          </div>
           <ArrowUpRight className="size-4" aria-hidden="true" />
         </Link>
-      </div>
-
-      <div className="mt-4 border border-violet-100 bg-violet-50 p-4">
-        <CalendarDays className="size-5 text-slate-400" aria-hidden="true" />
-        <p className="mt-3 text-sm font-semibold">Attendance</p>
-        <p className="mt-1 text-xs leading-5 text-slate-500">
-          Attendance recorded offline stays on this device until it
-          synchronizes.
-        </p>
+        <Link
+          href="/foreman/attendance"
+          className="flex min-h-20 items-center gap-3 rounded-lg border border-slate-200 bg-white p-4"
+        >
+          <CalendarDays className="size-5 text-violet-700" aria-hidden="true" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold">Attendance history</p>
+            <p className="mt-1 text-xs text-slate-500">
+              Review records and corrections
+            </p>
+          </div>
+          <ArrowUpRight className="size-4" aria-hidden="true" />
+        </Link>
       </div>
     </main>
   );

@@ -4,6 +4,7 @@ import {
   ArrowRight,
   Building2,
   CheckCircle2,
+  ChevronRight,
   Clock3,
   Coins,
   Users,
@@ -75,7 +76,7 @@ export default async function PayrollRunPage({
     `/ceo/payroll/${data.run.id}?page=${target}`;
 
   return (
-    <main className="px-5 py-8 sm:px-8 lg:py-10">
+    <main>
       <Link
         href="/ceo/payroll"
         className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-950"
@@ -84,17 +85,14 @@ export default async function PayrollRunPage({
         Payroll months
       </Link>
 
-      <div className="mt-5 flex flex-col gap-6 border-b border-violet-100 pb-8 xl:flex-row xl:items-end xl:justify-between">
+      <div className="mt-4 flex flex-col gap-4 border-b border-slate-200 pb-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="font-heading text-xs font-semibold uppercase tracking-[0.23em] text-violet-700">
-            Company payroll run
-          </p>
-          <h1 className="mt-3 font-heading text-5xl font-semibold uppercase leading-none sm:text-6xl">
+          <h1 className="font-heading text-2xl font-semibold sm:text-3xl">
             {payrollMonthLabel(data.run.payroll_month)}
           </h1>
           <p className="mt-4 flex flex-wrap items-center gap-3 text-sm">
             <span
-              className={`inline-flex items-center gap-2 font-semibold uppercase tracking-wider ${
+              className={`inline-flex items-center gap-2 font-semibold ${
                 data.run.status === "APPROVED"
                   ? "text-emerald-700"
                   : data.run.status === "NEEDS_REVIEW"
@@ -155,7 +153,7 @@ export default async function PayrollRunPage({
 
       <section
         aria-label="Payroll summary"
-        className="mt-8 grid gap-px border border-violet-100 bg-violet-100 sm:grid-cols-2 xl:grid-cols-5"
+        className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-slate-200 bg-slate-200 xl:grid-cols-5"
       >
         {[
           {
@@ -184,10 +182,10 @@ export default async function PayrollRunPage({
             value: String(data.run.blocking_exception_count),
           },
         ].map(({ icon: Icon, label, value }) => (
-          <article key={label} className="bg-white p-5">
+          <article key={label} className="bg-white p-3">
             <Icon className="size-5 text-violet-700" aria-hidden="true" />
-            <p className="mt-5 font-heading text-3xl font-semibold">{value}</p>
-            <h2 className="mt-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <p className="mt-2 font-heading text-xl font-semibold">{value}</p>
+            <h2 className="mt-1 text-xs font-semibold text-slate-500">
               {label}
             </h2>
           </article>
@@ -234,9 +232,7 @@ export default async function PayrollRunPage({
       <section className="mt-8">
         <div className="mb-4 flex items-center gap-3">
           <Building2 className="size-5 text-violet-700" aria-hidden="true" />
-          <h2 className="font-heading text-3xl font-semibold uppercase">
-            Projects
-          </h2>
+          <h2 className="font-heading text-xl font-semibold">Projects</h2>
         </div>
         {data.projectSummaries.length === 0 ? (
           <p className="border border-violet-100 bg-white p-5 text-sm text-slate-500">
@@ -249,7 +245,7 @@ export default async function PayrollRunPage({
                 key={project.projectId}
                 className="border border-violet-100 bg-white p-5"
               >
-                <h3 className="font-heading text-xl font-semibold uppercase">
+                <h3 className="font-heading text-base font-semibold">
                   {project.name}
                 </h3>
                 <dl className="mt-4 grid grid-cols-3 gap-3 text-sm">
@@ -284,15 +280,13 @@ export default async function PayrollRunPage({
             <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-violet-700">
               Traceable calculations
             </p>
-            <h2 className="font-heading text-3xl font-semibold uppercase">
-              Workers
-            </h2>
+            <h2 className="font-heading text-xl font-semibold">Workers</h2>
           </div>
           <p className="text-sm text-slate-500">
             {paidWorkers} paid · {unpaidWorkers} unpaid
           </p>
         </div>
-        <div className="grid gap-3 md:hidden">
+        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white md:hidden">
           {visibleWorkers.map((worker) => {
             const minutes =
               worker.normal_minutes +
@@ -312,61 +306,41 @@ export default async function PayrollRunPage({
               <Link
                 key={`${worker.id}:mobile`}
                 href={`/ceo/payroll/${data.run.id}/workers/${worker.id}`}
-                className="block rounded-lg border border-slate-200 bg-white p-3"
+                className="flex min-h-20 items-center gap-3 border-b border-slate-200 p-3 last:border-0"
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h3 className="truncate font-semibold">
-                      {worker.worker_name}
-                    </h3>
-                    <p className="mt-1 truncate text-xs text-slate-500">
-                      {worker.primaryProjectName ?? "No project"}
-                    </p>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="truncate font-semibold">
+                        {worker.worker_name}
+                      </h3>
+                      <p className="mt-1 truncate text-xs text-slate-500">
+                        {worker.primaryProjectName ?? "No project"}
+                      </p>
+                    </div>
+                    <span
+                      className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                        worker.exceptions.length > 0
+                          ? "bg-red-50 text-red-800"
+                          : worker.payment_status === "PAID"
+                            ? "bg-emerald-50 text-emerald-800"
+                            : "bg-violet-50 text-violet-800"
+                      }`}
+                    >
+                      {state}
+                    </span>
                   </div>
-                  <span
-                    className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
-                      worker.exceptions.length > 0
-                        ? "bg-red-50 text-red-800"
-                        : worker.payment_status === "PAID"
-                          ? "bg-emerald-50 text-emerald-800"
-                          : "bg-violet-50 text-violet-800"
-                    }`}
-                  >
-                    {state}
-                  </span>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {formatPayrollMinutes(minutes)} ·{" "}
+                    <strong className="text-violet-800">
+                      {formatSen(worker.net_pay_sen)} net
+                    </strong>
+                  </p>
                 </div>
-                <dl className="mt-3 grid grid-cols-2 gap-2 rounded-lg bg-slate-50 p-2.5 text-sm">
-                  <div>
-                    <dt className="text-xs text-slate-500">Payable time</dt>
-                    <dd className="mt-1 font-semibold">
-                      {formatPayrollMinutes(minutes)}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-slate-500">Gross</dt>
-                    <dd className="mt-1 font-semibold">
-                      {formatSen(worker.gross_earnings_sen)}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-slate-500">Deductions</dt>
-                    <dd className="mt-1 font-semibold">
-                      {formatSen(
-                        worker.deductions_sen + worker.food_deduction_sen,
-                      )}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-slate-500">Net pay</dt>
-                    <dd className="mt-1 font-semibold text-violet-800">
-                      {formatSen(worker.net_pay_sen)}
-                    </dd>
-                  </div>
-                </dl>
-                <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-violet-700">
-                  Review worker
-                  <ArrowRight className="size-4" aria-hidden="true" />
-                </span>
+                <ChevronRight
+                  className="size-4 shrink-0 text-slate-400"
+                  aria-hidden="true"
+                />
               </Link>
             );
           })}
@@ -476,9 +450,7 @@ export default async function PayrollRunPage({
             className="size-5 text-violet-700"
             aria-hidden="true"
           />
-          <h2 className="font-heading text-3xl font-semibold uppercase">
-            Exceptions
-          </h2>
+          <h2 className="font-heading text-xl font-semibold">Exceptions</h2>
         </div>
         {exceptions.length === 0 ? (
           <div className="flex items-start gap-3 border border-emerald-200 bg-emerald-50 p-5">

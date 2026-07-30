@@ -7,7 +7,7 @@ export default function Loading() {
     >
       <div className="text-center">
         <div className="mx-auto size-10 animate-pulse rounded-xl border border-violet-300 bg-violet-300/10" />
-        <p className="mt-5 font-heading text-sm font-semibold uppercase tracking-[0.24em] text-slate-400">
+        <p className="mt-4 text-sm font-semibold text-slate-500">
           Opening your workspace…
         </p>
       </div>

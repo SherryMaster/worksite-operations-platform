@@ -25,7 +25,7 @@ export function DetailDrawer({
       <SheetTrigger render={trigger} />
       <SheetContent
         side="right"
-        className="w-full max-w-lg overflow-y-auto border-slate-200 sm:w-[30rem]"
+        className="responsive-detail-sheet w-full max-w-lg overflow-y-auto overscroll-contain border-slate-200 sm:w-[30rem]"
       >
         <SheetHeader className="border-b border-slate-200 px-5 py-4 text-left">
           <SheetTitle>{title}</SheetTitle>
@@ -33,7 +33,7 @@ export function DetailDrawer({
             <SheetDescription>{description}</SheetDescription>
           ) : null}
         </SheetHeader>
-        <div className="p-5">{children}</div>
+        <div className="p-4 sm:p-5">{children}</div>
       </SheetContent>
     </Sheet>
   );

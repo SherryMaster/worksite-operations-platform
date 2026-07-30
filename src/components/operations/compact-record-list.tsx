@@ -14,7 +14,7 @@ export function CompactRecordList({
       role="list"
       aria-label={label}
       className={cn(
-        "divide-y divide-slate-200 overflow-hidden rounded-lg border border-slate-200 bg-white",
+        "divide-y divide-slate-100 overflow-hidden rounded-lg border border-slate-200 bg-white",
         className,
       )}
     >
@@ -38,7 +38,7 @@ export function CompactRecord({
     <div
       role="listitem"
       className={cn(
-        "flex min-h-16 items-center gap-3 px-3 py-2.5 sm:px-4",
+        "flex min-h-16 items-center gap-3 px-3 py-2 sm:px-4",
         className,
       )}
     >

@@ -72,9 +72,8 @@ export default async function CeoLeavePage({
   return (
     <main>
       <PageHeader
-        eyebrow="Full-day unpaid leave"
         title="Leave review"
-        description="Pending requests appear first. Resolve attendance conflicts, then approve or reject with a permanent audit history."
+        description="Review pending full-day unpaid leave requests first."
       />
 
       {resultMessage ? (

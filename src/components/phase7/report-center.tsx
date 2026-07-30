@@ -1,4 +1,4 @@
-import { Download, FileSearch, Filter, Sheet } from "lucide-react";
+import { Download, FileSearch, Filter } from "lucide-react";
 import Link from "next/link";
 
 import { FormSubmitButton } from "@/components/form-submit-button";
@@ -120,20 +120,8 @@ export async function ReportCenter({
   return (
     <main>
       <PageHeader
-        eyebrow="Operational visibility"
         title="Reports"
-        description="Choose a predefined report, narrow the results, and download the same filtered rows as an Excel workbook."
-        action={
-          role === "CEO" ? (
-            <Link
-              href="/ceo/imports"
-              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold hover:bg-slate-50"
-            >
-              <Sheet className="size-4" aria-hidden="true" />
-              Import center
-            </Link>
-          ) : null
-        }
+        description="Browse predefined operational reports and export the filtered results."
       />
 
       <form
@@ -320,28 +308,28 @@ export async function ReportCenter({
         </DataViewToolbar>
       </form>
 
-      <section className="mt-6" aria-labelledby="report-result-title">
-        <div className="flex flex-col gap-4 border-b border-violet-100 pb-4 sm:flex-row sm:items-end sm:justify-between">
+      <section className="mt-4" aria-labelledby="report-result-title">
+        <div className="flex items-end justify-between gap-3 border-b border-slate-200 pb-3">
           <div>
-            <p className="text-xs font-semibold text-violet-700">
+            <p className="text-[0.6875rem] font-semibold text-violet-700">
               {report.rows.length} {report.rows.length === 1 ? "row" : "rows"}
             </p>
             <h2
               id="report-result-title"
-              className="mt-1 font-heading text-xl font-semibold sm:text-2xl"
+              className="font-heading text-base font-semibold sm:text-lg"
             >
               {report.title}
             </h2>
-            <p className="mt-2 max-w-3xl text-sm text-slate-600">
+            <p className="mt-1 hidden max-w-3xl text-sm text-slate-500 sm:block">
               {reportDescription(report.reportId)}
             </p>
           </div>
           <a
             href={exportHref(report.reportId, searchParams)}
-            className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-amber-700 px-4 text-sm font-semibold text-white hover:bg-amber-800"
+            className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
           >
             <Download className="size-4" aria-hidden="true" />
-            Download Excel
+            Export
           </a>
         </div>
 
@@ -353,7 +341,7 @@ export async function ReportCenter({
         ) : null}
 
         {previewLimited ? (
-          <p className="mt-4 rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm text-violet-950">
+          <p className="mt-3 border-l-2 border-violet-400 pl-3 text-xs text-slate-600">
             Showing page {currentPage} of {pageCount} ·{" "}
             {report.rows.length.toLocaleString()} total rows. Narrow the filters
             or download the Excel file to review every row.
@@ -383,25 +371,31 @@ export async function ReportCenter({
                   key={rowIndex}
                   className="border-b border-slate-200 p-3 last:border-0"
                 >
-                  <dl className="grid gap-2">
-                    {report.columns.slice(0, 4).map((column) => (
+                  <dl>
+                    {report.columns.slice(0, 1).map((column) => (
                       <div key={column.key}>
-                        <dt className="text-[0.65rem] font-semibold text-slate-500">
-                          {column.label}
-                        </dt>
-                        <dd className="mt-1 break-words text-sm text-slate-900">
+                        <dt className="sr-only">{column.label}</dt>
+                        <dd className="truncate text-sm font-semibold text-slate-900">
                           {row[column.key] ?? "—"}
                         </dd>
                       </div>
                     ))}
+                    <div className="mt-1 flex min-w-0 flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
+                      {report.columns.slice(1, 3).map((column) => (
+                        <div key={column.key} className="min-w-0 truncate">
+                          <dt className="sr-only">{column.label}</dt>
+                          <dd className="truncate">{row[column.key] ?? "—"}</dd>
+                        </div>
+                      ))}
+                    </div>
                   </dl>
-                  {report.columns.length > 4 ? (
+                  {report.columns.length > 3 ? (
                     <details className="mt-2 border-t border-slate-100 pt-2">
                       <summary className="cursor-pointer text-xs font-semibold text-violet-800">
                         More fields
                       </summary>
                       <dl className="mt-2 grid gap-2">
-                        {report.columns.slice(4).map((column) => (
+                        {report.columns.slice(3).map((column) => (
                           <div key={column.key}>
                             <dt className="text-[0.65rem] font-semibold text-slate-500">
                               {column.label}

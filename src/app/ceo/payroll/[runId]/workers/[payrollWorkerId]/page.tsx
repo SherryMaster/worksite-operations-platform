@@ -40,7 +40,7 @@ export default async function PayrollWorkerPage({
   const { run, worker } = data;
 
   return (
-    <main className="px-5 py-8 sm:px-8 lg:py-10">
+    <main>
       <Link
         href={`/ceo/payroll/${run.id}`}
         className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-950"
@@ -49,12 +49,9 @@ export default async function PayrollWorkerPage({
         {payrollMonthLabel(run.payroll_month)} payroll
       </Link>
 
-      <div className="mt-5 flex flex-col gap-5 border-b border-violet-100 pb-8 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mt-4 flex flex-col gap-4 border-b border-slate-200 pb-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="font-heading text-xs font-semibold uppercase tracking-[0.23em] text-violet-700">
-            Worker payroll calculation
-          </p>
-          <h1 className="mt-3 font-heading text-5xl font-semibold uppercase leading-none sm:text-6xl">
+          <h1 className="font-heading text-2xl font-semibold sm:text-3xl">
             {worker.worker_name}
           </h1>
           <p className="mt-4 text-sm text-slate-600">
@@ -66,7 +63,7 @@ export default async function PayrollWorkerPage({
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
             Net pay
           </p>
-          <p className="mt-2 font-heading text-4xl font-semibold">
+          <p className="mt-1 font-heading text-2xl font-semibold">
             {formatSen(worker.net_pay_sen)}
           </p>
           <p className="mt-1 text-sm text-slate-500">
@@ -102,7 +99,7 @@ export default async function PayrollWorkerPage({
         </section>
       ) : null}
 
-      <section className="mt-8 grid gap-px border border-violet-100 bg-violet-100 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-slate-200 bg-slate-200 xl:grid-cols-4">
         {[
           {
             label: "Gross earnings",
@@ -121,9 +118,9 @@ export default async function PayrollWorkerPage({
             value: formatSen(worker.food_deduction_sen),
           },
         ].map((item) => (
-          <article key={item.label} className="bg-white p-5">
-            <p className="font-heading text-3xl font-semibold">{item.value}</p>
-            <h2 className="mt-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+          <article key={item.label} className="bg-white p-3">
+            <p className="font-heading text-xl font-semibold">{item.value}</p>
+            <h2 className="mt-1 text-xs font-semibold text-slate-500">
               {item.label}
             </h2>
           </article>
@@ -133,7 +130,7 @@ export default async function PayrollWorkerPage({
       <section className="mt-8">
         <div className="mb-4 flex items-center gap-3">
           <Clock3 className="size-5 text-violet-700" aria-hidden="true" />
-          <h2 className="font-heading text-3xl font-semibold uppercase">
+          <h2 className="font-heading text-xl font-semibold">
             Earnings by rate
           </h2>
         </div>
@@ -174,7 +171,7 @@ export default async function PayrollWorkerPage({
       <section className="mt-8">
         <div className="mb-4 flex items-center gap-3">
           <CalendarDays className="size-5 text-violet-700" aria-hidden="true" />
-          <h2 className="font-heading text-3xl font-semibold uppercase">
+          <h2 className="font-heading text-xl font-semibold">
             Attendance and leave sources
           </h2>
         </div>
@@ -217,9 +214,7 @@ export default async function PayrollWorkerPage({
       <section className="mt-8">
         <div className="mb-4 flex items-center gap-3">
           <ReceiptText className="size-5 text-violet-700" aria-hidden="true" />
-          <h2 className="font-heading text-3xl font-semibold uppercase">
-            Adjustments
-          </h2>
+          <h2 className="font-heading text-xl font-semibold">Adjustments</h2>
         </div>
         {worker.adjustments.length > 0 ? (
           <div className="mb-4 divide-y divide-slate-200 border border-violet-100 bg-white">
@@ -274,7 +269,7 @@ export default async function PayrollWorkerPage({
       <section className="mt-8">
         <div className="mb-4 flex items-center gap-3">
           <FileText className="size-5 text-violet-700" aria-hidden="true" />
-          <h2 className="font-heading text-3xl font-semibold uppercase">
+          <h2 className="font-heading text-xl font-semibold">
             Statement and payment
           </h2>
         </div>

@@ -52,35 +52,32 @@ export function LeaveRequestList({
           key={request.id}
           className="border-b border-slate-200 p-3 last:border-0 sm:p-4"
         >
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex min-w-0 items-center gap-2">
+                <h2 className="truncate text-sm font-semibold">
+                  {request.workerName}
+                </h2>
                 <span
                   className={cn(
-                    "rounded-full border px-2 py-0.5 text-xs font-semibold",
+                    "shrink-0 rounded-full border px-2 py-0.5 text-[0.6875rem] font-semibold capitalize",
                     statusClasses(request.status),
                   )}
                 >
                   {request.status.toLowerCase()}
                 </span>
-                <span className="text-xs text-slate-500">
-                  Submitted {formatDateTime(request.created_at)}
-                </span>
               </div>
-              <h2 className="mt-2 text-base font-semibold">
-                {request.workerName}
-              </h2>
-              <p className="mt-1 text-sm text-slate-600">
+              <p className="mt-1 truncate text-xs text-slate-500">
                 {request.projectName} · {request.leaveTypeName}
               </p>
-            </div>
-            <div className="rounded-md bg-slate-50 px-3 py-2 text-left sm:text-right">
-              <p className="text-xs text-slate-500">Full calendar days</p>
-              <p className="mt-0.5 text-sm font-semibold">
+              <p className="mt-1 text-xs font-medium text-slate-700">
                 {formatDate(request.starts_on)}
                 {request.ends_on !== request.starts_on
                   ? ` – ${formatDate(request.ends_on)}`
                   : ""}
+              </p>
+              <p className="mt-1 text-[0.6875rem] text-slate-400">
+                Submitted {formatDateTime(request.created_at)}
               </p>
             </div>
           </div>
@@ -92,8 +89,8 @@ export function LeaveRequestList({
             </p>
           ) : null}
 
-          <details className="group mt-3 border-t border-slate-100 pt-3">
-            <summary className="min-h-9 cursor-pointer text-sm font-semibold text-violet-800">
+          <details className="group mt-2 border-t border-slate-100 pt-2">
+            <summary className="inline-flex min-h-9 cursor-pointer items-center text-xs font-semibold text-violet-800">
               View request details
             </summary>
 

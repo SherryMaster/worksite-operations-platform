@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,16 +68,52 @@ export function WorkerForm({
   values: WorkerFormValues;
 }) {
   const [state, formAction, pending] = useActionState(action, initialState);
+  const [step, setStep] = useState(0);
   const create = mode === "create";
+  const steps = create
+    ? ["Identity", "Work details", "Employment", "Notes"]
+    : ["Identity", "Work details", "Notes"];
+  const lastStep = steps.length - 1;
 
   return (
-    <form action={formAction} className="space-y-8">
-      <section className="border border-violet-100 bg-white">
+    <form action={formAction} className="space-y-4" noValidate>
+      <nav aria-label="Worker form progress">
+        <ol
+          className={`grid overflow-hidden rounded-lg border border-slate-200 bg-white ${
+            create ? "grid-cols-4" : "grid-cols-3"
+          }`}
+        >
+          {steps.map((label, index) => (
+            <li
+              key={label}
+              className={
+                index === step
+                  ? "border-b-2 border-violet-700 bg-violet-50 px-2 py-2 text-center text-xs font-semibold text-violet-800"
+                  : "border-b-2 border-transparent px-2 py-2 text-center text-xs text-slate-500"
+              }
+              aria-current={index === step ? "step" : undefined}
+            >
+              <span className="hidden sm:inline">
+                {index + 1}. {label}
+              </span>
+              <span className="sm:hidden">{index + 1}</span>
+            </li>
+          ))}
+        </ol>
+        <p className="mt-2 text-sm font-semibold">
+          Step {step + 1} of {steps.length}: {steps[step]}
+        </p>
+      </nav>
+
+      <section
+        hidden={step !== 0}
+        className="rounded-lg border border-slate-200 bg-white"
+      >
         <div className="border-b border-slate-200 p-5">
-          <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-violet-700">
+          <p className="text-xs font-semibold text-slate-500">
             Permanent profile
           </p>
-          <h2 className="mt-1 font-heading text-2xl font-semibold uppercase">
+          <h2 className="mt-1 font-heading text-xl font-semibold">
             Identity and contact
           </h2>
         </div>
@@ -170,12 +206,15 @@ export function WorkerForm({
         </div>
       </section>
 
-      <section className="border border-violet-100 bg-white">
+      <section
+        hidden={step !== 1}
+        className="rounded-lg border border-slate-200 bg-white"
+      >
         <div className="border-b border-slate-200 p-5">
-          <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-violet-700">
+          <p className="text-xs font-semibold text-slate-500">
             Work authorization
           </p>
-          <h2 className="mt-1 font-heading text-2xl font-semibold uppercase">
+          <h2 className="mt-1 font-heading text-xl font-semibold">
             Permit and classification
           </h2>
         </div>
@@ -266,12 +305,15 @@ export function WorkerForm({
       </section>
 
       {create ? (
-        <section className="border border-violet-100 bg-white">
+        <section
+          hidden={step !== 2}
+          className="rounded-lg border border-slate-200 bg-white"
+        >
           <div className="border-b border-slate-200 p-5">
-            <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-violet-700">
+            <p className="text-xs font-semibold text-slate-500">
               Initial history
             </p>
-            <h2 className="mt-1 font-heading text-2xl font-semibold uppercase">
+            <h2 className="mt-1 font-heading text-xl font-semibold">
               Employment, rate, and assignment
             </h2>
           </div>
@@ -357,8 +399,14 @@ export function WorkerForm({
         </section>
       ) : null}
 
-      <section className="border border-violet-100 bg-white p-5">
-        <Label htmlFor="notes">Operational Notes (Optional)</Label>
+      <section
+        hidden={step !== lastStep}
+        className="rounded-lg border border-slate-200 bg-white p-5"
+      >
+        <h2 className="font-heading text-xl font-semibold">Final notes</h2>
+        <Label htmlFor="notes" className="mt-5">
+          Operational notes (optional)
+        </Label>
         <Textarea
           id="notes"
           name="notes"
@@ -368,7 +416,7 @@ export function WorkerForm({
         />
       </section>
 
-      {state.duplicateWorkerId ? (
+      {state.duplicateWorkerId && step === lastStep ? (
         <section className="border border-amber-300 bg-amber-50 p-5">
           <p className="font-semibold text-amber-950">
             Possible duplicate: {state.duplicateWorkerName}
@@ -394,17 +442,36 @@ export function WorkerForm({
         </section>
       ) : null}
 
-      <div className="flex flex-wrap items-center gap-4">
-        <Button
-          type="submit"
-          size="lg"
-          disabled={pending}
-          aria-busy={pending}
-          className="rounded-xl bg-violet-700 px-6 text-white"
-        >
-          {pending ? <Spinner aria-hidden="true" /> : null}
-          {pending ? "Saving…" : create ? "Create Worker" : "Save Worker"}
-        </Button>
+      <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-10 flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-white/95 p-3 shadow-sm backdrop-blur md:static md:border-0 md:bg-transparent md:p-0 md:shadow-none">
+        {step > 0 ? (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setStep((current) => current - 1)}
+          >
+            Back
+          </Button>
+        ) : null}
+        {step < lastStep ? (
+          <Button
+            type="button"
+            onClick={() => setStep((current) => current + 1)}
+            className="bg-violet-700 text-white"
+          >
+            Continue
+          </Button>
+        ) : (
+          <Button
+            type="submit"
+            size="lg"
+            disabled={pending}
+            aria-busy={pending}
+            className="rounded-xl bg-violet-700 px-6 text-white"
+          >
+            {pending ? <Spinner aria-hidden="true" /> : null}
+            {pending ? "Saving…" : create ? "Create worker" : "Save worker"}
+          </Button>
+        )}
         <Link
           href={create ? "/ceo/workers" : ".."}
           className="text-sm font-semibold text-slate-600 hover:text-slate-950"

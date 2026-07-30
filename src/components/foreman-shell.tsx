@@ -28,9 +28,9 @@ export function ForemanShell({
             <BrandMark />
           </span>
         </div>
-        <div className="mt-5 hidden rounded-lg border border-violet-100 bg-violet-50 p-3 xl:block">
-          <p className="text-[0.65rem] font-semibold uppercase tracking-wider text-violet-700">
-            Assigned Project
+        <div className="mt-5 hidden rounded-lg border border-slate-200 bg-slate-50 p-3 xl:block">
+          <p className="text-[0.65rem] font-semibold uppercase tracking-wider text-slate-500">
+            Assigned project
           </p>
           <p className="mt-1 truncate text-sm font-semibold text-slate-950">
             {projectName ?? "Awaiting assignment"}
@@ -45,7 +45,7 @@ export function ForemanShell({
       </aside>
 
       <div className="md:pl-20 xl:pl-64">
-        <header className="sticky top-0 z-30 flex min-h-14 items-center justify-between border-b border-slate-200 bg-white/95 px-4 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top))] backdrop-blur sm:px-6 md:py-2">
+        <header className="sticky top-0 z-30 flex min-h-14 items-center justify-between border-b border-slate-200 bg-white/98 px-3 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top))] sm:px-5 md:py-2">
           <div className="flex min-w-0 items-center gap-3">
             <div className="md:hidden">
               <BrandMark compact />

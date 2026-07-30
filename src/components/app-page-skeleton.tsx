@@ -6,37 +6,37 @@ export function AppPageSkeleton({ compact = false }: { compact?: boolean }) {
     <main
       aria-busy="true"
       aria-live="polite"
-      className={cn(compact ? "px-4 pb-24 pt-6" : "px-5 py-8 sm:px-8 lg:py-10")}
+      className={cn(compact ? "px-3 pb-24 pt-4" : "px-3 py-4 sm:px-5")}
     >
       <span className="sr-only">Loading workspace</span>
-      <div className={cn("space-y-3", compact ? "" : "max-w-5xl")}>
-        <Skeleton className="h-3 w-28 rounded-xl bg-slate-200" />
+      <div className={cn("space-y-2", compact ? "" : "max-w-5xl")}>
         <Skeleton
           className={cn(
             "rounded-xl bg-slate-200",
-            compact ? "h-8 w-48" : "h-12 w-72",
+            compact ? "h-7 w-40" : "h-8 w-52",
           )}
         />
-        <Skeleton className="h-4 w-full max-w-xl rounded-xl bg-slate-200" />
+        <Skeleton className="h-3 w-full max-w-sm rounded-xl bg-slate-200" />
       </div>
+      <Skeleton className="mt-4 h-11 w-full max-w-md rounded-lg bg-slate-200" />
       <div
         className={cn(
-          "mt-7 grid gap-4",
-          compact ? "grid-cols-1" : "md:grid-cols-2 xl:grid-cols-3",
+          "mt-3 overflow-hidden rounded-lg border border-slate-200 bg-white",
+          compact ? "" : "max-w-6xl",
         )}
       >
-        {Array.from({ length: compact ? 4 : 6 }, (_, index) => (
-          <section
+        {Array.from({ length: 6 }, (_, index) => (
+          <div
             key={index}
-            className="space-y-4 border border-slate-200 bg-white p-5"
+            className="flex min-h-16 items-center gap-3 border-b border-slate-100 px-3 py-2 last:border-0"
           >
-            <div className="flex items-center justify-between gap-4">
-              <Skeleton className="h-5 w-2/3 rounded-xl bg-slate-200" />
-              <Skeleton className="h-7 w-16 rounded-xl bg-slate-200" />
+            <Skeleton className="size-9 shrink-0 rounded-full bg-slate-200" />
+            <div className="min-w-0 flex-1 space-y-2">
+              <Skeleton className="h-3.5 w-2/3 rounded-xl bg-slate-200" />
+              <Skeleton className="h-3 w-1/2 rounded-xl bg-slate-200" />
             </div>
-            <Skeleton className="h-3 w-1/2 rounded-xl bg-slate-200" />
-            <Skeleton className="h-11 w-full rounded-xl bg-slate-200" />
-          </section>
+            <Skeleton className="h-8 w-16 shrink-0 rounded-lg bg-slate-200" />
+          </div>
         ))}
       </div>
     </main>
