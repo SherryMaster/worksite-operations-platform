@@ -13,7 +13,8 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:db": "node scripts/run-database-tests.mjs",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:smoke": "playwright test --grep @smoke --workers=1 --retries=0"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

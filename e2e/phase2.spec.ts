@@ -18,7 +18,7 @@ test.afterEach(async ({ isMobile }) => {
   }
 });
 
-test("the CEO can create, update, and audit a project from the app", async ({
+test("@smoke the CEO can create, update, and audit a project from the app", async ({
   page,
 }) => {
   test.slow();

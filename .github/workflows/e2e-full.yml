@@ -1,21 +1,19 @@
-name: Phase checks
+name: Full E2E regression
 
 on:
-  pull_request:
-  push:
-    branches:
-      - main
+  schedule:
+    - cron: "0 6 * * *"
   workflow_dispatch:
 
 concurrency:
-  group: phase-${{ github.workflow }}-${{ github.ref }}
+  group: full-e2e-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  validate:
-    name: Validate application and access boundaries
+  full-e2e:
+    name: Run full Playwright regression
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     env:
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
       CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
@@ -40,23 +38,5 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Check formatting
-        run: npm run format:check
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Type-check
-        run: npm run typecheck
-
-      - name: Run unit and component tests
-        run: npm run test:run
-
-      - name: Prove database policies
-        run: npm run test:db
-
-      - name: Build production bundle
-        run: npm run build
-
-      - name: Run critical E2E smoke suite
-        run: npm run test:e2e:smoke
+      - name: Run full E2E regression
+        run: npm run test:e2e

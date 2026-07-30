@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 
 import { getPhaseOneTestUser } from "./support/clerk-users";
 
-test("an unauthenticated visitor is sent to company sign-in", async ({
+test("@smoke an unauthenticated visitor is sent to company sign-in", async ({
   page,
 }) => {
   await page.goto("/ceo", { waitUntil: "commit" });
@@ -14,7 +14,7 @@ test("an unauthenticated visitor is sent to company sign-in", async ({
   ).toBeVisible();
 });
 
-test("the CEO can open the responsive application shell", async ({
+test("@smoke the CEO can open the responsive application shell", async ({
   isMobile,
   page,
 }) => {
@@ -38,7 +38,7 @@ test("the CEO can open the responsive application shell", async ({
   ).toBeVisible();
 });
 
-test("an active Foreman can open the assigned responsive workspace", async ({
+test("@smoke an active Foreman can open the assigned responsive workspace", async ({
   isMobile,
   page,
 }) => {
