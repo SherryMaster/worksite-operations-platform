@@ -415,12 +415,14 @@ The repository owner cannot meaningfully review runtime application changes unti
 8. open one draft pull request against the default branch;
 9. monitor required CI and preview-deployment checks;
 10. fix failures on the same branch and repeat until required checks pass;
-11. wait for one stable PR preview/UAT deployment;
-12. perform focused UAT against the live deployment, including relevant desktop and mobile states;
-13. mark the pull request ready for review only after required CI and UAT succeed;
-14. report the pull request URL, live UAT URL, tested roles, test-data limitations, checks, and UAT results.
+11. deploy the exact validated branch commit to the canonical UAT application at `https://worksite-operations-platform-uat.vercel.app/`;
+12. verify that the canonical UAT URL serves the current branch commit, then perform focused UAT there, including relevant desktop and mobile states;
+13. mark the pull request ready for review only after required CI and canonical UAT succeed;
+14. report the pull request URL, canonical UAT URL, tested roles, test-data limitations, checks, and UAT results.
 
-Do not stop after local implementation when this workflow applies. A runtime implementation task is not complete merely because code, unit tests, or a local build passes.
+The only user-review UAT origin is `https://worksite-operations-platform-uat.vercel.app/`. Always update that existing Vercel UAT project or alias so its Clerk credentials, Supabase configuration, browser storage, and installed PWA origin remain stable. Generated Vercel preview URLs may be used as intermediate CI evidence, but they are not the UAT environment and must not be reported or tested as the final UAT link.
+
+Do not stop after local implementation when this workflow applies. A runtime implementation task is not complete merely because code, unit tests, a local build, or a generated preview deployment passes.
 
 If repository permissions, CI secrets, authentication configuration, deployment integration, or the UAT environment blocks completion:
 
@@ -430,15 +432,16 @@ If repository permissions, CI secrets, authentication configuration, deployment 
 - state the single action required from the user or repository administrator;
 - classify the task as blocked, not complete.
 
-This default authorizes feature branches, commits, pushes, pull requests, required CI repair, and PR preview/UAT deployments. It does not authorize merging, production deployment, destructive database operations, production environment changes, or production-data access.
+This default authorizes feature branches, commits, pushes, pull requests, required CI repair, and deployment of the validated branch commit to the existing canonical UAT application. It does not authorize merging, production deployment, destructive database operations, production environment changes, or production-data access.
 
 ## UAT and Deployment Safety
 
-PR preview/UAT deployment is authorized by the default workflow above for runtime implementation tasks. Do not merge, deploy to production, perform destructive database operations, or alter production environment configuration unless the user explicitly authorizes it.
+Deployment to the existing canonical UAT application at `https://worksite-operations-platform-uat.vercel.app/` is authorized by the default workflow above for runtime implementation tasks. Do not merge, deploy to production, perform destructive database operations, or alter production environment configuration unless the user explicitly authorizes it.
 
 When a task requires a UAT deployment, whether through the default workflow or an explicit task instruction:
 
-- use one stable UAT update after the authorized implementation and final validation, not after every screen;
+- deploy the exact validated branch commit to the existing canonical UAT application, never to a newly created Vercel project or a generated preview URL;
+- use one stable canonical UAT update after the authorized implementation and final validation, not after every screen;
 - preserve production authentication and authorization;
 - never expose production data, production secrets, or private worker files;
 - use isolated synthetic UAT data;
@@ -450,7 +453,8 @@ When a task requires a UAT deployment, whether through the default workflow or a
 - verify both CEO and Foreman scopes;
 - verify that Foreman access remains project-scoped;
 - verify that UAT changes do not weaken server-side authorization;
-- report the UAT URL, test roles, synthetic-data limitations, and any intentional visual differences.
+- verify the canonical UAT URL is serving the intended validated commit before testing;
+- report the canonical UAT URL, tested commit, test roles, synthetic-data limitations, and any intentional visual differences.
 
 Do not merge a pull request or update production unless the user explicitly requests it.
 
@@ -480,8 +484,8 @@ For each task:
     - mobile overflow;
     - reference-image artifacts copied literally.
 12. For a final implementation checkpoint, run the complete applicable validation.
-13. When the default repository/UAT workflow applies, create or update the single pull request, wait for required CI and preview deployment, repair failures, and perform live UAT.
-14. Report completed behavior, files, tests, validation, CI, pull request, live UAT URL, UAT results, intentional differences, exclusions, and blockers.
+13. When the default repository/UAT workflow applies, create or update the single pull request, wait for required CI, repair failures, deploy the validated commit to the canonical UAT application, and perform live UAT there.
+14. Report completed behavior, files, tests, validation, CI, pull request, canonical UAT URL, tested commit, UAT results, intentional differences, exclusions, and blockers.
 
 A well-formed task should specify:
 
@@ -513,4 +517,4 @@ End with:
 
 Do not claim completion when required validation, visual verification, or UAT work has not been performed.
 
-For runtime implementation tasks covered by the default workflow, do not claim completion until the live UAT URL is available and required UAT has been performed. If an external dependency prevents that, report the task as blocked.
+For runtime implementation tasks covered by the default workflow, do not claim completion until `https://worksite-operations-platform-uat.vercel.app/` serves the validated branch commit and required UAT has been performed there. If an external dependency prevents that, report the task as blocked.
