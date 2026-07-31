@@ -6,9 +6,11 @@
 
 **Branch:** `fix/attendance-sync-resolution`
 **Base commit:** `cb9f696` (main @ 2026-07-30)
-**Head commit:** `f7863db` (PROGRESS.md format fix)
+**Head commit:** `52c6630` (route runtime tasks to the canonical UAT application)
 **PR:** https://github.com/SherryMaster/worksite-operations-platform/pull/15
-**Live UAT URL:** https://worksite-operations-platform-git-1277b9-sherrymasters-projects.vercel.app
+**Canonical UAT URL:** https://worksite-operations-platform-uat.vercel.app/
+**Canonical UAT deployment:** `dpl_5XzjV7JgQzm6jiC3xT4Zez5PAYaP` (`worksite-operations-platform-akuzvlje8-sherrymasters-projects.vercel.app`)
+**CI / preview evidence only:** https://worksite-operations-platform-git-1277b9-sherrymasters-projects.vercel.app
 
 #### Scope
 
@@ -90,13 +92,21 @@ be re-run against the PR preview.
 
 - Phase checks (`Validate application and access boundaries`):
   passed — run 30638824324.
-- Vercel preview deployment: passed —
+- Vercel CI/preview deployment for the PR: passed —
   https://worksite-operations-platform-git-1277b9-sherrymasters-projects.vercel.app
+  (used as CI evidence only; not the UAT environment).
 - CodeRabbit: skipped (draft pull request).
-- Preview deployment health: `GET /foreman` returns 200 and the rendered
-  HTML contains the `AttendanceWorkspace` mount point; unauthenticated
+- CI/preview health: `GET /foreman` returns 200 and the rendered HTML
+  contains the `AttendanceWorkspace` mount point; unauthenticated
   visitors are redirected to `/sign-in` as expected. No application
   errors were returned during the smoke check.
+- Canonical UAT deployment: the validated branch commit (`52c6630`)
+  was deployed to Vercel preview build `dpl_5XzjV7JgQzm6jiC3xT4Zez5PAYaP`
+  (source URL `worksite-operations-platform-akuzvlje8-sherrymasters-projects.vercel.app`),
+  then aliased to the existing canonical UAT application at
+  `https://worksite-operations-platform-uat.vercel.app/`. `GET /foreman`
+  on the canonical UAT URL returns 200 with the new bundle; alias
+  confirmed via `vercel alias ls`.
 
 #### Live UAT scenarios and results
 
@@ -106,12 +116,16 @@ session is available there. The task brief explicitly anticipates this
 case and allows the closest safe end-to-end verification with isolated
 synthetic records.
 
-What was exercised on the live preview URL:
+What was exercised on the canonical UAT URL:
 
-- `GET /foreman` — 200, redirects to `/sign-in`, mounts
-  `AttendanceWorkspace`. Confirms the new bundle is deployed.
-- `GET /ceo/attendance` — expected to redirect to `/sign-in` (the CEO
-  requires an authenticated Clerk session).
+- `GET /foreman` against
+  `https://worksite-operations-platform-uat.vercel.app/` — 200,
+  redirects to `/sign-in`, mounts `AttendanceWorkspace`. Confirms the
+  canonical UAT alias now resolves to the validated branch commit
+  `52c6630`.
+- `GET /ceo/attendance` against the canonical URL — expected to
+  redirect to `/sign-in` (the CEO requires an authenticated Clerk
+  session).
 
 What must be performed by the repository owner with the existing safe
 UAT access mechanism (synthetic Clerk users) before the PR is marked
@@ -171,6 +185,17 @@ Synthetic-data limitations:
   existing server session for the same worker and timestamp; the
   per-id idempotency of the RPC guarantees a deterministic `CONFLICT`
   response in both cases.
+
+#### Canonical UAT alias history
+
+- `worksite-operations-platform-uat.vercel.app` was previously aliased
+  to deployment `worksite-operations-platform-58cdfk8r7-sherrymasters-projects.vercel.app`
+  (7 days old).
+- It now resolves to deployment `dpl_5XzjV7JgQzm6jiC3xT4Zez5PAYaP`
+  (source URL `worksite-operations-platform-akuzvlje8-sherrymasters-projects.vercel.app`)
+  which serves branch `fix/attendance-sync-resolution` at commit
+  `52c6630`. The Clerk credentials, Supabase configuration, browser
+  storage origin, and PWA installation origin are preserved.
 
 #### Intentional reference differences
 
