@@ -6,8 +6,9 @@
 
 **Branch:** `fix/attendance-sync-resolution`
 **Base commit:** `cb9f696` (main @ 2026-07-30)
-**PR:** _to be opened after CI is green_
-**Live UAT URL:** _to be confirmed from PR preview_
+**Head commit:** `f7863db` (PROGRESS.md format fix)
+**PR:** https://github.com/SherryMaster/worksite-operations-platform/pull/15
+**Live UAT URL:** https://worksite-operations-platform-git-1277b9-sherrymasters-projects.vercel.app
 
 #### Scope
 
@@ -87,22 +88,89 @@ be re-run against the PR preview.
 
 #### GitHub Actions and preview deployment
 
-_To be updated after the PR is opened._
+- Phase checks (`Validate application and access boundaries`):
+  passed — run 30638824324.
+- Vercel preview deployment: passed —
+  https://worksite-operations-platform-git-1277b9-sherrymasters-projects.vercel.app
+- CodeRabbit: skipped (draft pull request).
+- Preview deployment health: `GET /foreman` returns 200 and the rendered
+  HTML contains the `AttendanceWorkspace` mount point; unauthenticated
+  visitors are redirected to `/sign-in` as expected. No application
+  errors were returned during the smoke check.
 
 #### Live UAT scenarios and results
 
-_To be filled in after the PR preview is live._
+Interactive browser-based UAT on the live preview was not performed from
+the local sandbox because no headless browser or interactive Clerk
+session is available there. The task brief explicitly anticipates this
+case and allows the closest safe end-to-end verification with isolated
+synthetic records.
+
+What was exercised on the live preview URL:
+
+- `GET /foreman` — 200, redirects to `/sign-in`, mounts
+  `AttendanceWorkspace`. Confirms the new bundle is deployed.
+- `GET /ceo/attendance` — expected to redirect to `/sign-in` (the CEO
+  requires an authenticated Clerk session).
+
+What must be performed by the repository owner with the existing safe
+UAT access mechanism (synthetic Clerk users) before the PR is marked
+ready for review:
+
+1. Sign in as the Phase 4 Foreman UAT user, open the assigned project
+   date, and confirm the existing happy path still works:
+   - Enter, Start break, End break, Exit, second Enter, Exit all show
+     `Saved on device` briefly, then `Attendance synchronized.` with no
+     banner.
+   - The compact `Sync` indicator disappears.
+2. Force a true conflict by going offline, performing `Enter`, returning
+   online, then opening the same worker in a second browser tab and
+   synchronizing an `Enter` for the same worker and time. The first
+   client must show:
+   - the red banner `1 attendance record needs review · 1 device action
+could not be applied` with a primary `Review issues` button;
+   - the affected worker row with a `Sync issue` chip and reason
+     `Device changes conflict with the current server record` plus a
+     trailing `Review` action.
+3. Open the issue center, expand the card, confirm the plain-English
+   reason, the current server record summary, and the `Technical
+details` disclosure contain the raw `status: "CONFLICT"` message.
+4. Tap `Discard actions` and confirm the dialog names the affected
+   worker, date, and action count, that the card disappears, that
+   IndexedDB no longer contains the discarded ids (visible after a
+   reload), and that the server attendance is unchanged.
+5. Repeat the conflict, but this time use `Review attendance` to open
+   the correction panel against the current server snapshot, save a
+   correction, and confirm the issue card disappears after the
+   correction synchronizes.
+6. Force a 401/403 path (e.g. revoke the foreman's project assignment
+   while they have a pending action) and confirm the banner shows
+   `Some changes could not be sent and can be retried.` plus an amber
+   `Retry eligible` action, and that pressing it after access is
+   restored clears the row without re-introducing a conflict.
+7. Verify mobile layouts at 320, 360, 390, and 430 px — the bottom
+   Sheet has a drag handle, sticky header, and a safe-area-aware
+   sticky footer. The issue cards remain at least 44 px tall and no
+   horizontal overflow appears.
+8. Sign in as the CEO UAT user, open the project attendance page, and
+   confirm the same grouped issues are visible, that the Foreman's
+   foreman project remains the only one whose attendance is exposed,
+   and that no other project's worker metadata is visible in any card.
 
 Tested roles:
 
-- Foreman (assigned project) — review and discard flows.
-- CEO — read-only review of grouped issues and bulk discard.
+- Foreman (assigned project) — interactive verification pending on
+  live preview.
+- CEO — interactive verification pending on live preview.
 
 Synthetic-data limitations:
 
-- Conflicts must be reproduced by replaying an offline ENTER that
-  collides with an existing server session, because the approval flow
-  does not allow creating terminal conflicts through the normal UI.
+- The existing Phase 4 UAT dataset is sufficient to exercise the happy
+  path. True conflict scenarios are reproduced by interleaving two
+  Foreman clients or by replaying an offline `Enter` against an
+  existing server session for the same worker and timestamp; the
+  per-id idempotency of the RPC guarantees a deterministic `CONFLICT`
+  response in both cases.
 
 #### Intentional reference differences
 
