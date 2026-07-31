@@ -250,7 +250,11 @@ describe("selectResolutionsAfterCorrection", () => {
     expect(ids).toEqual(["review-1", "review-2"]);
   });
 
-  it("identifies and removes older review-required actions after a successful correction in the operational flow", () => {
+  it("resolves older review-required actions from the stored queue after a successful correction in the operational flow", () => {
+    // Older REVIEW_REQUIRED actions for worker A are already in IndexedDB
+    // from previous sync rounds, plus a REVIEW_REQUIRED action for worker B
+    // that belongs to a different worker. The pending CORRECT_DAY is
+    // waiting to be sent to the server.
     const reviewA1 = reviewAction({
       actionType: "ENTER",
       clientActionId: "a-enter",
@@ -263,14 +267,13 @@ describe("selectResolutionsAfterCorrection", () => {
       serverStatus: "FAILED",
       workerId: WORKER_A,
     });
-    // Other worker on the same project/date: must not be cleared by A's correction.
     const reviewB1 = reviewAction({
       actionType: "ENTER",
       clientActionId: "b-enter",
       serverStatus: "CONFLICT",
       workerId: WORKER_B,
     });
-    const correction: AttendanceQueueAction = {
+    const pendingCorrection: AttendanceQueueAction = {
       actionType: "CORRECT_DAY",
       clientActionId: "correct-a",
       createdAt: "2026-07-20T18:00:00+08:00",
@@ -279,15 +282,44 @@ describe("selectResolutionsAfterCorrection", () => {
       message: null,
       payload: {},
       projectId: PROJECT,
-      serverStatus: "SYNCED",
-      state: "SYNCED",
+      serverStatus: null,
+      state: "PENDING",
       workDate: WORK_DATE,
       workerId: WORKER_A,
     };
-    const all = [reviewA1, reviewA2, reviewB1, correction];
-    const ids = selectResolutionsAfterCorrection(all, correction);
-    // The correction is itself excluded; only A's older review-required
-    // actions are returned. Worker B's actions remain untouched.
+    const stored = [reviewA1, reviewA2, reviewB1, pendingCorrection];
+
+    // The current synchronization request only carries the pending
+    // actions, and the server response only contains verdicts for those
+    // ids. The CORRECT_DAY came back SYNCED; the others are not in this
+    // round at all.
+    const currentResults: AttendanceQueueAction[] = [
+      {
+        ...pendingCorrection,
+        issueKind: null,
+        lastAttemptAt: new Date().toISOString(),
+        message: null,
+        serverStatus: "SYNCED",
+        state: "SYNCED",
+      },
+    ];
+
+    // The component merges the freshly classified actions into the
+    // stored queue before asking which older rows can be cleaned up.
+    const nextMap = new Map(
+      currentResults.map((action) => [action.clientActionId, action]),
+    );
+    const mergedQueue = stored.map(
+      (action) => nextMap.get(action.clientActionId) ?? action,
+    );
+
+    const correction = mergedQueue.find(
+      (action) => action.clientActionId === "correct-a",
+    )!;
+    const ids = selectResolutionsAfterCorrection(mergedQueue, correction);
+
+    // The successful correction clears worker A's older review actions,
+    // leaves worker B's issue alone, and never selects itself.
     expect(ids).toEqual(["a-enter", "a-exit"]);
     expect(ids).not.toContain("correct-a");
     expect(ids).not.toContain("b-enter");

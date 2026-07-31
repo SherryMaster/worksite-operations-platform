@@ -871,6 +871,16 @@ export function AttendanceWorkspace({
           // The correction action itself remains in the queue and is
           // pruned by `pruneSyncedAttendanceActions` once the snapshot is
           // refreshed.
+          //
+          // Older terminal REVIEW_REQUIRED actions are not in `next` (which
+          // only holds the just-classified pending actions). Merge `next`
+          // into the stored queue so the cleanup can see them.
+          const nextMap = new Map(
+            next.map((action) => [action.clientActionId, action]),
+          );
+          const mergedQueue = stored.map(
+            (action) => nextMap.get(action.clientActionId) ?? action,
+          );
           const successfulCorrections = next.filter(
             (action) =>
               action.actionType === "CORRECT_DAY" && action.state === "SYNCED",
@@ -878,7 +888,10 @@ export function AttendanceWorkspace({
           if (successfulCorrections.length > 0) {
             const removableIds = new Set<string>();
             for (const correction of successfulCorrections) {
-              const ids = selectResolutionsAfterCorrection(next, correction);
+              const ids = selectResolutionsAfterCorrection(
+                mergedQueue,
+                correction,
+              );
               for (const id of ids) {
                 if (id !== correction.clientActionId) {
                   removableIds.add(id);
