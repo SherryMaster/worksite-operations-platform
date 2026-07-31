@@ -32,6 +32,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   buildAttendanceIssueGroups,
   classifyIssue,
@@ -341,6 +342,7 @@ export function AttendanceSyncIssues({
   retryableActionIds,
   snapshot,
 }: AttendanceSyncIssuesProps) {
+  const isMobile = useIsMobile();
   const [tab, setTab] = useState<"review" | "pending">("review");
   const [pendingDiscard, setPendingDiscard] =
     useState<AttendanceSyncIssueGroup | null>(null);
@@ -378,10 +380,21 @@ export function AttendanceSyncIssues({
     <>
       <Sheet open={open} onOpenChange={(next) => !next && onClose()}>
         <SheetContent
-          side="right"
-          className="flex h-full w-full max-w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-140 sm:rounded-l-xl"
+          side={isMobile ? "bottom" : "right"}
+          className={cn(
+            "flex flex-col gap-0 overflow-hidden p-0",
+            isMobile
+              ? "inset-x-0 bottom-0 h-auto max-h-[92dvh] w-full rounded-t-xl border-t"
+              : "h-full w-full max-w-full sm:max-w-140 sm:rounded-l-xl",
+          )}
         >
-          <SheetHeader className="flex flex-row items-start gap-3 border-b border-slate-200 px-4 py-4 text-left">
+          {isMobile ? (
+            <div
+              aria-hidden="true"
+              className="mx-auto mt-2 h-1.5 w-12 shrink-0 rounded-full bg-slate-300"
+            />
+          ) : null}
+          <SheetHeader className="flex shrink-0 flex-row items-start gap-3 border-b border-slate-200 px-4 py-4 text-left">
             <div className="min-w-0 flex-1">
               <SheetTitle>Attendance sync issues</SheetTitle>
               <SheetDescription>
@@ -397,7 +410,12 @@ export function AttendanceSyncIssues({
             </SheetClose>
           </SheetHeader>
 
-          <div className="space-y-3 overflow-y-auto px-4 py-4">
+          <div
+            className={cn(
+              "min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 py-4",
+              isMobile && "pb-2",
+            )}
+          >
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
               <p className="font-semibold">
                 {groups.length} {groups.length === 1 ? "record" : "records"}{" "}
@@ -496,7 +514,7 @@ export function AttendanceSyncIssues({
             </Tabs>
           </div>
 
-          <footer className="mt-auto flex flex-wrap items-center gap-2 border-t border-slate-200 bg-white px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+          <footer className="mt-auto flex shrink-0 flex-wrap items-center gap-2 border-t border-slate-200 bg-white px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
             <p className="mr-auto text-[0.6875rem] text-slate-500">
               {totalActions} device {totalActions === 1 ? "action" : "actions"}{" "}
               · {groups.length} need review

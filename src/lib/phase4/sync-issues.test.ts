@@ -249,6 +249,49 @@ describe("selectResolutionsAfterCorrection", () => {
     const ids = selectResolutionsAfterCorrection(actions, correction);
     expect(ids).toEqual(["review-1", "review-2"]);
   });
+
+  it("identifies and removes older review-required actions after a successful correction in the operational flow", () => {
+    const reviewA1 = reviewAction({
+      actionType: "ENTER",
+      clientActionId: "a-enter",
+      serverStatus: "CONFLICT",
+      workerId: WORKER_A,
+    });
+    const reviewA2 = reviewAction({
+      actionType: "EXIT",
+      clientActionId: "a-exit",
+      serverStatus: "FAILED",
+      workerId: WORKER_A,
+    });
+    // Other worker on the same project/date: must not be cleared by A's correction.
+    const reviewB1 = reviewAction({
+      actionType: "ENTER",
+      clientActionId: "b-enter",
+      serverStatus: "CONFLICT",
+      workerId: WORKER_B,
+    });
+    const correction: AttendanceQueueAction = {
+      actionType: "CORRECT_DAY",
+      clientActionId: "correct-a",
+      createdAt: "2026-07-20T18:00:00+08:00",
+      issueKind: null,
+      lastAttemptAt: null,
+      message: null,
+      payload: {},
+      projectId: PROJECT,
+      serverStatus: "SYNCED",
+      state: "SYNCED",
+      workDate: WORK_DATE,
+      workerId: WORKER_A,
+    };
+    const all = [reviewA1, reviewA2, reviewB1, correction];
+    const ids = selectResolutionsAfterCorrection(all, correction);
+    // The correction is itself excluded; only A's older review-required
+    // actions are returned. Worker B's actions remain untouched.
+    expect(ids).toEqual(["a-enter", "a-exit"]);
+    expect(ids).not.toContain("correct-a");
+    expect(ids).not.toContain("b-enter");
+  });
 });
 
 describe("classifyIssue + issueLabel", () => {

@@ -48,6 +48,7 @@ import {
   buildAttendanceIssueGroups,
   inferLegacyActionMetadata,
   primaryReviewAction,
+  selectResolutionsAfterCorrection,
   selectRetryableActionIds,
   shortReason,
 } from "@/lib/phase4/sync-issues";
@@ -863,6 +864,35 @@ export function AttendanceWorkspace({
             setMessage("Some changes could not be sent and can be retried.");
           } else {
             setMessage("Attendance synchronized.");
+          }
+          // A successful CORRECT_DAY resolves every older REVIEW_REQUIRED
+          // action for the same project, worker, and work date. Delete the
+          // resolved queue rows now so the grouped issue card disappears.
+          // The correction action itself remains in the queue and is
+          // pruned by `pruneSyncedAttendanceActions` once the snapshot is
+          // refreshed.
+          const successfulCorrections = next.filter(
+            (action) =>
+              action.actionType === "CORRECT_DAY" && action.state === "SYNCED",
+          );
+          if (successfulCorrections.length > 0) {
+            const removableIds = new Set<string>();
+            for (const correction of successfulCorrections) {
+              const ids = selectResolutionsAfterCorrection(next, correction);
+              for (const id of ids) {
+                if (id !== correction.clientActionId) {
+                  removableIds.add(id);
+                }
+              }
+            }
+            if (removableIds.size > 0) {
+              await deleteAttendanceActions([...removableIds]);
+              setActions((current) =>
+                current.filter(
+                  (action) => !removableIds.has(action.clientActionId),
+                ),
+              );
+            }
           }
           try {
             await refreshSnapshot(projectId, workDate);
