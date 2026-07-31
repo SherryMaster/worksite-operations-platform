@@ -6,9 +6,9 @@
 
 **Branch:** `fix/attendance-sync-resolution`
 **Base commit:** `cb9f696` (main @ 2026-07-30)
-**Latest branch head:** `a5532be` (integrate correction cleanup and add mobile bottom sheet)
+**Latest branch head:** `8a192e8` (record latest head and canonical UAT deployment in PROGRESS.md)
 **Canonical UAT URL:** https://worksite-operations-platform-uat.vercel.app/
-**Canonical UAT deployment:** `dpl_8LtRejw4bw6T9M8iyL4S312LtDy1` (`worksite-operations-platform-ldgtcr9jn-sherrymasters-projects.vercel.app`) — serves branch head `a5532be`
+**Canonical UAT deployment:** `dpl_CECExdm239FrGrwzmkyr99MTCMcS` (`worksite-operations-platform-o0rm3msur-sherrymasters-projects.vercel.app`) — serves branch head `8a192e8`
 **PR:** https://github.com/SherryMaster/worksite-operations-platform/pull/15 (draft)
 **CI / preview evidence only:** https://worksite-operations-platform-git-1277b9-sherrymasters-projects.vercel.app
 
@@ -116,10 +116,10 @@ be re-run against the canonical UAT deployment.
   contains the `AttendanceWorkspace` mount point; unauthenticated
   visitors are redirected to `/sign-in` as expected. No application
   errors were returned during the smoke check.
-- Canonical UAT deployment: the latest branch head commit (`a5532be`)
+- Canonical UAT deployment: the latest branch head commit (`8a192e8`)
   was deployed to Vercel preview build
-  `dpl_8LtRejw4bw6T9M8iyL4S312LtDy1` (source URL
-  `worksite-operations-platform-ldgtcr9jn-sherrymasters-projects.vercel.app`),
+  `dpl_CECExdm239FrGrwzmkyr99MTCMcS` (source URL
+  `worksite-operations-platform-o0rm3msur-sherrymasters-projects.vercel.app`),
   then aliased to the existing canonical UAT application at
   `https://worksite-operations-platform-uat.vercel.app/`. `GET /foreman`
   on the canonical UAT URL returns 200 with the new bundle; alias
@@ -144,7 +144,7 @@ What was exercised on the canonical UAT URL (no authentication):
   `https://worksite-operations-platform-uat.vercel.app/` — 200,
   redirects to `/sign-in`, mounts `AttendanceWorkspace`. Confirms the
   canonical UAT alias now resolves to the latest branch head commit
-  `a5532be`.
+  `8a192e8`.
 - `GET /ceo/attendance` against the canonical URL — expected to
   redirect to `/sign-in` (the CEO requires an authenticated Clerk
   session).
