@@ -84,56 +84,46 @@ without explicit user approval.
 
 ## Testing
 
-Use the smallest validation set appropriate for the change.
+GitHub CI is the primary validator after a branch is pushed. Do not duplicate
+the complete CI suite locally by default.
 
-### Documentation-only changes
+### No local validation required
 
-Usually no code validation is required.
+For documentation, copy, comments, and minor visual-only changes, implement,
+commit, push, and stop. Let CI validate the branch.
 
-### Styling or simple UI changes
+### Targeted validation
 
-Run:
+For behavior or application-logic changes, run at most one directly relevant
+local check when it can catch an obvious problem quickly, such as:
 
-```bash
-npm run lint
-npm run typecheck
-```
+- one affected Vitest file;
+- `npm run typecheck` for substantial TypeScript changes;
+- lint for a focused lint-sensitive change.
 
-Run a focused test only when behavior changed.
+Prefer targeted tests over `npm run test:run`.
 
-### Application logic changes
+### Special subsystems
 
-Run:
+Run relevant specialized validation only when changing that subsystem:
 
-```bash
-npm run lint
-npm run typecheck
-npm run test:run
-```
+- database migrations, policies, RPCs, or database authorization:
+  `npm run test:db`;
+- critical end-to-end workflows: targeted Playwright only when explicitly
+  requested or clearly necessary;
+- dependencies, Next.js configuration, or build configuration:
+  `npm run build`.
 
-A targeted test command is preferred when the affected tests can be selected
-reliably.
+Do not routinely run all of the following locally:
 
-### Database, authorization, payroll, or offline synchronization changes
+- `npm run format:check`;
+- `npm run lint`;
+- `npm run typecheck`;
+- `npm run test:run`.
 
-Run the relevant unit tests and the specific additional validation required
-by the changed subsystem.
+CI runs the standard quality suite automatically after push.
 
-Use `npm run test:db` only for database schema, policy, RPC, or database
-authorization changes.
-
-Use Playwright only for an important end-to-end workflow or when the user
-explicitly requests it.
-
-Run `npm run build` only when changing dependencies, Next.js configuration,
-build behavior, deployment configuration, or when specifically requested.
-
-Do not automatically run every available command.
-
-Do not repeatedly rerun complete validation after documentation-only or
-reporting changes.
-
-Never claim a check passed unless it actually ran successfully.
+Do not wait for or monitor CI after pushing.
 
 ## Git workflow
 
