@@ -72,13 +72,13 @@ the `apply_attendance_action` RPC or the offline queue invariants.
 
 #### Validation
 
-| Command | Result |
-| --- | --- |
-| `npm run format:check` | passed |
-| `npm run lint` | passed (0 errors, 0 warnings) |
-| `npm run typecheck` | passed |
-| `npm run test:run` | 65 tests passed (21 files) |
-| `npm run build` | passed |
+| Command                | Result                        |
+| ---------------------- | ----------------------------- |
+| `npm run format:check` | passed                        |
+| `npm run lint`         | passed (0 errors, 0 warnings) |
+| `npm run typecheck`    | passed                        |
+| `npm run test:run`     | 65 tests passed (21 files)    |
+| `npm run build`        | passed                        |
 
 Focused Playwright E2E was not run from this local environment because
 the task explicitly requires verification on the live PR preview URL.
