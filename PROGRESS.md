@@ -6,10 +6,10 @@
 
 **Branch:** `fix/attendance-sync-resolution`
 **Base commit:** `cb9f696` (main @ 2026-07-30)
-**Deployed commit (canonical UAT):** `a3ea895` (record final canonical UAT deployment serving head commit 2614f00)
-**PR:** https://github.com/SherryMaster/worksite-operations-platform/pull/15
+**Latest branch head:** `a5532be` (integrate correction cleanup and add mobile bottom sheet)
 **Canonical UAT URL:** https://worksite-operations-platform-uat.vercel.app/
-**Canonical UAT deployment:** `dpl_622pPZFxYkCkcJLPHUYS5deyRucV` (`worksite-operations-platform-qs3n9w03w-sherrymasters-projects.vercel.app`) — serves commit `a3ea895`
+**Canonical UAT deployment:** `dpl_8LtRejw4bw6T9M8iyL4S312LtDy1` (`worksite-operations-platform-ldgtcr9jn-sherrymasters-projects.vercel.app`) — serves branch head `a5532be`
+**PR:** https://github.com/SherryMaster/worksite-operations-platform/pull/15 (draft)
 **CI / preview evidence only:** https://worksite-operations-platform-git-1277b9-sherrymasters-projects.vercel.app
 
 #### Scope
@@ -48,6 +48,17 @@ the `apply_attendance_action` RPC or the offline queue invariants.
   imports; replaced by the new attendance issue center).
 - `src/lib/phase4/local-actions.test.ts` — fixture updated to include
   the new normalized fields.
+- `src/components/phase4/attendance-sync-issues.tsx` — now responsive:
+  mobile widths use a near-full-height bottom Sheet with drag handle,
+  sticky header, independently scrolling body, and safe-area-aware
+  sticky footer; desktop/tablet keep the existing right-side Sheet.
+  Uses the existing `useIsMobile` hook and the existing Sheet
+  primitives. No new dependency.
+- `attendance-workspace.tsx` synchronize() now deletes every older
+  `REVIEW_REQUIRED` action for the same project/worker/work date
+  when a `CORRECT_DAY` action returns `SYNCED`. The correction action
+  itself is kept in the queue and pruned by the existing
+  synced-action pruning step after the server snapshot refresh.
 
 #### Behavior implemented
 
@@ -80,13 +91,18 @@ the `apply_attendance_action` RPC or the offline queue invariants.
 | `npm run format:check` | passed                        |
 | `npm run lint`         | passed (0 errors, 0 warnings) |
 | `npm run typecheck`    | passed                        |
-| `npm run test:run`     | 65 tests passed (21 files)    |
+| `npm run test:run`     | 66 tests passed (21 files)    |
 | `npm run build`        | passed                        |
 
+The new test asserts the operational correction cleanup: a successful
+`CORRECT_DAY` identifies only the older review-required actions for
+the corrected worker, leaves the correction itself intact, and does
+not affect other workers on the same project/date.
+
 Focused Playwright E2E was not run from this local environment because
-the task explicitly requires verification on the live PR preview URL.
+the task explicitly requires verification on the live canonical UAT URL.
 The existing `e2e/phase4.spec.ts` flows still apply unchanged and will
-be re-run against the PR preview.
+be re-run against the canonical UAT deployment.
 
 #### GitHub Actions and preview deployment
 
@@ -100,30 +116,35 @@ be re-run against the PR preview.
   contains the `AttendanceWorkspace` mount point; unauthenticated
   visitors are redirected to `/sign-in` as expected. No application
   errors were returned during the smoke check.
-- Canonical UAT deployment: the validated branch head commit
-  (`a3ea895`) was deployed to Vercel preview build
-  `dpl_622pPZFxYkCkcJLPHUYS5deyRucV` (source URL
-  `worksite-operations-platform-qs3n9w03w-sherrymasters-projects.vercel.app`),
+- Canonical UAT deployment: the latest branch head commit (`a5532be`)
+  was deployed to Vercel preview build
+  `dpl_8LtRejw4bw6T9M8iyL4S312LtDy1` (source URL
+  `worksite-operations-platform-ldgtcr9jn-sherrymasters-projects.vercel.app`),
   then aliased to the existing canonical UAT application at
   `https://worksite-operations-platform-uat.vercel.app/`. `GET /foreman`
   on the canonical UAT URL returns 200 with the new bundle; alias
   confirmed via `vercel alias ls`.
+- Phase checks run 30647307229 — passed (after the correction
+  cleanup + mobile bottom sheet change).
 
 #### Live UAT scenarios and results
 
-Interactive browser-based UAT on the live preview was not performed from
-the local sandbox because no headless browser or interactive Clerk
-session is available there. The task brief explicitly anticipates this
-case and allows the closest safe end-to-end verification with isolated
-synthetic records.
+**Interactive UAT status: pending owner verification.**
 
-What was exercised on the canonical UAT URL:
+Interactive browser-based UAT on the canonical UAT URL was not performed
+from the local sandbox because no headless browser or interactive
+Clerk session is available there. The environment has no authenticated
+Clerk browser session, so the task completion criteria for live
+verification are still pending the repository owner. PR #15 remains
+draft and this section must not be marked passed.
+
+What was exercised on the canonical UAT URL (no authentication):
 
 - `GET /foreman` against
   `https://worksite-operations-platform-uat.vercel.app/` — 200,
   redirects to `/sign-in`, mounts `AttendanceWorkspace`. Confirms the
-  canonical UAT alias now resolves to the validated branch commit
-  `a3ea895`.
+  canonical UAT alias now resolves to the latest branch head commit
+  `a5532be`.
 - `GET /ceo/attendance` against the canonical URL — expected to
   redirect to `/sign-in` (the CEO requires an authenticated Clerk
   session).
@@ -174,9 +195,33 @@ details` disclosure contain the raw `status: "CONFLICT"` message.
 
 Tested roles:
 
-- Foreman (assigned project) — interactive verification pending on
-  live preview.
-- CEO — interactive verification pending on live preview.
+- Foreman (assigned project) — interactive verification **pending
+  owner verification** on the canonical UAT URL.
+- CEO — interactive verification **pending owner verification** on
+  the canonical UAT URL.
+
+Shortest exact owner checklist for canonical UAT verification
+(https://worksite-operations-platform-uat.vercel.app/):
+
+1. Sign in as the Phase 4 Foreman UAT user. Open the assigned project
+   date. Confirm that a conflict, when reproduced, is **resolved by a
+   successful correction**: the red banner and grouped issue card
+   disappear and the older `REVIEW_REQUIRED` actions no longer
+   reappear after a page reload.
+2. Sign in as the Phase 4 Foreman UAT user. Reproduce a conflict and
+   use `Discard device actions`. Confirm the dialog names the affected
+   worker, date, and action count; the card disappears; IndexedDB no
+   longer contains the discarded ids after a reload; and the server
+   attendance is unchanged.
+3. Open the issue center at 320, 360, 390, and 430 px. Confirm the
+   bottom Sheet has a drag handle, sticky header, independently
+   scrolling body, safe-area-aware sticky footer, no horizontal
+   overflow, and 44 px controls.
+4. At a desktop or tablet width, reopen the issue center and confirm
+   it opens from the right (unchanged behavior).
+5. Sign in as the CEO UAT user. Confirm the same grouped issues are
+   visible and that only the Foreman's assigned project is exposed
+   (project scope is preserved).
 
 Synthetic-data limitations:
 
