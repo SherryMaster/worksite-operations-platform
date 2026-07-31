@@ -1,6 +1,8 @@
 "use client";
 
 import type {
+  AttendanceActionState,
+  AttendanceIssueKind,
   AttendanceQueueAction,
   AttendanceSnapshot,
 } from "@/lib/phase4/types";
@@ -47,6 +49,54 @@ function transactionComplete(transaction: IDBTransaction) {
     transaction.onerror = () => reject(transaction.error);
     transaction.oncomplete = () => resolve();
   });
+}
+
+/**
+ * Coerce an action that may have been written by an older build into the
+ * current shape. New fields default to safe values; the legacy `NEEDS_ATTENTION`
+ * state is mapped to the new `RETRYABLE`/`REVIEW_REQUIRED` split based on the
+ * stored message wording.
+ */
+function normalizeStoredAction(
+  raw: Partial<AttendanceQueueAction> & { clientActionId: string },
+): AttendanceQueueAction {
+  const legacyState =
+    (raw as { state?: string }).state === "NEEDS_ATTENTION"
+      ? legacyMessageToState((raw as { message?: string | null }).message)
+      : ((raw.state as AttendanceActionState | undefined) ?? "PENDING");
+  return {
+    actionType: (raw.actionType ??
+      "ENTER") as AttendanceQueueAction["actionType"],
+    clientActionId: raw.clientActionId,
+    createdAt: raw.createdAt ?? new Date().toISOString(),
+    issueKind: raw.issueKind ?? null,
+    lastAttemptAt: raw.lastAttemptAt ?? null,
+    message: raw.message ?? null,
+    payload: raw.payload ?? {},
+    projectId: raw.projectId ?? "",
+    serverStatus: raw.serverStatus ?? null,
+    state: legacyState,
+    workDate: raw.workDate ?? "",
+    workerId: raw.workerId ?? null,
+  };
+}
+
+function legacyMessageToState(
+  message: string | null | undefined,
+): AttendanceQueueAction["state"] {
+  const text = (message ?? "").toLowerCase();
+  if (!text) return "REVIEW_REQUIRED";
+  if (
+    text.includes("sign in") ||
+    text.includes("retry when access") ||
+    text.includes("not available")
+  ) {
+    return "RETRYABLE";
+  }
+  if (text.includes("device")) {
+    return "REVIEW_REQUIRED";
+  }
+  return "REVIEW_REQUIRED";
 }
 
 export async function saveAttendanceSnapshot(snapshot: AttendanceSnapshot) {
@@ -100,14 +150,65 @@ export async function saveAttendanceAction(action: AttendanceQueueAction) {
 export async function listAttendanceActions(projectId?: string) {
   const database = await openDatabase();
   const transaction = database.transaction(ACTIONS, "readonly");
-  const actions = (await requestResult(
+  const rows = (await requestResult(
     transaction.objectStore(ACTIONS).index("createdAt").getAll(),
-  )) as AttendanceQueueAction[];
+  )) as Array<Partial<AttendanceQueueAction> & { clientActionId: string }>;
   await transactionComplete(transaction);
   database.close();
-  return actions.filter(
-    (action) => !projectId || action.projectId === projectId,
-  );
+  return rows
+    .map(normalizeStoredAction)
+    .filter((action) => !projectId || action.projectId === projectId);
+}
+
+/**
+ * Remove a single queued action by id. Returns true if a row was deleted.
+ */
+export async function deleteAttendanceAction(clientActionId: string) {
+  const database = await openDatabase();
+  const transaction = database.transaction(ACTIONS, "readwrite");
+  transaction.objectStore(ACTIONS).delete(clientActionId);
+  await transactionComplete(transaction);
+  database.close();
+  return true;
+}
+
+/**
+ * Remove many queued actions in one read-write transaction so a discard
+ * either succeeds completely or leaves the queue untouched.
+ */
+export async function deleteAttendanceActions(clientActionIds: string[]) {
+  if (clientActionIds.length === 0) return;
+  const database = await openDatabase();
+  const transaction = database.transaction(ACTIONS, "readwrite");
+  const store = transaction.objectStore(ACTIONS);
+  for (const id of clientActionIds) {
+    store.delete(id);
+  }
+  await transactionComplete(transaction);
+  database.close();
+}
+
+/**
+ * Remove fully synchronized queue entries. Optionally scope to a project so
+ * other projects' queues survive. Call this after a successful server
+ * snapshot refresh so IndexedDB does not keep growing with rows the server
+ * already confirmed.
+ */
+export async function pruneSyncedAttendanceActions(projectId?: string) {
+  const database = await openDatabase();
+  const transaction = database.transaction(ACTIONS, "readwrite");
+  const store = transaction.objectStore(ACTIONS);
+  const all = (await requestResult(store.getAll())) as Array<
+    Partial<AttendanceQueueAction> & { clientActionId: string }
+  >;
+  for (const raw of all) {
+    const state = (raw.state as AttendanceActionState | undefined) ?? "PENDING";
+    if (state !== "SYNCED") continue;
+    if (projectId && raw.projectId !== projectId) continue;
+    store.delete(raw.clientActionId);
+  }
+  await transactionComplete(transaction);
+  database.close();
 }
 
 export async function clearAttendanceDeviceData() {
@@ -119,3 +220,5 @@ export async function clearAttendanceDeviceData() {
     request.onblocked = () => resolve();
   });
 }
+
+export type { AttendanceIssueKind };

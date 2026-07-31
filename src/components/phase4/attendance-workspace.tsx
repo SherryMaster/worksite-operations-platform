@@ -22,7 +22,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AppPageSkeleton } from "@/components/app-page-skeleton";
-import { SyncCenter } from "@/components/operations/sync-center";
+import { AttendanceSyncIssues } from "@/components/phase4/attendance-sync-issues";
 import {
   Sheet,
   SheetContent,
@@ -36,14 +36,25 @@ import { useOnlineStatus } from "@/hooks/use-online-status";
 import { calculateAttendance, formatMinutes } from "@/lib/phase4/calculations";
 import { applyLocalAttendanceAction } from "@/lib/phase4/local-actions";
 import {
+  deleteAttendanceActions,
   listAttendanceActions,
   loadAttendanceSnapshot,
   loadLatestAttendanceSnapshot,
+  pruneSyncedAttendanceActions,
   saveAttendanceAction,
   saveAttendanceSnapshot,
 } from "@/lib/phase4/offline-store";
+import {
+  buildAttendanceIssueGroups,
+  inferLegacyActionMetadata,
+  primaryReviewAction,
+  selectRetryableActionIds,
+  shortReason,
+} from "@/lib/phase4/sync-issues";
 import type {
+  AttendanceActionState,
   AttendanceActionType,
+  AttendanceIssueKind,
   AttendanceQueueAction,
   AttendanceSession,
   AttendanceSnapshot,
@@ -142,32 +153,8 @@ function actionStateLabel(action: AttendanceQueueAction) {
   if (action.state === "PENDING") return "Saved on device";
   if (action.state === "SYNCING") return "Syncing";
   if (action.state === "SYNCED") return "Synced";
-  return "Needs attention";
-}
-
-function actionWorkerId(
-  action: AttendanceQueueAction,
-  snapshot: AttendanceSnapshot,
-) {
-  if (typeof action.payload.workerId === "string") {
-    return action.payload.workerId;
-  }
-
-  if (typeof action.payload.sessionId === "string") {
-    return snapshot.sessions.find(
-      (session) => session.id === action.payload.sessionId,
-    )?.workerId;
-  }
-
-  if (typeof action.payload.breakId === "string") {
-    return snapshot.sessions.find((session) =>
-      session.breaks.some(
-        (attendanceBreak) => attendanceBreak.id === action.payload.breakId,
-      ),
-    )?.workerId;
-  }
-
-  return undefined;
+  if (action.state === "RETRYABLE") return "Retry when ready";
+  return "Needs review";
 }
 
 function AttendanceListSkeleton() {
@@ -548,6 +535,84 @@ function CorrectionPanel({
   );
 }
 
+type SyncResult = {
+  clientActionId: string;
+  result: {
+    message: string;
+    status: "SYNCED" | "FAILED" | "CONFLICT";
+  };
+};
+
+type Classification = {
+  issueKind: AttendanceIssueKind | null;
+  message: string | null;
+  state: AttendanceActionState;
+};
+
+function classifySyncResult(
+  action: AttendanceQueueAction,
+  result: SyncResult["result"] | null,
+): Classification {
+  if (result?.status === "SYNCED") {
+    return {
+      issueKind: null,
+      message: null,
+      state: "SYNCED",
+    };
+  }
+  if (result?.status === "CONFLICT") {
+    return {
+      issueKind: "CONFLICT",
+      message: result.message,
+      state: "REVIEW_REQUIRED",
+    };
+  }
+  if (result?.status === "FAILED") {
+    return {
+      issueKind: classifyFailedMessage(result.message),
+      message: result.message,
+      state: "REVIEW_REQUIRED",
+    };
+  }
+  return {
+    issueKind: "UNKNOWN",
+    message: "No server response was received.",
+    state: "RETRYABLE",
+  };
+}
+
+function classifyFailedMessage(message: string): AttendanceIssueKind {
+  const text = message.toLowerCase();
+  if (
+    text.includes("no longer have permission") ||
+    text.includes("foreman") ||
+    text.includes("another project") ||
+    text.includes("action identifier belongs to another user")
+  ) {
+    return "AUTHORIZATION";
+  }
+  if (
+    text.includes("session could not be found") ||
+    text.includes("session not found") ||
+    text.includes("break can only start") ||
+    text.includes("end the open break") ||
+    text.includes("open break could not be found")
+  ) {
+    return "DEPENDENCY";
+  }
+  if (
+    text.includes("already exited") ||
+    text.includes("invalid interval") ||
+    text.includes("overlap") ||
+    text.includes("conflicts with the current attendance") ||
+    text.includes("inactive") ||
+    text.includes("not active on this project")
+  ) {
+    return "VALIDATION";
+  }
+  return "UNKNOWN";
+}
+
 export function AttendanceWorkspace({
   context = "today",
   initialSnapshot,
@@ -573,6 +638,7 @@ export function AttendanceWorkspace({
     initialSnapshot?.workDate ?? "",
   );
   const [syncingNow, setSyncingNow] = useState(false);
+  const [issuesOpen, setIssuesOpen] = useState(false);
   const synchronizing = useRef(false);
   const retryTimer = useRef<number | null>(null);
   const snapshotRef = useRef(snapshot);
@@ -583,7 +649,30 @@ export function AttendanceWorkspace({
 
   const reloadActions = useCallback(async (projectId?: string) => {
     const stored = await listAttendanceActions(projectId);
-    setActions(stored);
+    const snapshot = snapshotRef.current;
+    if (snapshot) {
+      const { actions: normalized, inferred } = inferLegacyActionMetadata(
+        stored,
+        snapshot,
+      );
+      if (inferred) {
+        for (const action of normalized) {
+          if (
+            action.workerId !==
+              stored.find((s) => s.clientActionId === action.clientActionId)
+                ?.workerId ||
+            action.workDate !==
+              stored.find((s) => s.clientActionId === action.clientActionId)
+                ?.workDate
+          ) {
+            await saveAttendanceAction(action);
+          }
+        }
+      }
+      setActions(normalized);
+    } else {
+      setActions(stored);
+    }
   }, []);
 
   const refreshSnapshot = useCallback(
@@ -635,22 +724,27 @@ export function AttendanceWorkspace({
         const pendingIds = new Set(
           pending.map((action) => action.clientActionId),
         );
+        const reset: AttendanceQueueAction[] = pending.map((action) => ({
+          ...action,
+          issueKind: null,
+          lastAttemptAt: new Date().toISOString(),
+          message: null,
+          state: "SYNCING",
+        }));
         setActions((current) =>
           current.map((action) =>
             pendingIds.has(action.clientActionId)
-              ? { ...action, message: null, state: "SYNCING" }
+              ? {
+                  ...action,
+                  issueKind: null,
+                  lastAttemptAt: new Date().toISOString(),
+                  message: null,
+                  state: "SYNCING",
+                }
               : action,
           ),
         );
-        await Promise.all(
-          pending.map((action) =>
-            saveAttendanceAction({
-              ...action,
-              message: null,
-              state: "SYNCING",
-            }),
-          ),
-        );
+        await Promise.all(reset.map((action) => saveAttendanceAction(action)));
 
         const controller = new AbortController();
         requestTimeout = window.setTimeout(
@@ -672,54 +766,108 @@ export function AttendanceWorkspace({
             signal: controller.signal,
           });
 
+          if (response.status === 401 || response.status === 403) {
+            const updated: AttendanceQueueAction[] = pending.map((action) => ({
+              ...action,
+              issueKind: "AUTHORIZATION",
+              message: "Sign in again or restore project access, then retry.",
+              serverStatus: null,
+              state: "RETRYABLE",
+            }));
+            await Promise.all(
+              updated.map((action) => saveAttendanceAction(action)),
+            );
+            setActions((current) =>
+              current.map((action) =>
+                pendingIds.has(action.clientActionId)
+                  ? (updated.find(
+                      (u) => u.clientActionId === action.clientActionId,
+                    ) ?? action)
+                  : action,
+              ),
+            );
+            setMessage("Sign in again or restore project access, then retry.");
+            return;
+          }
+
           if (!response.ok) {
             if (response.status >= 500) {
               throw new Error("The attendance service is temporarily busy.");
             }
+            const updated: AttendanceQueueAction[] = pending.map((action) => ({
+              ...action,
+              issueKind: "AUTHORIZATION",
+              message: "Sign in again or restore project access, then retry.",
+              serverStatus: null,
+              state: "RETRYABLE",
+            }));
             await Promise.all(
-              pending.map((action) =>
-                saveAttendanceAction({
-                  ...action,
-                  message: "Sign in again or retry when access is available.",
-                  state: "NEEDS_ATTENTION",
-                }),
+              updated.map((action) => saveAttendanceAction(action)),
+            );
+            setActions((current) =>
+              current.map((action) =>
+                pendingIds.has(action.clientActionId)
+                  ? (updated.find(
+                      (u) => u.clientActionId === action.clientActionId,
+                    ) ?? action)
+                  : action,
               ),
             );
-            setMessage(
-              "Attendance needs attention before it can synchronize. Use Retry sync after checking your access.",
-            );
+            setMessage("Sign in again or restore project access, then retry.");
             return;
           }
 
-          const body = (await response.json()) as {
-            results: Array<{
-              clientActionId: string;
-              result: {
-                message: string;
-                status: "CONFLICT" | "FAILED" | "SYNCED";
-              };
-            }>;
-          };
+          const body = (await response.json()) as { results: SyncResult[] };
           const results = new Map(
             body.results.map((result) => [
               result.clientActionId,
               result.result,
             ]),
           );
-          await Promise.all(
-            pending.map((action) => {
-              const result = results.get(action.clientActionId);
-              return saveAttendanceAction({
-                ...action,
-                message: result?.message ?? "No server response was received.",
-                state:
-                  result?.status === "SYNCED" ? "SYNCED" : "NEEDS_ATTENTION",
-              });
-            }),
-          );
-          setMessage("Attendance synchronized with the server.");
+          const next = pending.map((action) => {
+            const result = results.get(action.clientActionId) ?? null;
+            const classification = classifySyncResult(action, result);
+            return {
+              ...action,
+              issueKind: classification.issueKind,
+              lastAttemptAt: new Date().toISOString(),
+              message: classification.message,
+              serverStatus: result?.status ?? null,
+              state: classification.state,
+            } satisfies AttendanceQueueAction;
+          });
+          await Promise.all(next.map((action) => saveAttendanceAction(action)));
+          setActions((current) => {
+            const nextMap = new Map(
+              next.map((action) => [action.clientActionId, action]),
+            );
+            return current.map(
+              (action) => nextMap.get(action.clientActionId) ?? action,
+            );
+          });
+
+          let hasReviewRequired = false;
+          let hasRetryable = false;
+          for (const action of next) {
+            if (action.state === "REVIEW_REQUIRED") {
+              hasReviewRequired = true;
+            } else if (action.state === "RETRYABLE") {
+              hasRetryable = true;
+            }
+          }
+          if (hasReviewRequired) {
+            setMessage(
+              "Some device changes need review before attendance is complete.",
+            );
+          } else if (hasRetryable) {
+            setMessage("Some changes could not be sent and can be retried.");
+          } else {
+            setMessage("Attendance synchronized.");
+          }
           try {
             await refreshSnapshot(projectId, workDate);
+            await pruneSyncedAttendanceActions(projectId);
+            await reloadActions(projectId);
           } catch {
             setMessage(
               "Attendance synchronized, but the latest view could not be refreshed.",
@@ -730,9 +878,26 @@ export function AttendanceWorkspace({
             pending.map((action) =>
               saveAttendanceAction({
                 ...action,
+                issueKind: null,
+                lastAttemptAt: new Date().toISOString(),
                 message: "Sync paused. It will retry automatically.",
+                serverStatus: null,
                 state: "PENDING",
               }),
+            ),
+          );
+          setActions((current) =>
+            current.map((action) =>
+              pendingIds.has(action.clientActionId)
+                ? {
+                    ...action,
+                    issueKind: null,
+                    lastAttemptAt: new Date().toISOString(),
+                    message: "Sync paused. It will retry automatically.",
+                    serverStatus: null,
+                    state: "PENDING",
+                  }
+                : action,
             ),
           );
           setMessage(
@@ -747,7 +912,6 @@ export function AttendanceWorkspace({
       } finally {
         synchronizing.current = false;
         setSyncingNow(false);
-        await reloadActions(projectId);
         const remaining = await listAttendanceActions(projectId);
         if (
           navigator.onLine &&
@@ -820,17 +984,28 @@ export function AttendanceWorkspace({
     ) => {
       const currentSnapshot = snapshotRef.current;
       if (!currentSnapshot) return;
+      const workerId =
+        typeof payload.workerId === "string" ? payload.workerId : null;
+      const workDate =
+        typeof payload.workDate === "string"
+          ? payload.workDate
+          : currentSnapshot.workDate;
       const action: AttendanceQueueAction = {
         actionType,
         clientActionId: crypto.randomUUID(),
         createdAt: new Date().toISOString(),
+        issueKind: null,
+        lastAttemptAt: null,
         message: null,
         payload: {
           ...payload,
           capturedOffline: !navigator.onLine,
         },
         projectId: currentSnapshot.projectId,
+        serverStatus: null,
         state: "PENDING",
+        workDate,
+        workerId,
       };
       const next = applyLocalAttendanceAction(currentSnapshot, action);
       snapshotRef.current = next;
@@ -855,8 +1030,9 @@ export function AttendanceWorkspace({
             item.clientActionId === action.clientActionId
               ? {
                   ...item,
+                  issueKind: "LOCAL_STORAGE",
                   message: "This action could not be saved on this device.",
-                  state: "NEEDS_ATTENTION",
+                  state: "REVIEW_REQUIRED",
                 }
               : item,
           ),
@@ -910,18 +1086,38 @@ export function AttendanceWorkspace({
           snapshot.dayType,
           snapshot.workDate,
         );
-        const latestWorkerAction = [...actions]
-          .reverse()
-          .find(
+        const reviewAction = primaryReviewAction(
+          actions.filter(
             (action) =>
               action.projectId === snapshot.projectId &&
-              actionWorkerId(action, snapshot) === worker.id,
-          );
-        const localAction =
-          latestWorkerAction?.state === "SYNCED"
-            ? undefined
-            : latestWorkerAction;
-        return { calculation, localAction, sessions, state, worker };
+              action.workDate === snapshot.workDate &&
+              action.workerId === worker.id,
+          ),
+        );
+        const localAction = (() => {
+          const sorted = [...actions]
+            .filter(
+              (action) =>
+                action.projectId === snapshot.projectId &&
+                action.workDate === snapshot.workDate &&
+                action.workerId === worker.id,
+            )
+            .sort((left, right) =>
+              right.createdAt.localeCompare(left.createdAt),
+            );
+          const latest = sorted[0];
+          if (!latest) return undefined;
+          if (latest.state === "SYNCED") return undefined;
+          return latest;
+        })();
+        return {
+          calculation,
+          localAction,
+          reviewAction,
+          sessions,
+          state,
+          worker,
+        };
       })
       .filter(({ calculation, state, worker }) => {
         const searchable = [
@@ -953,12 +1149,12 @@ export function AttendanceWorkspace({
           (left.calculation.status === "INCOMPLETE" &&
             (context !== "today" || !left.state.openSession)) ||
           left.calculation.status === "INVALID" ||
-          left.localAction?.state === "NEEDS_ATTENTION";
+          left.reviewAction !== null;
         const rightIssue =
           (right.calculation.status === "INCOMPLETE" &&
             (context !== "today" || !right.state.openSession)) ||
           right.calculation.status === "INVALID" ||
-          right.localAction?.state === "NEEDS_ATTENTION";
+          right.reviewAction !== null;
         return Number(rightIssue) - Number(leftIssue);
       });
   }, [actions, context, filter, query, snapshot]);
@@ -969,9 +1165,22 @@ export function AttendanceWorkspace({
   const pendingCount = projectActions.filter(
     (action) => action.state === "PENDING" || action.state === "SYNCING",
   ).length;
-  const attentionCount = projectActions.filter(
-    (action) => action.state === "NEEDS_ATTENTION",
+  const retryableCount = projectActions.filter(
+    (action) => action.state === "RETRYABLE",
   ).length;
+  const reviewGroups = useMemo(
+    () => buildAttendanceIssueGroups(projectActions),
+    [projectActions],
+  );
+  const reviewCount = reviewGroups.length;
+  const reviewDeviceActionCount = reviewGroups.reduce(
+    (sum, group) => sum + group.actionCount,
+    0,
+  );
+  const retryableActionIds = useMemo(
+    () => selectRetryableActionIds(projectActions),
+    [projectActions],
+  );
   const liveSummary = snapshot
     ? snapshot.workers.reduce(
         (summary, worker) => {
@@ -1045,6 +1254,55 @@ export function AttendanceWorkspace({
       )
     : [];
 
+  const handleReview = (group: (typeof reviewGroups)[number]) => {
+    const worker = snapshot.workers.find((w) => w.id === group.workerId);
+    if (worker) {
+      setCorrectingWorker(worker);
+      setIssuesOpen(false);
+    }
+  };
+
+  const handleDiscard = async (actionIds: string[]) => {
+    await deleteAttendanceActions(actionIds);
+    setActions((current) =>
+      current.filter((action) => !actionIds.includes(action.clientActionId)),
+    );
+    if (snapshot && navigator.onLine) {
+      try {
+        await refreshSnapshot(snapshot.projectId, snapshot.workDate);
+      } catch {
+        // ignore; the user already saw the issue center
+      }
+    }
+    setMessage("Device actions discarded. Server attendance was not changed.");
+  };
+
+  const handleRetry = async (actionIds: string[]) => {
+    if (actionIds.length === 0) return;
+    const next = actions
+      .filter((action) => actionIds.includes(action.clientActionId))
+      .map((action) => ({
+        ...action,
+        issueKind: null,
+        lastAttemptAt: null,
+        message: null,
+        serverStatus: null,
+        state: "PENDING" as const,
+      }));
+    await Promise.all(next.map((action) => saveAttendanceAction(action)));
+    setActions((current) => {
+      const nextMap = new Map(
+        next.map((action) => [action.clientActionId, action]),
+      );
+      return current.map(
+        (action) => nextMap.get(action.clientActionId) ?? action,
+      );
+    });
+    if (snapshot) {
+      await synchronize(snapshot.projectId, snapshot.workDate);
+    }
+  };
+
   return (
     <WorkspaceRoot>
       {mode === "FOREMAN" ? (
@@ -1069,7 +1327,7 @@ export function AttendanceWorkspace({
                   disabled={loadingDate}
                   value={selectedWorkDate}
                   onChange={(event) => void changeDate(event.target.value)}
-                  className="mt-1 block h-10 w-[9.75rem] border border-slate-200 bg-white px-2 text-xs font-medium"
+                  className="mt-1 block h-10 w-39 border border-slate-200 bg-white px-2 text-xs font-medium"
                 />
               </label>
             ) : (
@@ -1090,7 +1348,7 @@ export function AttendanceWorkspace({
                     workDate: snapshot.workDate,
                   })
                 }
-                className="block h-10 max-w-[8.75rem] border border-slate-200 bg-white px-2 text-xs font-medium"
+                className="block h-10 max-w-35 border border-slate-200 bg-white px-2 text-xs font-medium"
               >
                 <option value="NORMAL">Normal day</option>
                 <option value="SUNDAY">Sunday</option>
@@ -1101,7 +1359,7 @@ export function AttendanceWorkspace({
         </section>
       ) : null}
 
-      {!online || syncingNow || pendingCount > 0 || attentionCount > 0 ? (
+      {!online || syncingNow || pendingCount > 0 || retryableCount > 0 ? (
         <section className="mt-3 rounded-lg border border-slate-200 bg-white">
           <div className="flex flex-wrap items-center gap-2 bg-slate-50 px-3 py-2 text-xs">
             <span className="inline-flex items-center gap-1.5 font-semibold text-slate-700">
@@ -1129,37 +1387,18 @@ export function AttendanceWorkspace({
                     : `${pendingCount} waiting to synchronize`}
               </span>
             </span>
-            {attentionCount > 0 ? (
-              <span className="inline-flex items-center gap-1.5 font-semibold text-red-700">
+            {retryableCount > 0 ? (
+              <span className="inline-flex items-center gap-1.5 font-semibold text-amber-800">
                 <AlertTriangle className="size-3.5" aria-hidden="true" />
-                {attentionCount} need attention
+                {retryableCount} can be retried
               </span>
             ) : null}
             <button
               type="button"
               disabled={!online || syncingNow}
               onClick={async () => {
-                const retryable = projectActions.filter(
-                  (action) => action.state === "NEEDS_ATTENTION",
-                );
-                await Promise.all(
-                  retryable.map((action) =>
-                    saveAttendanceAction({
-                      ...action,
-                      message: null,
-                      state: "PENDING",
-                    }),
-                  ),
-                );
-                setActions((current) =>
-                  current.map((action) =>
-                    action.projectId === snapshot.projectId &&
-                    action.state === "NEEDS_ATTENTION"
-                      ? { ...action, message: null, state: "PENDING" }
-                      : action,
-                  ),
-                );
-                await synchronize(snapshot.projectId, snapshot.workDate);
+                if (!snapshot) return;
+                await handleRetry(retryableActionIds);
               }}
               className="ml-auto inline-flex min-h-11 items-center gap-2 px-2 font-semibold text-amber-800 disabled:text-slate-400"
             >
@@ -1167,9 +1406,39 @@ export function AttendanceWorkspace({
                 className={cn("size-3.5", syncingNow && "animate-spin")}
                 aria-hidden="true"
               />
-              {syncingNow ? "Syncing…" : "Retry sync"}
+              {syncingNow ? "Syncing…" : "Retry eligible"}
             </button>
           </div>
+        </section>
+      ) : null}
+
+      {reviewCount > 0 ? (
+        <section
+          role="alert"
+          aria-live="polite"
+          className="mt-3 flex flex-wrap items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs"
+        >
+          <AlertTriangle
+            className="size-4 shrink-0 text-red-700"
+            aria-hidden="true"
+          />
+          <p className="font-semibold text-red-800">
+            {reviewCount}{" "}
+            {reviewCount === 1 ? "attendance record" : "attendance records"}{" "}
+            need review
+          </p>
+          <p className="text-red-800/80">
+            {reviewDeviceActionCount}{" "}
+            {reviewDeviceActionCount === 1 ? "device action" : "device actions"}{" "}
+            could not be applied
+          </p>
+          <button
+            type="button"
+            onClick={() => setIssuesOpen(true)}
+            className="ml-auto inline-flex min-h-11 items-center gap-2 rounded-lg bg-red-700 px-3 text-xs font-semibold text-white"
+          >
+            Review issues
+          </button>
         </section>
       ) : null}
 
@@ -1182,7 +1451,7 @@ export function AttendanceWorkspace({
           ["Not entered", liveSummary.notEntered],
           ["On site", liveSummary.onSite],
           ["On break", liveSummary.onBreak],
-          ["Issues", liveSummary.issues + attentionCount],
+          ["Issues", liveSummary.issues + reviewCount],
         ].map(([label, value]) => (
           <div
             key={label}
@@ -1209,7 +1478,14 @@ export function AttendanceWorkspace({
       {message ? (
         <p
           role="status"
-          className="mt-3 border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950"
+          className={cn(
+            "mt-3 px-3 py-2 text-xs",
+            reviewCount > 0
+              ? "border border-red-200 bg-red-50 text-red-900"
+              : pendingCount > 0
+                ? "border border-amber-200 bg-amber-50 text-amber-950"
+                : "border border-slate-200 bg-slate-50 text-slate-700",
+          )}
         >
           {message}
         </p>
@@ -1303,206 +1579,225 @@ export function AttendanceWorkspace({
             <div className="overflow-visible rounded-lg border border-slate-200 bg-white">
               {workerViews
                 .slice(0, visibleCount)
-                .map(({ calculation, localAction, state, worker }) => {
-                  const hasIssue =
-                    (calculation.status === "INCOMPLETE" &&
-                      (context !== "today" || !state.openSession)) ||
-                    calculation.status === "INVALID" ||
-                    localAction?.state === "NEEDS_ATTENTION";
-                  const firstSession = state.ordered[0];
-                  const lastSession = state.ordered.at(-1);
-                  return (
-                    <article
-                      key={worker.id}
-                      className={cn(
-                        "relative flex min-h-18 items-center gap-3 border-b border-slate-100 px-3 py-2 last:border-0",
-                        hasIssue && "bg-red-50/45",
-                      )}
-                    >
-                      <div
-                        aria-hidden="true"
+                .map(
+                  ({
+                    calculation,
+                    localAction,
+                    reviewAction: workerReview,
+                    state,
+                    worker,
+                  }) => {
+                    const hasIssue =
+                      (calculation.status === "INCOMPLETE" &&
+                        (context !== "today" || !state.openSession)) ||
+                      calculation.status === "INVALID" ||
+                      workerReview !== null;
+                    const firstSession = state.ordered[0];
+                    const lastSession = state.ordered.at(-1);
+                    return (
+                      <article
+                        key={worker.id}
                         className={cn(
-                          "grid size-9 shrink-0 place-items-center rounded-full bg-slate-100 text-xs font-semibold text-slate-700",
-                          hasIssue && "bg-red-100 text-red-800",
+                          "relative flex min-h-18 items-center gap-3 border-b border-slate-100 px-3 py-2 last:border-0",
+                          hasIssue && "bg-red-50/45",
                         )}
                       >
-                        {worker.legalName
-                          .split(/\s+/)
-                          .slice(0, 2)
-                          .map((part) => part[0])
-                          .join("")
-                          .toUpperCase()}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex min-w-0 items-center gap-2">
-                          <h2 className="truncate text-sm font-semibold">
-                            {worker.legalName}
-                          </h2>
-                          <span
-                            className={cn(
-                              "shrink-0 rounded-full border px-1.5 py-0.5 text-[0.625rem] font-semibold",
-                              hasIssue
-                                ? "border-red-200 bg-red-50 text-red-800"
-                                : state.label === "On site"
-                                  ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                                  : state.label === "On break"
-                                    ? "border-amber-200 bg-amber-50 text-amber-900"
-                                    : "border-slate-200 bg-slate-50 text-slate-700",
-                            )}
-                          >
-                            {worker.approvedLeaveType
-                              ? "Approved leave"
-                              : hasIssue
-                                ? "Issue"
-                                : state.label}
-                          </span>
+                        <div
+                          aria-hidden="true"
+                          className={cn(
+                            "grid size-9 shrink-0 place-items-center rounded-full bg-slate-100 text-xs font-semibold text-slate-700",
+                            hasIssue && "bg-red-100 text-red-800",
+                          )}
+                        >
+                          {worker.legalName
+                            .split(/\s+/)
+                            .slice(0, 2)
+                            .map((part) => part[0])
+                            .join("")
+                            .toUpperCase()}
                         </div>
-                        <p className="mt-0.5 truncate text-xs text-slate-500">
-                          {[worker.tradeName, worker.skillName]
-                            .filter(Boolean)
-                            .join(" · ") || "No classification"}
-                        </p>
-                        {hasIssue ? (
-                          <p className="mt-1 truncate text-xs font-medium text-red-700">
-                            {localAction?.state === "NEEDS_ATTENTION"
-                              ? actionStateLabel(localAction)
-                              : calculation.exceptions[0]?.message}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <h2 className="truncate text-sm font-semibold">
+                              {worker.legalName}
+                            </h2>
+                            <span
+                              className={cn(
+                                "shrink-0 rounded-full border px-1.5 py-0.5 text-[0.625rem] font-semibold",
+                                workerReview
+                                  ? "border-red-200 bg-red-50 text-red-800"
+                                  : state.label === "On site"
+                                    ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                                    : state.label === "On break"
+                                      ? "border-amber-200 bg-amber-50 text-amber-900"
+                                      : "border-slate-200 bg-slate-50 text-slate-700",
+                              )}
+                            >
+                              {worker.approvedLeaveType
+                                ? "Approved leave"
+                                : workerReview
+                                  ? "Sync issue"
+                                  : state.label}
+                            </span>
+                          </div>
+                          <p className="mt-0.5 truncate text-xs text-slate-500">
+                            {[worker.tradeName, worker.skillName]
+                              .filter(Boolean)
+                              .join(" · ") || "No classification"}
                           </p>
-                        ) : state.ordered.length > 0 ? (
-                          <p className="mt-1 truncate text-xs tabular-nums text-slate-600">
-                            {malaysiaTime(firstSession?.enteredAt ?? null)}–
-                            {malaysiaTime(lastSession?.exitedAt ?? null)}
-                            {" · "}
-                            {formatMinutes(calculation.totalPayableMinutes)}
-                          </p>
-                        ) : null}
-                        {localAction && !hasIssue ? (
-                          <p
-                            role="status"
-                            className="mt-1 inline-flex items-center gap-1 text-[0.6875rem] font-semibold text-amber-800"
-                          >
-                            {localAction.state === "SYNCING" ? (
-                              <LoaderCircle
-                                className="size-3 animate-spin"
-                                aria-hidden="true"
-                              />
-                            ) : (
-                              <Check className="size-3" aria-hidden="true" />
-                            )}
-                            {actionStateLabel(localAction)}
-                          </p>
-                        ) : null}
-                      </div>
+                          {hasIssue ? (
+                            <p className="mt-1 truncate text-xs font-medium text-red-700">
+                              {workerReview
+                                ? shortReason(
+                                    workerReview,
+                                    workerReview.issueKind ?? "UNKNOWN",
+                                  )
+                                : calculation.exceptions[0]?.message}
+                            </p>
+                          ) : state.ordered.length > 0 ? (
+                            <p className="mt-1 truncate text-xs tabular-nums text-slate-600">
+                              {malaysiaTime(firstSession?.enteredAt ?? null)}–
+                              {malaysiaTime(lastSession?.exitedAt ?? null)}
+                              {" · "}
+                              {formatMinutes(calculation.totalPayableMinutes)}
+                            </p>
+                          ) : null}
+                          {localAction && !hasIssue ? (
+                            <p
+                              role="status"
+                              className="mt-1 inline-flex items-center gap-1 text-[0.6875rem] font-semibold text-amber-800"
+                            >
+                              {localAction.state === "SYNCING" ? (
+                                <LoaderCircle
+                                  className="size-3 animate-spin"
+                                  aria-hidden="true"
+                                />
+                              ) : (
+                                <Check className="size-3" aria-hidden="true" />
+                              )}
+                              {actionStateLabel(localAction)}
+                            </p>
+                          ) : null}
+                        </div>
 
-                      {worker.approvedLeaveType ? null : mode === "CEO" ||
-                        context === "history" ? (
-                        <button
-                          type="button"
-                          onClick={() => setCorrectingWorker(worker)}
-                          aria-label={`Review attendance for ${worker.legalName}`}
-                          className="grid size-11 shrink-0 place-items-center rounded-lg text-violet-700 hover:bg-violet-50"
-                        >
-                          <ChevronRight className="size-5" aria-hidden="true" />
-                        </button>
-                      ) : hasIssue ? (
-                        <button
-                          type="button"
-                          onClick={() => setCorrectingWorker(worker)}
-                          className="inline-flex min-h-10 shrink-0 items-center rounded-lg bg-red-700 px-3 text-xs font-semibold text-white"
-                        >
-                          Fix
-                        </button>
-                      ) : !state.openSession ? (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            void enqueue("ENTER", {
-                              occurredAt: new Date().toISOString(),
-                              sessionId: crypto.randomUUID(),
-                              workerId: worker.id,
-                              workDate: snapshot.workDate,
-                            })
-                          }
-                          className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-lg bg-violet-700 px-3 text-xs font-semibold text-white"
-                        >
-                          <LogIn className="size-4" aria-hidden="true" />
-                          Enter
-                        </button>
-                      ) : state.openBreak ? (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            void enqueue("END_BREAK", {
-                              breakId: state.openBreak?.id,
-                              occurredAt: new Date().toISOString(),
-                            })
-                          }
-                          className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-lg bg-amber-600 px-3 text-xs font-semibold text-slate-950"
-                        >
-                          <Coffee className="size-4" aria-hidden="true" />
-                          End break
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            void enqueue("EXIT", {
-                              occurredAt: new Date().toISOString(),
-                              sessionId: state.openSession?.id,
-                            })
-                          }
-                          className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-lg bg-violet-700 px-3 text-xs font-semibold text-white"
-                        >
-                          <LogOut className="size-4" aria-hidden="true" />
-                          Exit
-                        </button>
-                      )}
-
-                      {mode === "FOREMAN" &&
-                      context === "today" &&
-                      !worker.approvedLeaveType &&
-                      !hasIssue ? (
-                        <details className="group relative shrink-0">
-                          <summary
-                            aria-label={`More attendance actions for ${worker.legalName}`}
-                            className="grid size-10 cursor-pointer list-none place-items-center rounded-lg text-slate-500 hover:bg-slate-100"
+                        {worker.approvedLeaveType ? null : mode === "CEO" ||
+                          context === "history" ? (
+                          <button
+                            type="button"
+                            onClick={() => setCorrectingWorker(worker)}
+                            aria-label={`Review attendance for ${worker.legalName}`}
+                            className="grid size-11 shrink-0 place-items-center rounded-lg text-violet-700 hover:bg-violet-50"
                           >
-                            <MoreHorizontal
-                              className="size-4"
+                            <ChevronRight
+                              className="size-5"
                               aria-hidden="true"
                             />
-                          </summary>
-                          <div className="absolute right-0 z-30 mt-1 min-w-44 rounded-lg border border-slate-200 bg-white p-1 shadow-lg">
-                            {state.openSession && !state.openBreak ? (
+                          </button>
+                        ) : workerReview ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCorrectingWorker(worker);
+                            }}
+                            className="inline-flex min-h-10 shrink-0 items-center rounded-lg border border-red-200 px-3 text-xs font-semibold text-red-700"
+                          >
+                            Review
+                          </button>
+                        ) : !state.openSession ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void enqueue("ENTER", {
+                                occurredAt: new Date().toISOString(),
+                                sessionId: crypto.randomUUID(),
+                                workerId: worker.id,
+                                workDate: snapshot.workDate,
+                              })
+                            }
+                            className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-lg bg-violet-700 px-3 text-xs font-semibold text-white"
+                          >
+                            <LogIn className="size-4" aria-hidden="true" />
+                            Enter
+                          </button>
+                        ) : state.openBreak ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void enqueue("END_BREAK", {
+                                breakId: state.openBreak?.id,
+                                occurredAt: new Date().toISOString(),
+                              })
+                            }
+                            className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-lg bg-amber-600 px-3 text-xs font-semibold text-slate-950"
+                          >
+                            <Coffee className="size-4" aria-hidden="true" />
+                            End break
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void enqueue("EXIT", {
+                                occurredAt: new Date().toISOString(),
+                                sessionId: state.openSession?.id,
+                              })
+                            }
+                            className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-lg bg-violet-700 px-3 text-xs font-semibold text-white"
+                          >
+                            <LogOut className="size-4" aria-hidden="true" />
+                            Exit
+                          </button>
+                        )}
+
+                        {mode === "FOREMAN" &&
+                        context === "today" &&
+                        !worker.approvedLeaveType &&
+                        !hasIssue ? (
+                          <details className="group relative shrink-0">
+                            <summary
+                              aria-label={`More attendance actions for ${worker.legalName}`}
+                              className="grid size-10 cursor-pointer list-none place-items-center rounded-lg text-slate-500 hover:bg-slate-100"
+                            >
+                              <MoreHorizontal
+                                className="size-4"
+                                aria-hidden="true"
+                              />
+                            </summary>
+                            <div className="absolute right-0 z-30 mt-1 min-w-44 rounded-lg border border-slate-200 bg-white p-1 shadow-lg">
+                              {state.openSession && !state.openBreak ? (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    void enqueue("START_BREAK", {
+                                      breakId: crypto.randomUUID(),
+                                      occurredAt: new Date().toISOString(),
+                                      sessionId: state.openSession?.id,
+                                    })
+                                  }
+                                  className="flex min-h-10 w-full items-center gap-2 rounded-md px-3 text-left text-sm font-medium hover:bg-amber-50"
+                                >
+                                  <Coffee
+                                    className="size-4"
+                                    aria-hidden="true"
+                                  />
+                                  Start break
+                                </button>
+                              ) : null}
                               <button
                                 type="button"
-                                onClick={() =>
-                                  void enqueue("START_BREAK", {
-                                    breakId: crypto.randomUUID(),
-                                    occurredAt: new Date().toISOString(),
-                                    sessionId: state.openSession?.id,
-                                  })
-                                }
-                                className="flex min-h-10 w-full items-center gap-2 rounded-md px-3 text-left text-sm font-medium hover:bg-amber-50"
+                                onClick={() => setCorrectingWorker(worker)}
+                                className="flex min-h-10 w-full items-center gap-2 rounded-md px-3 text-left text-sm font-medium hover:bg-slate-50"
                               >
-                                <Coffee className="size-4" aria-hidden="true" />
-                                Start break
+                                <Pencil className="size-4" aria-hidden="true" />
+                                Correct times
                               </button>
-                            ) : null}
-                            <button
-                              type="button"
-                              onClick={() => setCorrectingWorker(worker)}
-                              className="flex min-h-10 w-full items-center gap-2 rounded-md px-3 text-left text-sm font-medium hover:bg-slate-50"
-                            >
-                              <Pencil className="size-4" aria-hidden="true" />
-                              Correct times
-                            </button>
-                          </div>
-                        </details>
-                      ) : null}
-                    </article>
-                  );
-                })}
+                            </div>
+                          </details>
+                        ) : null}
+                      </article>
+                    );
+                  },
+                )}
             </div>
             <div className="mt-3 flex items-center justify-between gap-3">
               <p className="text-xs text-slate-500">
@@ -1525,37 +1820,16 @@ export function AttendanceWorkspace({
         )}
       </section>
 
-      <SyncCenter pendingCount={pendingCount} attentionCount={attentionCount}>
-        <ol className="mt-3 divide-y divide-slate-100">
-          {[...projectActions]
-            .reverse()
-            .slice(0, 20)
-            .map((action) => (
-              <li key={action.clientActionId} className="py-3 text-xs">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="font-semibold">
-                    {action.actionType.replaceAll("_", " ").toLowerCase()}
-                  </span>
-                  <span
-                    className={cn(
-                      "font-semibold",
-                      action.state === "NEEDS_ATTENTION"
-                        ? "text-red-700"
-                        : action.state === "SYNCED"
-                          ? "text-emerald-700"
-                          : "text-amber-800",
-                    )}
-                  >
-                    {actionStateLabel(action)}
-                  </span>
-                </div>
-                {action.message ? (
-                  <p className="mt-1 text-slate-500">{action.message}</p>
-                ) : null}
-              </li>
-            ))}
-        </ol>
-      </SyncCenter>
+      <AttendanceSyncIssues
+        open={issuesOpen}
+        onClose={() => setIssuesOpen(false)}
+        projectActions={projectActions}
+        snapshot={snapshot}
+        onDiscard={handleDiscard}
+        onRetry={handleRetry}
+        onReview={handleReview}
+        retryableActionIds={retryableActionIds}
+      />
 
       {correctingWorker ? (
         <CorrectionPanel
@@ -1564,11 +1838,12 @@ export function AttendanceWorkspace({
           sessions={correctionSessions}
           onClose={() => setCorrectingWorker(null)}
           onSave={(sessions, note) => {
+            const workerId = correctingWorker.id;
             setCorrectingWorker(null);
             void enqueue("CORRECT_DAY", {
               note,
               sessions,
-              workerId: correctingWorker.id,
+              workerId,
               workDate: snapshot.workDate,
             });
           }}

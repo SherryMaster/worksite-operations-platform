@@ -401,11 +401,42 @@ Visual verification must include, where applicable:
 - mobile keyboard open;
 - enough records to verify bounded rendering and pagination behavior.
 
+## Default Repository and UAT Delivery Workflow
+
+The repository owner cannot meaningfully review runtime application changes until a live UAT link exists. Therefore, unless the user explicitly says a task is local-only, documentation-only, research-only, or must not create repository/deployment changes, every task that changes application runtime behavior, user-facing UI, data flow, authorization behavior, or regression-protection tests must use this complete delivery workflow:
+
+1. update the local checkout from the latest default branch;
+2. create one focused feature branch;
+3. implement the smallest complete authorized slice;
+4. run targeted validation while developing;
+5. run the complete applicable validation before final review;
+6. update `PROGRESS.md` when the task uses it;
+7. commit and push the branch;
+8. open one draft pull request against the default branch;
+9. monitor required CI and preview-deployment checks;
+10. fix failures on the same branch and repeat until required checks pass;
+11. wait for one stable PR preview/UAT deployment;
+12. perform focused UAT against the live deployment, including relevant desktop and mobile states;
+13. mark the pull request ready for review only after required CI and UAT succeed;
+14. report the pull request URL, live UAT URL, tested roles, test-data limitations, checks, and UAT results.
+
+Do not stop after local implementation when this workflow applies. A runtime implementation task is not complete merely because code, unit tests, or a local build passes.
+
+If repository permissions, CI secrets, authentication configuration, deployment integration, or the UAT environment blocks completion:
+
+- keep completed work on the safest available branch or draft pull request;
+- do not bypass security or use production data;
+- report the exact failed step and evidence;
+- state the single action required from the user or repository administrator;
+- classify the task as blocked, not complete.
+
+This default authorizes feature branches, commits, pushes, pull requests, required CI repair, and PR preview/UAT deployments. It does not authorize merging, production deployment, destructive database operations, production environment changes, or production-data access.
+
 ## UAT and Deployment Safety
 
-Do not deploy, merge, or alter environment configuration unless the assigned task explicitly authorizes it.
+PR preview/UAT deployment is authorized by the default workflow above for runtime implementation tasks. Do not merge, deploy to production, perform destructive database operations, or alter production environment configuration unless the user explicitly authorizes it.
 
-When the assigned task explicitly requires a UAT deployment:
+When a task requires a UAT deployment, whether through the default workflow or an explicit task instruction:
 
 - use one stable UAT update after the authorized implementation and final validation, not after every screen;
 - preserve production authentication and authorization;
@@ -448,8 +479,9 @@ For each task:
     - inaccessible interaction;
     - mobile overflow;
     - reference-image artifacts copied literally.
-12. For a final authorized checkpoint, run the complete applicable validation and UAT requirements.
-13. Report completed behavior, files, tests, validation, intentional differences, and exclusions.
+12. For a final implementation checkpoint, run the complete applicable validation.
+13. When the default repository/UAT workflow applies, create or update the single pull request, wait for required CI and preview deployment, repair failures, and perform live UAT.
+14. Report completed behavior, files, tests, validation, CI, pull request, live UAT URL, UAT results, intentional differences, exclusions, and blockers.
 
 A well-formed task should specify:
 
@@ -463,6 +495,8 @@ A well-formed task should specify:
 - **Required tests**
 - **Validation commands**
 - **UAT requirement**
+
+When an implementation task omits repository or UAT wording, use the default repository and UAT delivery workflow. Do not interpret silence as permission to stop at local validation.
 
 ## Completion Format
 
@@ -478,3 +512,5 @@ End with:
 - **Not included**
 
 Do not claim completion when required validation, visual verification, or UAT work has not been performed.
+
+For runtime implementation tasks covered by the default workflow, do not claim completion until the live UAT URL is available and required UAT has been performed. If an external dependency prevents that, report the task as blocked.
