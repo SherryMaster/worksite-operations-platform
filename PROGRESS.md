@@ -6,10 +6,10 @@
 
 **Branch:** `fix/attendance-sync-resolution`
 **Base commit:** `cb9f696` (main @ 2026-07-30)
-**Head commit:** `ce22573` (record canonical UAT deployment and head commit in PROGRESS.md)
+**Head commit:** `2614f00` (update canonical UAT deployment ID to serve head commit ce22573)
 **PR:** https://github.com/SherryMaster/worksite-operations-platform/pull/15
 **Canonical UAT URL:** https://worksite-operations-platform-uat.vercel.app/
-**Canonical UAT deployment:** `dpl_GUp1kouYcRNY3BL5qRx86SWZSpb2` (`worksite-operations-platform-iai9m297m-sherrymasters-projects.vercel.app`) — serves head commit `ce22573`
+**Canonical UAT deployment:** `dpl_GDibPANbTRepjirmHssDL3P1DCrt` (`worksite-operations-platform-1lpg41lam-sherrymasters-projects.vercel.app`) — serves head commit `2614f00`
 **CI / preview evidence only:** https://worksite-operations-platform-git-1277b9-sherrymasters-projects.vercel.app
 
 #### Scope
@@ -101,9 +101,9 @@ be re-run against the PR preview.
   visitors are redirected to `/sign-in` as expected. No application
   errors were returned during the smoke check.
 - Canonical UAT deployment: the validated branch head commit
-  (`ce22573`) was deployed to Vercel preview build
-  `dpl_GUp1kouYcRNY3BL5qRx86SWZSpb2` (source URL
-  `worksite-operations-platform-iai9m297m-sherrymasters-projects.vercel.app`),
+  (`2614f00`) was deployed to Vercel preview build
+  `dpl_GDibPANbTRepjirmHssDL3P1DCrt` (source URL
+  `worksite-operations-platform-1lpg41lam-sherrymasters-projects.vercel.app`),
   then aliased to the existing canonical UAT application at
   `https://worksite-operations-platform-uat.vercel.app/`. `GET /foreman`
   on the canonical UAT URL returns 200 with the new bundle; alias
@@ -123,7 +123,7 @@ What was exercised on the canonical UAT URL:
   `https://worksite-operations-platform-uat.vercel.app/` — 200,
   redirects to `/sign-in`, mounts `AttendanceWorkspace`. Confirms the
   canonical UAT alias now resolves to the validated branch head commit
-  `ce22573`.
+  `2614f00`.
 - `GET /ceo/attendance` against the canonical URL — expected to
   redirect to `/sign-in` (the CEO requires an authenticated Clerk
   session).
@@ -192,10 +192,10 @@ Synthetic-data limitations:
 - `worksite-operations-platform-uat.vercel.app` was previously aliased
   to deployment `worksite-operations-platform-58cdfk8r7-sherrymasters-projects.vercel.app`
   (7 days old).
-- It now resolves to deployment `dpl_GUp1kouYcRNY3BL5qRx86SWZSpb2`
-  (source URL `worksite-operations-platform-iai9m297m-sherrymasters-projects.vercel.app`)
+- It now resolves to deployment `dpl_GDibPANbTRepjirmHssDL3P1DCrt`
+  (source URL `worksite-operations-platform-1lpg41lam-sherrymasters-projects.vercel.app`)
   which serves branch `fix/attendance-sync-resolution` at head commit
-  `ce22573`. The Clerk credentials, Supabase configuration, browser
+  `2614f00`. The Clerk credentials, Supabase configuration, browser
   storage origin, and PWA installation origin are preserved.
 
 #### Intentional reference differences
