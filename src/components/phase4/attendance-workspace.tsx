@@ -98,12 +98,14 @@ function malaysiaTime(timestamp: string | null) {
 }
 
 function malaysiaDateLabel(value: string) {
+  const parsed = new Date(`${value}T00:00:00+08:00`);
+  if (Number.isNaN(parsed.getTime())) return value || "—";
   return new Intl.DateTimeFormat("en-MY", {
     day: "numeric",
     month: "short",
     timeZone: "Asia/Kuala_Lumpur",
     weekday: "short",
-  }).format(new Date(`${value}T00:00:00+08:00`));
+  }).format(parsed);
 }
 
 function malaysiaDateTimeInput(timestamp: string | null) {
@@ -640,6 +642,7 @@ export function AttendanceWorkspace({
   );
   const [syncingNow, setSyncingNow] = useState(false);
   const [issuesOpen, setIssuesOpen] = useState(false);
+  const [focusedIssueKey, setFocusedIssueKey] = useState<string | null>(null);
   const synchronizing = useRef(false);
   const retryTimer = useRef<number | null>(null);
   const snapshotRef = useRef(snapshot);
@@ -1215,6 +1218,15 @@ export function AttendanceWorkspace({
     () => buildAttendanceIssueGroups(projectActions),
     [projectActions],
   );
+  const reviewGroupKeyByWorkerDate = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const group of reviewGroups) {
+      const workerKey = group.workerId ?? "unknown";
+      const composite = `${workerKey}::${group.workDate}`;
+      map.set(composite, group.actionIds.join(":") || composite);
+    }
+    return map;
+  }, [reviewGroups]);
   const reviewCount = reviewGroups.length;
   const reviewDeviceActionCount = reviewGroups.reduce(
     (sum, group) => sum + group.actionCount,
@@ -1402,58 +1414,103 @@ export function AttendanceWorkspace({
         </section>
       ) : null}
 
-      {!online || syncingNow || pendingCount > 0 || retryableCount > 0 ? (
-        <section className="mt-3 rounded-lg border border-slate-200 bg-white">
-          <div className="flex flex-wrap items-center gap-2 bg-slate-50 px-3 py-2 text-xs">
-            <span className="inline-flex items-center gap-1.5 font-semibold text-slate-700">
-              {!online ? (
-                <WifiOff
-                  className="size-3.5 text-amber-700"
-                  aria-hidden="true"
-                />
-              ) : syncingNow ? (
+      <section
+        aria-label="Attendance sync status"
+        aria-live="polite"
+        className="mt-3 flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs"
+      >
+        {(() => {
+          // Pick the highest-priority live state. We never show
+          // "Synchronizing 0 actions" and the row always occupies the same
+          // height so the layout does not shift between syncs.
+          if (syncingNow && pendingCount > 0) {
+            return (
+              <>
                 <LoaderCircle
-                  className="size-3.5 animate-spin text-violet-700"
+                  className="size-3.5 shrink-0 animate-spin text-violet-700"
                   aria-hidden="true"
                 />
-              ) : (
-                <Check
-                  className="size-3.5 text-emerald-600"
+                <span className="truncate font-semibold text-slate-700">
+                  Synchronizing attendance…
+                </span>
+              </>
+            );
+          }
+          if (!online) {
+            return (
+              <>
+                <WifiOff
+                  className="size-3.5 shrink-0 text-amber-700"
                   aria-hidden="true"
                 />
-              )}
-              <span aria-live="polite">
-                {!online
-                  ? `${pendingCount} ${pendingCount === 1 ? "change" : "changes"} saved on this device`
-                  : syncingNow
-                    ? `Synchronizing ${pendingCount} ${pendingCount === 1 ? "action" : "actions"}`
-                    : `${pendingCount} waiting to synchronize`}
-              </span>
-            </span>
-            {retryableCount > 0 ? (
-              <span className="inline-flex items-center gap-1.5 font-semibold text-amber-800">
-                <AlertTriangle className="size-3.5" aria-hidden="true" />
-                {retryableCount} can be retried
-              </span>
-            ) : null}
-            <button
-              type="button"
-              disabled={!online || syncingNow}
-              onClick={async () => {
-                if (!snapshot) return;
-                await handleRetry(retryableActionIds);
-              }}
-              className="ml-auto inline-flex min-h-11 items-center gap-2 px-2 font-semibold text-amber-800 disabled:text-slate-400"
-            >
-              <RefreshCw
-                className={cn("size-3.5", syncingNow && "animate-spin")}
+                <span className="truncate font-semibold text-slate-700">
+                  {pendingCount > 0
+                    ? `${pendingCount} ${pendingCount === 1 ? "change" : "changes"} saved on this device`
+                    : "Offline · attendance changes will sync when you reconnect"}
+                </span>
+              </>
+            );
+          }
+          if (pendingCount > 0) {
+            return (
+              <>
+                <LoaderCircle
+                  className="size-3.5 shrink-0 animate-spin text-violet-700"
+                  aria-hidden="true"
+                />
+                <span className="truncate font-semibold text-slate-700">
+                  {pendingCount === 1
+                    ? "1 change waiting to synchronize"
+                    : `${pendingCount} changes waiting to synchronize`}
+                </span>
+              </>
+            );
+          }
+          if (retryableCount > 0) {
+            return (
+              <>
+                <AlertTriangle
+                  className="size-3.5 shrink-0 text-amber-700"
+                  aria-hidden="true"
+                />
+                <span className="truncate font-semibold text-amber-900">
+                  {retryableCount === 1
+                    ? "1 change could not be sent"
+                    : `${retryableCount} changes could not be sent`}
+                </span>
+              </>
+            );
+          }
+          return (
+            <>
+              <Check
+                className="size-3.5 shrink-0 text-emerald-600"
                 aria-hidden="true"
               />
-              {syncingNow ? "Syncing…" : "Retry eligible"}
-            </button>
-          </div>
-        </section>
-      ) : null}
+              <span className="truncate font-semibold text-slate-700">
+                Attendance synchronized
+              </span>
+            </>
+          );
+        })()}
+        {retryableCount > 0 ? (
+          <button
+            type="button"
+            disabled={!online || syncingNow}
+            onClick={async () => {
+              if (!snapshot) return;
+              await handleRetry(retryableActionIds);
+            }}
+            className="ml-auto inline-flex min-h-9 items-center gap-1.5 rounded-md px-2 font-semibold text-amber-800 disabled:text-slate-400"
+          >
+            <RefreshCw
+              className={cn("size-3.5", syncingNow && "animate-spin")}
+              aria-hidden="true"
+            />
+            Retry
+          </button>
+        ) : null}
+      </section>
 
       {reviewCount > 0 ? (
         <section
@@ -1521,14 +1578,8 @@ export function AttendanceWorkspace({
       {message ? (
         <p
           role="status"
-          className={cn(
-            "mt-3 px-3 py-2 text-xs",
-            reviewCount > 0
-              ? "border border-red-200 bg-red-50 text-red-900"
-              : pendingCount > 0
-                ? "border border-amber-200 bg-amber-50 text-amber-950"
-                : "border border-slate-200 bg-slate-50 text-slate-700",
-          )}
+          aria-live="polite"
+          className="mt-3 px-3 py-2 text-xs text-slate-600"
         >
           {message}
         </p>
@@ -1740,7 +1791,12 @@ export function AttendanceWorkspace({
                           <button
                             type="button"
                             onClick={() => {
-                              setCorrectingWorker(worker);
+                              const composite = `${worker.id}::${snapshot.workDate}`;
+                              setFocusedIssueKey(
+                                reviewGroupKeyByWorkerDate.get(composite) ??
+                                  null,
+                              );
+                              setIssuesOpen(true);
                             }}
                             className="inline-flex min-h-10 shrink-0 items-center rounded-lg border border-red-200 px-3 text-xs font-semibold text-red-700"
                           >
@@ -1865,7 +1921,11 @@ export function AttendanceWorkspace({
 
       <AttendanceSyncIssues
         open={issuesOpen}
-        onClose={() => setIssuesOpen(false)}
+        focusedGroupKey={focusedIssueKey}
+        onClose={() => {
+          setIssuesOpen(false);
+          setFocusedIssueKey(null);
+        }}
         projectActions={projectActions}
         snapshot={snapshot}
         onDiscard={handleDiscard}

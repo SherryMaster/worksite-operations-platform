@@ -263,7 +263,7 @@ export function buildAttendanceIssueGroups(
   }
 
   const result: AttendanceSyncIssueGroup[] = [];
-  for (const [key, groupActions] of groups) {
+  for (const [, groupActions] of groups) {
     const ordered = [...groupActions].sort((a, b) =>
       a.createdAt.localeCompare(b.createdAt),
     );
@@ -276,17 +276,19 @@ export function buildAttendanceIssueGroups(
     if (!root) continue;
     const kind = classifyIssue(root);
     const summary = groupSummary(root, kind, ordered.length - 1);
-    const [, projectId, workDate, workerKey] = key.split(":");
+    // Build group metadata from the root action so the values are
+    // authoritative. The map key is only a grouping handle and its
+    // segments are not safe to parse back into business fields.
     result.push({
       actionIds: ordered.map((action) => action.clientActionId),
       actionCount: ordered.length,
       issueKind: kind,
       primaryMessage: summary,
-      projectId,
+      projectId: root.projectId,
       rootAction: root,
       technicalActions: ordered,
-      workerId: workerKey ? workerKey : null,
-      workDate: workDate ?? root.workDate,
+      workerId: root.workerId,
+      workDate: root.workDate,
     });
   }
 

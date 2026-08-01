@@ -1,15 +1,23 @@
 "use client";
 
 import { RotateCcw } from "lucide-react";
+import { useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 
 export default function GlobalError({
+  error,
   reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  useEffect(() => {
+    // Record the error for follow-up. The user-facing message stays
+    // generic; the digest is the only technical reference we surface.
+    console.error("Workspace render error", error);
+  }, [error]);
+
   return (
     <main className="grid min-h-screen place-items-center bg-slate-100 px-5 text-slate-950">
       <section className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
@@ -23,6 +31,11 @@ export default function GlobalError({
           Your work has not been changed. Try again, or contact your company
           administrator if the problem continues.
         </p>
+        {error.digest ? (
+          <p className="mt-4 text-[0.6875rem] font-mono text-slate-500">
+            Reference: {error.digest}
+          </p>
+        ) : null}
         <Button
           onClick={reset}
           size="lg"

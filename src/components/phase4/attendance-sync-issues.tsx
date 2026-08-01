@@ -49,6 +49,7 @@ import type {
 import { cn } from "@/lib/utils";
 
 type AttendanceSyncIssuesProps = {
+  focusedGroupKey?: string | null;
   onClose: () => void;
   onDiscard: (actionIds: string[]) => Promise<void> | void;
   onRetry: (actionIds: string[]) => Promise<void> | void;
@@ -69,12 +70,14 @@ function malaysiaTime(timestamp: string | null) {
 }
 
 function malaysiaDateLabel(value: string) {
+  const parsed = new Date(`${value}T00:00:00+08:00`);
+  if (Number.isNaN(parsed.getTime())) return value || "—";
   return new Intl.DateTimeFormat("en-MY", {
     day: "numeric",
     month: "short",
     timeZone: "Asia/Kuala_Lumpur",
     weekday: "short",
-  }).format(new Date(`${value}T00:00:00+08:00`));
+  }).format(parsed);
 }
 
 function formatMalaysiaTime(timestamp: string) {
@@ -333,6 +336,7 @@ function truncateId(id: string) {
 }
 
 export function AttendanceSyncIssues({
+  focusedGroupKey,
   onClose,
   onDiscard,
   onRetry,
@@ -454,24 +458,27 @@ export function AttendanceSyncIssues({
                     </p>
                   </div>
                 ) : (
-                  groups.map((group, index) => (
-                    <IssueCard
-                      key={
-                        group.actionIds.join(":") ||
-                        `${group.workerId}-${index}`
-                      }
-                      defaultOpen={index === 0}
-                      group={group}
-                      onDiscard={setPendingDiscard}
-                      onReview={onReview}
-                      snapshot={snapshot}
-                      worker={
-                        group.workerId
-                          ? (workerById.get(group.workerId) ?? null)
-                          : null
-                      }
-                    />
-                  ))
+                  groups.map((group, index) => {
+                    const groupKey =
+                      group.actionIds.join(":") ||
+                      `${group.workerId ?? "unknown"}-${group.workDate}-${index}`;
+                    const isFocused = focusedGroupKey === groupKey;
+                    return (
+                      <IssueCard
+                        key={groupKey}
+                        defaultOpen={isFocused || index === 0}
+                        group={group}
+                        onDiscard={setPendingDiscard}
+                        onReview={onReview}
+                        snapshot={snapshot}
+                        worker={
+                          group.workerId
+                            ? (workerById.get(group.workerId) ?? null)
+                            : null
+                        }
+                      />
+                    );
+                  })
                 )}
               </TabsContent>
               <TabsContent value="pending" className="mt-3">

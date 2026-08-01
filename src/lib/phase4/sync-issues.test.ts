@@ -114,6 +114,29 @@ describe("buildAttendanceIssueGroups", () => {
       .filter((id) => id !== "enter");
     expect(dependentIds).toEqual(expect.arrayContaining(["exit", "start"]));
   });
+
+  it("preserves the exact projectId, workDate, and workerId from the root action", () => {
+    // Regression for the issue-center crash: business fields used to be
+    // parsed back from the composite Map key, which shifted the values
+    // and turned the worker UUID into the workDate.
+    const actions: AttendanceQueueAction[] = [
+      reviewAction({
+        actionType: "ENTER",
+        clientActionId: "a",
+        createdAt: "2026-07-20T08:00:00+08:00",
+        message: "This action conflicts with the current attendance record.",
+        projectId: PROJECT,
+        serverStatus: "CONFLICT",
+        workDate: WORK_DATE,
+        workerId: WORKER_A,
+      }),
+    ];
+    const [group] = buildAttendanceIssueGroups(actions);
+    expect(group).toBeDefined();
+    expect(group?.projectId).toBe(PROJECT);
+    expect(group?.workDate).toBe(WORK_DATE);
+    expect(group?.workerId).toBe(WORKER_A);
+  });
 });
 
 describe("inferLegacyActionMetadata", () => {
