@@ -630,9 +630,7 @@ export type AttendanceIssuePresentation = {
   tone: "red" | "amber" | "slate";
 };
 
-function enterConflictPresentation(
-  action: AttendanceQueueAction,
-): AttendanceIssuePresentation {
+function enterConflictPresentation(): AttendanceIssuePresentation {
   return {
     correctionProblems: [],
     explanation:
@@ -731,7 +729,7 @@ function actionSpecificFallback(
 ): AttendanceIssuePresentation {
   switch (action.actionType) {
     case "ENTER":
-      return enterConflictPresentation(action);
+      return enterConflictPresentation();
     case "EXIT":
       return exitMissingPresentation();
     case "START_BREAK":
@@ -814,12 +812,12 @@ export function presentAttendanceIssue(
       return localStoragePresentation();
     case "CONFLICT":
       if (action.actionType === "ENTER") {
-        return enterConflictPresentation(action);
+        return enterConflictPresentation();
       }
       return actionSpecificFallback(action);
     case "VALIDATION":
       if (action.actionType === "ENTER") {
-        return enterConflictPresentation(action);
+        return enterConflictPresentation();
       }
       return actionSpecificFallback(action);
     case "DEPENDENCY":

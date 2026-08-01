@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { ChevronDown, ChevronRight, Clock, Trash2, X } from "lucide-react";
 
@@ -434,15 +434,6 @@ function IssueCard({
   const [open, setOpen] = useState(defaultOpen);
   const [detailsOpen, setDetailsOpen] = useState(false);
 
-  // Open the card when it becomes focused after it has already mounted.
-  // Only react to a false → true transition so the user can still
-  // collapse the card afterwards without the effect forcing it back
-  // open.
-  useEffect(() => {
-    if (defaultOpen) {
-      setOpen(true);
-    }
-  }, [defaultOpen]);
   const presentation = presentAttendanceIssue(group.rootAction, group.workDate);
   const serverSessions = worker
     ? snapshot.sessions
@@ -715,7 +706,7 @@ export function AttendanceSyncIssues({
                 const isFocused = focusedGroupKey === groupKey;
                 return (
                   <IssueCard
-                    key={groupKey}
+                    key={`${groupKey}:${isFocused ? "focused" : "unfocused"}`}
                     defaultOpen={isFocused || index === 0}
                     group={group}
                     onDiscard={setPendingDiscard}
