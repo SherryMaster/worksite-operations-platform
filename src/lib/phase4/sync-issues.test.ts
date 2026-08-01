@@ -469,9 +469,7 @@ describe("validateCorrectionSessions", () => {
     const problems = validateCorrectionSessions(
       [
         {
-          breaks: [
-            { endedAt: "", startedAt: "2026-07-20T10:00:00" },
-          ],
+          breaks: [{ endedAt: "", startedAt: "2026-07-20T10:00:00" }],
           enteredAt: "2026-07-20T08:00:00",
           exitedAt: "2026-07-20T17:00:00",
         },
@@ -493,8 +491,7 @@ describe("presentAttendanceIssue for a failed CORRECT_DAY", () => {
       createdAt: "2026-07-20T18:00:00+08:00",
       issueKind: "VALIDATION",
       lastAttemptAt: "2026-07-20T18:00:05+08:00",
-      message:
-        "The corrected times overlap or contain an invalid interval.",
+      message: "The corrected times overlap or contain an invalid interval.",
       payload: {
         note: "fix small session",
         sessions: [
@@ -553,8 +550,7 @@ describe("selectGroupRoot for mixed failed actions", () => {
         actionType: "CORRECT_DAY",
         clientActionId: "new-correction",
         createdAt: "2026-07-20T18:00:00+08:00",
-        message:
-          "The corrected times overlap or contain an invalid interval.",
+        message: "The corrected times overlap or contain an invalid interval.",
         serverStatus: "FAILED",
         workerId: WORKER_A,
       }),
@@ -584,12 +580,8 @@ describe("serverRecord formatter (malaysiaDateTimeInput)", () => {
       );
       return `${values.year}-${values.month}-${values.day}T${values.hour}:${values.minute}:${values.second}`;
     }
-    const entered = malaysiaDateTimeInput(
-      "2026-07-20T08:40:16+08:00",
-    );
-    const exited = malaysiaDateTimeInput(
-      "2026-07-20T08:40:34+08:00",
-    );
+    const entered = malaysiaDateTimeInput("2026-07-20T08:40:16+08:00");
+    const exited = malaysiaDateTimeInput("2026-07-20T08:40:34+08:00");
     const open = malaysiaDateTimeInput(null);
     expect(entered).toBe("2026-07-20T08:40:16");
     expect(exited).toBe("2026-07-20T08:40:34");

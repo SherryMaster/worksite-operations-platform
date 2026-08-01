@@ -68,8 +68,7 @@ describe("AttendanceSyncIssues drawer", () => {
       actionType: "CORRECT_DAY",
       clientActionId: "correct-failed",
       createdAt: "2026-07-20T18:00:00+08:00",
-      message:
-        "The corrected times overlap or contain an invalid interval.",
+      message: "The corrected times overlap or contain an invalid interval.",
       payload: {
         sessions: [
           {
@@ -106,8 +105,7 @@ describe("AttendanceSyncIssues drawer", () => {
       actionType: "CORRECT_DAY",
       clientActionId: "correct-failed",
       createdAt: "2026-07-20T18:00:00+08:00",
-      message:
-        "The corrected times overlap or contain an invalid interval.",
+      message: "The corrected times overlap or contain an invalid interval.",
       payload: {
         sessions: [
           {
@@ -133,11 +131,12 @@ describe("AttendanceSyncIssues drawer", () => {
       />,
     );
     const drawer = screen.getByRole("dialog");
-    expect(within(drawer).getAllByText("Invalid correction").length).toBeGreaterThan(0);
     expect(
-      within(drawer).getAllByText(
-        "Session 1 ends at the same time it starts.",
-      ).length,
+      within(drawer).getAllByText("Invalid correction").length,
+    ).toBeGreaterThan(0);
+    expect(
+      within(drawer).getAllByText("Session 1 ends at the same time it starts.")
+        .length,
     ).toBeGreaterThan(0);
     // The server record preserves seconds for the sub-minute session
     // and labels the open exit so it is never repeated as the entry.

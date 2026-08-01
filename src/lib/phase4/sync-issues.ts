@@ -281,7 +281,8 @@ export function validateCorrectionSessions(
       endInput: attendanceBreak.endedAt,
       index,
       start:
-        attendanceBreak.startedAt && malaysiaTimeValid(attendanceBreak.startedAt)
+        attendanceBreak.startedAt &&
+        malaysiaTimeValid(attendanceBreak.startedAt)
           ? malaysiaTimestamp(attendanceBreak.startedAt)
           : null,
       startInput: attendanceBreak.startedAt,
@@ -347,11 +348,7 @@ export function validateCorrectionSessions(
     .sort((left, right) => left.start - right.start);
 
   for (let leftIdx = 0; leftIdx < usable.length; leftIdx += 1) {
-    for (
-      let rightIdx = leftIdx + 1;
-      rightIdx < usable.length;
-      rightIdx += 1
-    ) {
+    for (let rightIdx = leftIdx + 1; rightIdx < usable.length; rightIdx += 1) {
       const left = usable[leftIdx]!;
       const right = usable[rightIdx]!;
       if (right.start >= (left.end ?? Number.POSITIVE_INFINITY)) break;
@@ -401,7 +398,11 @@ export function validateCorrectionSessions(
     if (session.end !== null && session.end <= session.enter) return;
     const sessionStart = session.enter;
     const sessionEnd = session.sessionEnd ?? Number.POSITIVE_INFINITY;
-    const completedBreaks: Array<{ end: number; index: number; start: number }> = [];
+    const completedBreaks: Array<{
+      end: number;
+      index: number;
+      start: number;
+    }> = [];
     session.parsedBreaks.forEach((attendanceBreak) => {
       if (
         !attendanceBreak.startInput ||
@@ -581,9 +582,7 @@ function correctionFromPayload(
         : [];
       return { breaks, enteredAt, exitedAt };
     })
-    .filter(
-      (value): value is CorrectionSessionLike => value !== null,
-    );
+    .filter((value): value is CorrectionSessionLike => value !== null);
 }
 
 function editableFromCorrection(
@@ -759,8 +758,7 @@ function actionSpecificFallback(
         correctionProblems: [],
         explanation: "The day type could not be saved by the server.",
         label: "Day type not saved",
-        resolution:
-          "Try setting the day type again, or discard the change.",
+        resolution: "Try setting the day type again, or discard the change.",
         rowSummary: "Day type could not be saved",
         tone: "red",
       };
@@ -938,7 +936,9 @@ export function selectGroupRoot(
       (action) =>
         action.serverStatus === "CONFLICT" ||
         classifyIssue(action) === "VALIDATION",
-    ) ?? ordered[0] ?? null
+    ) ??
+    ordered[0] ??
+    null
   );
 }
 

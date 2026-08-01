@@ -305,9 +305,7 @@ function CorrectionPanel({
   const enterInputRefs = useRef<Map<string, HTMLInputElement | null>>(
     new Map(),
   );
-  const exitInputRefs = useRef<Map<string, HTMLInputElement | null>>(
-    new Map(),
-  );
+  const exitInputRefs = useRef<Map<string, HTMLInputElement | null>>(new Map());
   const breakStartRefs = useRef<Map<string, HTMLInputElement | null>>(
     new Map(),
   );
@@ -396,16 +394,22 @@ function CorrectionPanel({
     if (problems.length === 0) return;
     const first = problems[0]!;
     if (first.field === "enter") {
-      enterInputRefs.current.get(editable[first.sessionIndex]?.key ?? "")?.focus();
+      enterInputRefs.current
+        .get(editable[first.sessionIndex]?.key ?? "")
+        ?.focus();
     } else if (first.field === "exit") {
-      exitInputRefs.current.get(editable[first.sessionIndex]?.key ?? "")?.focus();
+      exitInputRefs.current
+        .get(editable[first.sessionIndex]?.key ?? "")
+        ?.focus();
     } else if (first.field === "breakStart" && first.breakIndex !== undefined) {
       const sessionKey = editable[first.sessionIndex]?.key ?? "";
-      const breakKey = editable[first.sessionIndex]?.breaks[first.breakIndex]?.key ?? "";
+      const breakKey =
+        editable[first.sessionIndex]?.breaks[first.breakIndex]?.key ?? "";
       breakStartRefs.current.get(`${sessionKey}:${breakKey}`)?.focus();
     } else if (first.field === "breakEnd" && first.breakIndex !== undefined) {
       const sessionKey = editable[first.sessionIndex]?.key ?? "";
-      const breakKey = editable[first.sessionIndex]?.breaks[first.breakIndex]?.key ?? "";
+      const breakKey =
+        editable[first.sessionIndex]?.breaks[first.breakIndex]?.key ?? "";
       breakEndRefs.current.get(`${sessionKey}:${breakKey}`)?.focus();
     }
   }
@@ -478,7 +482,9 @@ function CorrectionPanel({
             </p>
             <ul className="mt-1 list-disc space-y-0.5 pl-4">
               {problems.map((problem) => (
-                <li key={`${problem.sessionIndex}-${problem.field}-${problem.breakIndex ?? "s"}-${problem.message}`}>
+                <li
+                  key={`${problem.sessionIndex}-${problem.field}-${problem.breakIndex ?? "s"}-${problem.message}`}
+                >
                   {problem.message}
                 </li>
               ))}
@@ -591,10 +597,12 @@ function CorrectionPanel({
                 {session.breaks.map((attendanceBreak, breakIndex) => {
                   const breakKey = `${session.key}:${attendanceBreak.key}`;
                   const startErrors =
-                    breakStartProblems.get(`${sessionIndex}:${breakIndex}`) ?? [];
+                    breakStartProblems.get(`${sessionIndex}:${breakIndex}`) ??
+                    [];
                   const endErrors =
                     breakEndProblems.get(`${sessionIndex}:${breakIndex}`) ?? [];
-                  const startInvalid = attemptedSubmit && startErrors.length > 0;
+                  const startInvalid =
+                    attemptedSubmit && startErrors.length > 0;
                   const endInvalid = attemptedSubmit && endErrors.length > 0;
                   const startErrorId = startInvalid
                     ? `correction-break-start-error-${sessionIndex}-${breakIndex}`
@@ -756,9 +764,7 @@ function CorrectionPanel({
             placeholder="Explain what was corrected for the audit history…"
             className={cn(
               "mt-2 min-h-24 w-full border p-3 text-sm",
-              noteError
-                ? "border-red-400 bg-red-50"
-                : "border-violet-100",
+              noteError ? "border-red-400 bg-red-50" : "border-violet-100",
             )}
           />
           {noteError ? (

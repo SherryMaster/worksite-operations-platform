@@ -2,13 +2,7 @@
 
 import { useMemo, useState } from "react";
 
-import {
-  ChevronDown,
-  ChevronRight,
-  Clock,
-  Trash2,
-  X,
-} from "lucide-react";
+import { ChevronDown, ChevronRight, Clock, Trash2, X } from "lucide-react";
 
 import {
   AlertDialog,
@@ -289,7 +283,8 @@ function problemsForBreak(
 ) {
   return problems.filter(
     (problem) =>
-      problem.sessionIndex === sessionIndex && problem.breakIndex === breakIndex,
+      problem.sessionIndex === sessionIndex &&
+      problem.breakIndex === breakIndex,
   );
 }
 
@@ -438,10 +433,7 @@ function IssueCard({
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const presentation = presentAttendanceIssue(
-    group.rootAction,
-    group.workDate,
-  );
+  const presentation = presentAttendanceIssue(group.rootAction, group.workDate);
   const serverSessions = worker
     ? snapshot.sessions
         .filter((session) => session.workerId === worker.id)
@@ -590,9 +582,8 @@ function IssueCard({
                     ) : null}
                     {typeof action.payload.occurredAt === "string" ? (
                       <p className="mt-0.5">
-                        Attempted: {malaysiaTimeSeconds(
-                          action.payload.occurredAt,
-                        )}
+                        Attempted:{" "}
+                        {malaysiaTimeSeconds(action.payload.occurredAt)}
                       </p>
                     ) : null}
                     <p className="mt-0.5">

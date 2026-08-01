@@ -12,11 +12,7 @@ import { validateCorrectionSessions } from "@/lib/phase4/sync-issues";
  * `attendance-workspace.tsx` and the AGENTS guidance discourages
  * duplicating or extracting it solely for tests.
  */
-function CorrectionFormHarness({
-  workDate,
-}: {
-  workDate: string;
-}) {
+function CorrectionFormHarness({ workDate }: { workDate: string }) {
   const [editable, setEditable] = useState([
     {
       breaks: [],
@@ -75,7 +71,10 @@ function CorrectionFormHarness({
       </label>
       <label>
         Reason
-        <textarea value={note} onChange={(event) => setNote(event.target.value)} />
+        <textarea
+          value={note}
+          onChange={(event) => setNote(event.target.value)}
+        />
       </label>
       {attempted && problems.length > 0 ? (
         <p role="alert">{problems[0]?.message}</p>
