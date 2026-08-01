@@ -10,7 +10,11 @@ export function BrandMark({
   inverted?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-3" aria-label="Worksite Operations">
+    <div
+      role="group"
+      aria-label="Worksite Operations"
+      className="flex items-center gap-3"
+    >
       <Image
         src="/brand/worksite-mark.svg"
         alt=""

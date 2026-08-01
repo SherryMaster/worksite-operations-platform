@@ -2,6 +2,7 @@
 
 import type {
   AttendanceActionState,
+  AttendanceActionType,
   AttendanceIssueKind,
   AttendanceQueueAction,
   AttendanceSnapshot,
@@ -11,6 +12,16 @@ const DATABASE_NAME = "worksite-attendance";
 const DATABASE_VERSION = 1;
 const SNAPSHOTS = "snapshots";
 const ACTIONS = "actions";
+
+const KNOWN_ACTION_TYPES: ReadonlySet<AttendanceActionType> =
+  new Set<AttendanceActionType>([
+    "SET_DAY_TYPE",
+    "ENTER",
+    "EXIT",
+    "START_BREAK",
+    "END_BREAK",
+    "CORRECT_DAY",
+  ]);
 
 function snapshotKey(projectId: string, workDate: string) {
   return `${projectId}:${workDate}`;
@@ -56,17 +67,42 @@ function transactionComplete(transaction: IDBTransaction) {
  * current shape. New fields default to safe values; the legacy `NEEDS_ATTENTION`
  * state is mapped to the new `RETRYABLE`/`REVIEW_REQUIRED` split based on the
  * stored message wording.
+ *
+ * Rows that lack a known `actionType` are quarantined as `REVIEW_REQUIRED`
+ * with a `LOCAL_STORAGE` issue kind so the user is asked to discard them
+ * instead of silently being submitted as a recorded entrance.
  */
 function normalizeStoredAction(
   raw: Partial<AttendanceQueueAction> & { clientActionId: string },
 ): AttendanceQueueAction {
+  const hasKnownActionType =
+    typeof raw.actionType === "string" &&
+    KNOWN_ACTION_TYPES.has(raw.actionType as AttendanceActionType);
+  const actionType: AttendanceActionType = hasKnownActionType
+    ? (raw.actionType as AttendanceActionType)
+    : "ENTER";
   const legacyState =
     (raw as { state?: string }).state === "NEEDS_ATTENTION"
       ? legacyMessageToState((raw as { message?: string | null }).message)
       : ((raw.state as AttendanceActionState | undefined) ?? "PENDING");
+  if (!hasKnownActionType) {
+    return {
+      actionType,
+      clientActionId: raw.clientActionId,
+      createdAt: raw.createdAt ?? new Date().toISOString(),
+      issueKind: "LOCAL_STORAGE",
+      lastAttemptAt: raw.lastAttemptAt ?? null,
+      message: "This saved change is incomplete on this device.",
+      payload: raw.payload ?? {},
+      projectId: raw.projectId ?? "",
+      serverStatus: null,
+      state: "REVIEW_REQUIRED",
+      workDate: raw.workDate ?? "",
+      workerId: raw.workerId ?? null,
+    };
+  }
   return {
-    actionType: (raw.actionType ??
-      "ENTER") as AttendanceQueueAction["actionType"],
+    actionType,
     clientActionId: raw.clientActionId,
     createdAt: raw.createdAt ?? new Date().toISOString(),
     issueKind: raw.issueKind ?? null,
@@ -92,9 +128,6 @@ function legacyMessageToState(
     text.includes("not available")
   ) {
     return "RETRYABLE";
-  }
-  if (text.includes("device")) {
-    return "REVIEW_REQUIRED";
   }
   return "REVIEW_REQUIRED";
 }

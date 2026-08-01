@@ -34,6 +34,7 @@ const VALIDATION_PHRASES = [
   "already exited",
   "invalid interval",
   "overlap",
+  "conflicts with the current attendance",
   "inactive",
   "not active on this project",
   "active application user",
@@ -352,26 +353,22 @@ export function validateCorrectionSessions(
       const left = usable[leftIdx]!;
       const right = usable[rightIdx]!;
       if (right.start >= (left.end ?? Number.POSITIVE_INFINITY)) break;
-      if (right.start < (left.end ?? Number.POSITIVE_INFINITY)) {
-        // The centralized open-session check below reports the
-        // "is still open" problem for any open session followed by
-        // another session, so we only record the overlap problem
-        // for the later session here.
-        problems.push({
-          field: "enter",
-          message: `${sessionLabel(right.index)} overlaps ${sessionLabel(
-            left.index,
-          )}.`,
-          sessionIndex: right.index,
-        });
-      }
+      // The open-session check below reports the "is still open" problem
+      // for any open session followed by another session, so we only
+      // record the overlap problem for the later session here.
+      problems.push({
+        field: "enter",
+        message: `${sessionLabel(right.index)} overlaps ${sessionLabel(
+          left.index,
+        )}.`,
+        sessionIndex: right.index,
+      });
     }
   }
   // At most one session may be open, and an open session must be the
   // final chronological session.
-  const openSession = parsed.find((session) => session.sessionEnd === null);
-  if (openSession) {
-    const openIndex = parsed.indexOf(openSession);
+  const openIndex = parsed.findIndex((session) => session.sessionEnd === null);
+  if (openIndex !== -1) {
     const later = parsed
       .slice(openIndex + 1)
       .find((session) => Number.isFinite(session.enter));
@@ -539,7 +536,13 @@ type CorrectionSessionLike = {
   exitedAt: string | null;
 };
 
-function correctionFromPayload(
+/**
+ * Parse a `CORRECT_DAY` action payload into the same `CorrectionSessionLike`
+ * shape used by both the issue drawer and the validation helper. The
+ * resulting index aligns with `CorrectionProblem.sessionIndex` because
+ * invalid entries are filtered out in the same way as the validator.
+ */
+export function correctionFromPayload(
   action: AttendanceQueueAction,
 ): CorrectionSessionLike[] {
   const raw = action.payload.sessions;
@@ -592,12 +595,14 @@ function editableFromCorrection(
   }));
 }
 
-function malaysiaInputFromIso(iso: string | null) {
+/**
+ * Format an ISO timestamp as an Asia/Kuala_Lumpur `datetime-local` string
+ * (`YYYY-MM-DDTHH:mm:ss`). The form already sends Malaysia local time so
+ * we trim the timezone and preserve seconds so editors can fix sub-minute
+ * sessions like `08:40:16–08:40:34` without losing precision.
+ */
+export function malaysiaInputFromIso(iso: string | null) {
   if (!iso) return "";
-  // The form already sends Asia/Kuala_Lumpur local time; we trim the
-  // timezone so the value round-trips without re-shifting the wall
-  // clock. Seconds are preserved so the editor can edit short
-  // sessions such as `08:40:16–08:40:34` without dropping precision.
   const parsed = new Date(iso);
   if (Number.isNaN(parsed.getTime())) return "";
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -795,21 +800,24 @@ function correctionPresentation(
  * One source of truth for the explanation shown in the worker row and
  * the issue drawer. The optional workDate lets the helper inspect a
  * queued `CORRECT_DAY` payload and pinpoint the exact invalid fields.
+ *
+ * Authorization and storage failures are reported even when the stored
+ * `CORRECT_DAY` payload is locally invalid; a user with no project access
+ * or a corrupt device row must see the access/storage message first.
  */
 export function presentAttendanceIssue(
   action: AttendanceQueueAction,
   workDate?: string,
 ): AttendanceIssuePresentation {
   const date = workDate ?? action.workDate;
+  const kind = action.issueKind ?? classifyIssue(action);
+  if (kind === "AUTHORIZATION") return authorizationPresentation();
+  if (kind === "LOCAL_STORAGE") return localStoragePresentation();
+
   const correction = correctionPresentation(action, date);
   if (correction) return correction;
 
-  const kind = action.issueKind ?? classifyIssue(action);
   switch (kind) {
-    case "AUTHORIZATION":
-      return authorizationPresentation();
-    case "LOCAL_STORAGE":
-      return localStoragePresentation();
     case "CONFLICT":
       if (action.actionType === "ENTER") {
         return enterConflictPresentation();
@@ -900,6 +908,20 @@ export type AttendanceSyncIssueGroup = {
   workerId: string | null;
   workDate: string;
 };
+
+/**
+ * Stable, deterministic key for an issue group. Both the workspace
+ * (which uses it to remember the focused group) and the issue drawer
+ * (which uses it for keyboard focus) must compute the same value, so
+ * the primary form joins the action ids and a single shared fallback
+ * is used when no action ids are present.
+ */
+export function issueGroupKey(group: AttendanceSyncIssueGroup): string {
+  return (
+    group.actionIds.join(":") ||
+    `${group.workerId ?? "unknown"}::${group.workDate}`
+  );
+}
 
 /**
  * Choose the root action of a group. Prefers the newest failed
@@ -1065,7 +1087,7 @@ export function inferLegacyActionMetadata(
     let workDate: string = action.workDate;
     let changed = false;
 
-    if (action.actionType === "EXIT") {
+    if (action.actionType === "EXIT" || action.actionType === "START_BREAK") {
       const sessionId =
         typeof action.payload.sessionId === "string"
           ? action.payload.sessionId

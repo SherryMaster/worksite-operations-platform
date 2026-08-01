@@ -3,8 +3,11 @@ import { describe, expect, it } from "vitest";
 import {
   buildAttendanceIssueGroups,
   classifyIssue,
+  correctionFromPayload,
   inferLegacyActionMetadata,
+  issueGroupKey,
   issueLabel,
+  malaysiaInputFromIso,
   presentAttendanceIssue,
   primaryReviewAction,
   selectGroupRoot,
@@ -83,7 +86,7 @@ describe("buildAttendanceIssueGroups", () => {
         actionType: "ENTER",
         clientActionId: "enter",
         createdAt: "2026-07-20T08:00:00+08:00",
-        message: "This action conflicts with the current attendance record.",
+        message: "The server already has a different entrance for this worker.",
         serverStatus: "CONFLICT",
         workerId: WORKER_A,
       }),
@@ -210,6 +213,42 @@ describe("inferLegacyActionMetadata", () => {
     );
     expect(recovered?.workerId).toBe(WORKER_A);
     expect(recovered?.workDate).toBe(WORK_DATE);
+    const recoveredStart = result.actions.find(
+      (action) => action.clientActionId === "start-1",
+    );
+    expect(recoveredStart?.workerId).toBe(WORKER_A);
+    expect(recoveredStart?.workDate).toBe(WORK_DATE);
+  });
+
+  it("preserves object identity for actions that did not need repair", () => {
+    const actions: AttendanceQueueAction[] = [
+      {
+        actionType: "EXIT",
+        clientActionId: "exit-already-ok",
+        createdAt: "2026-07-20T17:00:00+08:00",
+        issueKind: null,
+        lastAttemptAt: null,
+        message: null,
+        payload: { sessionId: "session-1" },
+        projectId: PROJECT,
+        serverStatus: "SYNCED",
+        state: "SYNCED",
+        workDate: WORK_DATE,
+        workerId: WORKER_A,
+      },
+    ];
+    const snapshot: AttendanceSnapshot = {
+      dayType: "NORMAL",
+      projectId: PROJECT,
+      projectName: "Project",
+      sessions: [],
+      updatedAt: "2026-07-20T00:00:00.000Z",
+      workDate: WORK_DATE,
+      workers: [],
+    };
+    const result = inferLegacyActionMetadata(actions, snapshot);
+    expect(result.inferred).toBe(false);
+    expect(result.actions[0]).toBe(actions[0]);
   });
 
   it("preserves an existing workerId when only workDate is missing", () => {
@@ -423,6 +462,38 @@ describe("classifyIssue + issueLabel", () => {
     expect(classifyIssue(action)).toBe("DEPENDENCY");
     expect(issueLabel("DEPENDENCY")).toBe("Dependency");
   });
+
+  it("maps 'conflicts with the current attendance' to VALIDATION for any action type", () => {
+    const action = reviewAction({
+      actionType: "ENTER",
+      clientActionId: "conflict-1",
+      message: "This action conflicts with the current attendance record.",
+      serverStatus: "CONFLICT",
+      workerId: WORKER_A,
+    });
+    expect(classifyIssue(action)).toBe("VALIDATION");
+  });
+
+  it("returns the same kind for the same wording regardless of whether the action is fresh, stored, or grouped", () => {
+    const message = "This action conflicts with the current attendance record.";
+    const fresh = reviewAction({
+      actionType: "ENTER",
+      clientActionId: "fresh",
+      message,
+      serverStatus: "CONFLICT",
+      workerId: WORKER_A,
+    });
+    const stored: AttendanceQueueAction = {
+      ...fresh,
+      clientActionId: "stored",
+      state: "REVIEW_REQUIRED",
+    };
+    const group = buildAttendanceIssueGroups([stored])[0];
+    expect(group).toBeDefined();
+    expect(classifyIssue(fresh)).toBe("VALIDATION");
+    expect(classifyIssue(stored)).toBe("VALIDATION");
+    expect(group?.issueKind).toBe("VALIDATION");
+  });
 });
 
 describe("primaryReviewAction", () => {
@@ -616,6 +687,92 @@ describe("presentAttendanceIssue for a failed CORRECT_DAY", () => {
     );
     expect(presentation.correctionProblems.length).toBe(2);
   });
+
+  it("reports the access message even when the CORRECT_DAY payload is also locally invalid", () => {
+    const failed: AttendanceQueueAction = {
+      actionType: "CORRECT_DAY",
+      clientActionId: "correct-auth",
+      createdAt: "2026-07-20T18:00:00+08:00",
+      issueKind: "AUTHORIZATION",
+      lastAttemptAt: "2026-07-20T18:00:05+08:00",
+      message: "Sign in again or restore project access, then retry.",
+      payload: {
+        sessions: [
+          {
+            breaks: [],
+            enteredAt: "2026-07-20T08:40:00+08:00",
+            exitedAt: "2026-07-20T08:40:00+08:00",
+            id: "session-1",
+          },
+        ],
+      },
+      projectId: PROJECT,
+      serverStatus: "FAILED",
+      state: "REVIEW_REQUIRED",
+      workDate: "2026-07-20",
+      workerId: WORKER_A,
+    };
+    const presentation = presentAttendanceIssue(failed, "2026-07-20");
+    expect(presentation.label).toBe("Project access lost");
+    expect(presentation.tone).toBe("amber");
+  });
+
+  it("reports the device-storage message even when the CORRECT_DAY payload is also locally invalid", () => {
+    const failed: AttendanceQueueAction = {
+      actionType: "CORRECT_DAY",
+      clientActionId: "correct-storage",
+      createdAt: "2026-07-20T18:00:00+08:00",
+      issueKind: "LOCAL_STORAGE",
+      lastAttemptAt: "2026-07-20T18:00:05+08:00",
+      message: "This action could not be saved on this device.",
+      payload: {
+        sessions: [
+          {
+            breaks: [],
+            enteredAt: "2026-07-20T08:40:00+08:00",
+            exitedAt: "2026-07-20T08:40:00+08:00",
+            id: "session-1",
+          },
+        ],
+      },
+      projectId: PROJECT,
+      serverStatus: "FAILED",
+      state: "REVIEW_REQUIRED",
+      workDate: "2026-07-20",
+      workerId: WORKER_A,
+    };
+    const presentation = presentAttendanceIssue(failed, "2026-07-20");
+    expect(presentation.label).toBe("Device storage error");
+    expect(presentation.tone).toBe("slate");
+  });
+
+  it("still reports correction-specific presentation for an ordinary invalid correction", () => {
+    const failed: AttendanceQueueAction = {
+      actionType: "CORRECT_DAY",
+      clientActionId: "correct-plain",
+      createdAt: "2026-07-20T18:00:00+08:00",
+      issueKind: "VALIDATION",
+      lastAttemptAt: "2026-07-20T18:00:05+08:00",
+      message: "The corrected times overlap or contain an invalid interval.",
+      payload: {
+        sessions: [
+          {
+            breaks: [],
+            enteredAt: "2026-07-20T08:40:00+08:00",
+            exitedAt: "2026-07-20T08:40:00+08:00",
+            id: "session-1",
+          },
+        ],
+      },
+      projectId: PROJECT,
+      serverStatus: "FAILED",
+      state: "REVIEW_REQUIRED",
+      workDate: "2026-07-20",
+      workerId: WORKER_A,
+    };
+    const presentation = presentAttendanceIssue(failed, "2026-07-20");
+    expect(presentation.label).toBe("Invalid correction");
+  });
 });
 
 describe("selectGroupRoot for mixed failed actions", () => {
@@ -642,32 +799,97 @@ describe("selectGroupRoot for mixed failed actions", () => {
   });
 });
 
-describe("serverRecord formatter (malaysiaDateTimeInput)", () => {
-  it("preserves sub-minute sessions with seconds and treats null exit as Open", async () => {
-    // Inline a minimal port of the formatter from attendance-workspace
-    // so the test can verify the round-trip without a DOM dependency.
-    function malaysiaDateTimeInput(timestamp: string | null) {
-      if (!timestamp) return "";
-      const parts = new Intl.DateTimeFormat("en-CA", {
-        day: "2-digit",
-        hour: "2-digit",
-        hour12: false,
-        minute: "2-digit",
-        month: "2-digit",
-        second: "2-digit",
-        timeZone: "Asia/Kuala_Lumpur",
-        year: "numeric",
-      }).formatToParts(new Date(timestamp));
-      const values = Object.fromEntries(
-        parts.map((part) => [part.type, part.value]),
-      );
-      return `${values.year}-${values.month}-${values.day}T${values.hour}:${values.minute}:${values.second}`;
-    }
-    const entered = malaysiaDateTimeInput("2026-07-20T08:40:16+08:00");
-    const exited = malaysiaDateTimeInput("2026-07-20T08:40:34+08:00");
-    const open = malaysiaDateTimeInput(null);
+describe("malaysiaInputFromIso (production formatter)", () => {
+  it("preserves sub-minute sessions with seconds and treats null exit as Open", () => {
+    const entered = malaysiaInputFromIso("2026-07-20T08:40:16+08:00");
+    const exited = malaysiaInputFromIso("2026-07-20T08:40:34+08:00");
+    const open = malaysiaInputFromIso(null);
+    const invalid = malaysiaInputFromIso("not-a-real-timestamp");
     expect(entered).toBe("2026-07-20T08:40:16");
     expect(exited).toBe("2026-07-20T08:40:34");
     expect(open).toBe("");
+    expect(invalid).toBe("");
+  });
+});
+
+describe("correctionFromPayload", () => {
+  it("returns the sessions in the original order and drops invalid entries", () => {
+    const action: AttendanceQueueAction = {
+      actionType: "CORRECT_DAY",
+      clientActionId: "correct-order",
+      createdAt: "2026-07-20T18:00:00+08:00",
+      issueKind: "VALIDATION",
+      lastAttemptAt: null,
+      message: "Invalid",
+      payload: {
+        sessions: [
+          {
+            breaks: [],
+            enteredAt: "2026-07-20T08:00:00+08:00",
+            exitedAt: "2026-07-20T12:00:00+08:00",
+            id: "session-1",
+          },
+          // No enteredAt — must be dropped
+          { breaks: [], exitedAt: "2026-07-20T14:00:00+08:00", id: "x" },
+          {
+            breaks: [
+              {
+                endedAt: null,
+                startedAt: "2026-07-20T10:00:00+08:00",
+              },
+            ],
+            enteredAt: "2026-07-20T13:00:00+08:00",
+            exitedAt: null,
+            id: "session-2",
+          },
+        ],
+      },
+      projectId: PROJECT,
+      serverStatus: "FAILED",
+      state: "REVIEW_REQUIRED",
+      workDate: WORK_DATE,
+      workerId: WORKER_A,
+    };
+    const sessions = correctionFromPayload(action);
+    expect(sessions).toHaveLength(2);
+    expect(sessions[0]?.enteredAt).toBe("2026-07-20T08:00:00+08:00");
+    expect(sessions[1]?.enteredAt).toBe("2026-07-20T13:00:00+08:00");
+    expect(sessions[1]?.exitedAt).toBeNull();
+    expect(sessions[1]?.breaks[0]?.endedAt).toBeNull();
+  });
+});
+
+describe("issueGroupKey", () => {
+  function makeGroup(
+    actionIds: string[],
+    workerId: string | null,
+  ): Parameters<typeof issueGroupKey>[0] {
+    return {
+      actionCount: actionIds.length,
+      actionIds,
+      issueKind: "VALIDATION",
+      primaryMessage: "Test",
+      projectId: PROJECT,
+      rootAction: reviewAction({
+        actionType: "ENTER",
+        clientActionId: actionIds[0] ?? "empty",
+        serverStatus: "FAILED",
+        workerId: workerId ?? WORKER_A,
+      }),
+      technicalActions: [],
+      workerId,
+      workDate: WORK_DATE,
+    };
+  }
+
+  it("uses the joined actionIds as the primary key", () => {
+    expect(issueGroupKey(makeGroup(["a", "b", "c"], WORKER_A))).toBe("a:b:c");
+  });
+
+  it("falls back to a deterministic worker+date key when no action ids are present", () => {
+    expect(issueGroupKey(makeGroup([], WORKER_A))).toBe(
+      `${WORKER_A}::${WORK_DATE}`,
+    );
+    expect(issueGroupKey(makeGroup([], null))).toBe(`unknown::${WORK_DATE}`);
   });
 });
