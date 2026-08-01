@@ -5,9 +5,12 @@ import {
   classifyIssue,
   inferLegacyActionMetadata,
   issueLabel,
+  presentAttendanceIssue,
   primaryReviewAction,
+  selectGroupRoot,
   selectResolutionsAfterCorrection,
   selectRetryableActionIds,
+  validateCorrectionSessions,
 } from "@/lib/phase4/sync-issues";
 import type {
   AttendanceQueueAction,
@@ -384,5 +387,212 @@ describe("primaryReviewAction", () => {
       }),
     ];
     expect(primaryReviewAction(actions)?.clientActionId).toBe("root-1");
+  });
+});
+
+describe("validateCorrectionSessions", () => {
+  it("flags a session that ends at the same time it starts", () => {
+    const problems = validateCorrectionSessions(
+      [
+        {
+          breaks: [],
+          enteredAt: "2026-07-20T08:40:00",
+          exitedAt: "2026-07-20T08:40:00",
+        },
+      ],
+      "2026-07-20",
+    );
+    expect(problems).toHaveLength(1);
+    expect(problems[0]?.message).toBe(
+      "Session 1 ends at the same time it starts.",
+    );
+    expect(problems[0]?.field).toBe("exit");
+    expect(problems[0]?.sessionIndex).toBe(0);
+  });
+
+  it("flags a session whose exit is before its enter", () => {
+    const problems = validateCorrectionSessions(
+      [
+        {
+          breaks: [],
+          enteredAt: "2026-07-20T14:46:00",
+          exitedAt: "2026-07-20T13:46:00",
+        },
+      ],
+      "2026-07-20",
+    );
+    expect(problems).toHaveLength(1);
+    expect(problems[0]?.message).toBe("Session 1 ends before it starts.");
+  });
+
+  it("identifies which sessions overlap", () => {
+    const problems = validateCorrectionSessions(
+      [
+        {
+          breaks: [],
+          enteredAt: "2026-07-20T08:00:00",
+          exitedAt: "2026-07-20T12:00:00",
+        },
+        {
+          breaks: [],
+          enteredAt: "2026-07-20T11:00:00",
+          exitedAt: "2026-07-20T15:00:00",
+        },
+      ],
+      "2026-07-20",
+    );
+    expect(problems).toHaveLength(1);
+    expect(problems[0]?.message).toBe("Session 2 overlaps Session 1.");
+    expect(problems[0]?.sessionIndex).toBe(1);
+  });
+
+  it("returns no problems for a valid correction", () => {
+    const problems = validateCorrectionSessions(
+      [
+        {
+          breaks: [
+            {
+              endedAt: "2026-07-20T10:00:00",
+              startedAt: "2026-07-20T09:00:00",
+            },
+          ],
+          enteredAt: "2026-07-20T08:00:00",
+          exitedAt: "2026-07-20T17:00:00",
+        },
+      ],
+      "2026-07-20",
+    );
+    expect(problems).toEqual([]);
+  });
+
+  it("flags a closed session that still contains an open break", () => {
+    const problems = validateCorrectionSessions(
+      [
+        {
+          breaks: [
+            { endedAt: "", startedAt: "2026-07-20T10:00:00" },
+          ],
+          enteredAt: "2026-07-20T08:00:00",
+          exitedAt: "2026-07-20T17:00:00",
+        },
+      ],
+      "2026-07-20",
+    );
+    expect(problems).toHaveLength(1);
+    expect(problems[0]?.message).toBe(
+      "Session 1 is closed. Close Break 1 or leave the session open.",
+    );
+  });
+});
+
+describe("presentAttendanceIssue for a failed CORRECT_DAY", () => {
+  it("explains the exact invalid sessions and never shows the generic message", () => {
+    const failed: AttendanceQueueAction = {
+      actionType: "CORRECT_DAY",
+      clientActionId: "correct-failed",
+      createdAt: "2026-07-20T18:00:00+08:00",
+      issueKind: "VALIDATION",
+      lastAttemptAt: "2026-07-20T18:00:05+08:00",
+      message:
+        "The corrected times overlap or contain an invalid interval.",
+      payload: {
+        note: "fix small session",
+        sessions: [
+          {
+            breaks: [],
+            enteredAt: "2026-07-20T08:40:00+08:00",
+            exitedAt: "2026-07-20T08:40:00+08:00",
+            id: "session-1",
+          },
+          {
+            breaks: [],
+            enteredAt: "2026-07-20T14:46:00+08:00",
+            exitedAt: "2026-07-20T13:46:00+08:00",
+            id: "session-2",
+          },
+        ],
+        workerId: WORKER_A,
+        workDate: "2026-07-20",
+      },
+      projectId: PROJECT,
+      serverStatus: "FAILED",
+      state: "REVIEW_REQUIRED",
+      workDate: "2026-07-20",
+      workerId: WORKER_A,
+    };
+    const presentation = presentAttendanceIssue(failed, "2026-07-20");
+    expect(presentation.label).toBe("Invalid correction");
+    expect(presentation.rowSummary).toBe(
+      "Correction has invalid session times",
+    );
+    expect(presentation.explanation).toContain(
+      "Session 1 ends at the same time it starts.",
+    );
+    expect(presentation.explanation).toContain(
+      "Session 2 ends before it starts.",
+    );
+    expect(presentation.resolution).toBe(
+      "Correct the highlighted times, then save the correction again.",
+    );
+    expect(presentation.correctionProblems.length).toBe(2);
+  });
+});
+
+describe("selectGroupRoot for mixed failed actions", () => {
+  it("prefers the newest failed CORRECT_DAY over an older generic conflict", () => {
+    const actions: AttendanceQueueAction[] = [
+      reviewAction({
+        actionType: "ENTER",
+        clientActionId: "old-conflict",
+        createdAt: "2026-07-20T08:00:00+08:00",
+        message: "This action conflicts with the current attendance record.",
+        serverStatus: "CONFLICT",
+        workerId: WORKER_A,
+      }),
+      reviewAction({
+        actionType: "CORRECT_DAY",
+        clientActionId: "new-correction",
+        createdAt: "2026-07-20T18:00:00+08:00",
+        message:
+          "The corrected times overlap or contain an invalid interval.",
+        serverStatus: "FAILED",
+        workerId: WORKER_A,
+      }),
+    ];
+    expect(selectGroupRoot(actions)?.clientActionId).toBe("new-correction");
+  });
+});
+
+describe("serverRecord formatter (malaysiaDateTimeInput)", () => {
+  it("preserves sub-minute sessions with seconds and treats null exit as Open", async () => {
+    // Inline a minimal port of the formatter from attendance-workspace
+    // so the test can verify the round-trip without a DOM dependency.
+    function malaysiaDateTimeInput(timestamp: string | null) {
+      if (!timestamp) return "";
+      const parts = new Intl.DateTimeFormat("en-CA", {
+        day: "2-digit",
+        hour: "2-digit",
+        hour12: false,
+        minute: "2-digit",
+        month: "2-digit",
+        second: "2-digit",
+        timeZone: "Asia/Kuala_Lumpur",
+        year: "numeric",
+      }).formatToParts(new Date(timestamp));
+      const values = Object.fromEntries(
+        parts.map((part) => [part.type, part.value]),
+      );
+      return `${values.year}-${values.month}-${values.day}T${values.hour}:${values.minute}:${values.second}`;
+    }
+    const entered = malaysiaDateTimeInput(
+      "2026-07-20T08:40:16+08:00",
+    );
+    const exited = malaysiaDateTimeInput(
+      "2026-07-20T08:40:34+08:00",
+    );
+    const open = malaysiaDateTimeInput(null);
+    expect(entered).toBe("2026-07-20T08:40:16");
+    expect(exited).toBe("2026-07-20T08:40:34");
+    expect(open).toBe("");
   });
 });

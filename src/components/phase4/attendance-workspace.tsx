@@ -47,10 +47,12 @@ import {
 import {
   buildAttendanceIssueGroups,
   inferLegacyActionMetadata,
+  presentAttendanceIssue,
   primaryReviewAction,
   selectResolutionsAfterCorrection,
   selectRetryableActionIds,
-  shortReason,
+  validateCorrectionSessions,
+  type EditableCorrectionSession,
 } from "@/lib/phase4/sync-issues";
 import type {
   AttendanceActionState,
@@ -110,23 +112,34 @@ function malaysiaDateLabel(value: string) {
 
 function malaysiaDateTimeInput(timestamp: string | null) {
   if (!timestamp) return "";
+  // Include seconds so the editor preserves short sessions such as
+  // `08:40:16–08:40:34` instead of rounding them to `08:40–08:40`.
   const parts = new Intl.DateTimeFormat("en-CA", {
     day: "2-digit",
     hour: "2-digit",
     hour12: false,
     minute: "2-digit",
     month: "2-digit",
+    second: "2-digit",
     timeZone: "Asia/Kuala_Lumpur",
     year: "numeric",
   }).formatToParts(new Date(timestamp));
   const values = Object.fromEntries(
     parts.map((part) => [part.type, part.value]),
   );
-  return `${values.year}-${values.month}-${values.day}T${values.hour}:${values.minute}`;
+  return `${values.year}-${values.month}-${values.day}T${values.hour}:${values.minute}:${values.second}`;
 }
 
 function inputToIso(value: string) {
-  return new Date(`${value}:00+08:00`).toISOString();
+  // `datetime-local` may supply `HH:mm` or `HH:mm:ss`. Pad with `:00`
+  // seconds so the wall clock round-trips without re-shifting.
+  const timePart = value.includes("T")
+    ? value.slice(value.indexOf("T") + 1)
+    : value;
+  const segments = timePart.split(":");
+  if (segments.length === 2) segments.push("00");
+  const normalized = `${value.slice(0, value.indexOf("T") + 1)}${segments.join(":")}`;
+  return new Date(`${normalized}+08:00`).toISOString();
 }
 
 function workerState(sessions: AttendanceSession[]) {
@@ -287,7 +300,86 @@ function CorrectionPanel({
       key: session.id,
     })),
   );
-  const defaultTime = `${workDate}T08:00`;
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
+  const defaultTime = `${workDate}T08:00:00`;
+  const enterInputRefs = useRef<Map<string, HTMLInputElement | null>>(
+    new Map(),
+  );
+  const exitInputRefs = useRef<Map<string, HTMLInputElement | null>>(
+    new Map(),
+  );
+  const breakStartRefs = useRef<Map<string, HTMLInputElement | null>>(
+    new Map(),
+  );
+  const breakEndRefs = useRef<Map<string, HTMLInputElement | null>>(new Map());
+
+  // The validation helper is the same one the issue drawer uses to
+  // explain a previously rejected correction, so the wording stays in
+  // sync.
+  const editableForValidation: EditableCorrectionSession[] = editable.map(
+    (session) => ({
+      breaks: session.breaks.map((attendanceBreak) => ({
+        endedAt: attendanceBreak.endedAt,
+        startedAt: attendanceBreak.startedAt,
+      })),
+      enteredAt: session.enteredAt,
+      exitedAt: session.exitedAt,
+    }),
+  );
+  const problems = useMemo(
+    () => validateCorrectionSessions(editableForValidation, workDate),
+    [editableForValidation, workDate],
+  );
+  const showProblems = attemptedSubmit && problems.length > 0;
+  const noteError = note.trim().length > 0 && note.trim().length < 3;
+  const canSubmit = problems.length === 0 && note.trim().length >= 3;
+
+  const enterProblems = useMemo(() => {
+    const map = new Map<number, string[]>();
+    for (const problem of problems) {
+      if (problem.field !== "enter") continue;
+      const list = map.get(problem.sessionIndex) ?? [];
+      list.push(problem.message);
+      map.set(problem.sessionIndex, list);
+    }
+    return map;
+  }, [problems]);
+  const exitProblems = useMemo(() => {
+    const map = new Map<number, string[]>();
+    for (const problem of problems) {
+      if (problem.field !== "exit") continue;
+      const list = map.get(problem.sessionIndex) ?? [];
+      list.push(problem.message);
+      map.set(problem.sessionIndex, list);
+    }
+    return map;
+  }, [problems]);
+  const breakStartProblems = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const problem of problems) {
+      if (problem.field !== "breakStart" || problem.breakIndex === undefined) {
+        continue;
+      }
+      const key = `${problem.sessionIndex}:${problem.breakIndex}`;
+      const list = map.get(key) ?? [];
+      list.push(problem.message);
+      map.set(key, list);
+    }
+    return map;
+  }, [problems]);
+  const breakEndProblems = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const problem of problems) {
+      if (problem.field !== "breakEnd" || problem.breakIndex === undefined) {
+        continue;
+      }
+      const key = `${problem.sessionIndex}:${problem.breakIndex}`;
+      const list = map.get(key) ?? [];
+      list.push(problem.message);
+      map.set(key, list);
+    }
+    return map;
+  }, [problems]);
 
   function updateSession(
     key: string,
@@ -300,9 +392,31 @@ function CorrectionPanel({
     );
   }
 
+  function focusFirstProblem() {
+    if (problems.length === 0) return;
+    const first = problems[0]!;
+    if (first.field === "enter") {
+      enterInputRefs.current.get(editable[first.sessionIndex]?.key ?? "")?.focus();
+    } else if (first.field === "exit") {
+      exitInputRefs.current.get(editable[first.sessionIndex]?.key ?? "")?.focus();
+    } else if (first.field === "breakStart" && first.breakIndex !== undefined) {
+      const sessionKey = editable[first.sessionIndex]?.key ?? "";
+      const breakKey = editable[first.sessionIndex]?.breaks[first.breakIndex]?.key ?? "";
+      breakStartRefs.current.get(`${sessionKey}:${breakKey}`)?.focus();
+    } else if (first.field === "breakEnd" && first.breakIndex !== undefined) {
+      const sessionKey = editable[first.sessionIndex]?.key ?? "";
+      const breakKey = editable[first.sessionIndex]?.breaks[first.breakIndex]?.key ?? "";
+      breakEndRefs.current.get(`${sessionKey}:${breakKey}`)?.focus();
+    }
+  }
+
   function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (note.trim().length < 3) return;
+    setAttemptedSubmit(true);
+    if (!canSubmit) {
+      focusFirstProblem();
+      return;
+    }
     onSave(
       editable.map((session) => ({
         breaks: session.breaks.map((attendanceBreak) => ({
@@ -329,6 +443,7 @@ function CorrectionPanel({
     >
       <form
         onSubmit={submit}
+        noValidate
         className="max-h-[92dvh] w-full overflow-y-auto overscroll-contain rounded-t-xl bg-white p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-2xl sm:max-w-2xl sm:rounded-xl sm:border sm:border-slate-200 sm:p-5"
       >
         <div className="flex items-start justify-between gap-4">
@@ -353,137 +468,261 @@ function CorrectionPanel({
           </button>
         </div>
 
-        <div className="mt-5 space-y-4">
-          {editable.map((session, sessionIndex) => (
-            <section key={session.key} className="border border-violet-100 p-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold">Session {sessionIndex + 1}</h3>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setEditable((current) =>
-                      current.filter((item) => item.key !== session.key),
-                    )
-                  }
-                  className="inline-flex min-h-11 items-center gap-2 px-2 text-sm text-red-700"
-                >
-                  <Trash2 className="size-4" aria-hidden="true" />
-                  Remove
-                </button>
-              </div>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <label className="text-xs font-semibold text-slate-600">
-                  Enter
-                  <input
-                    required
-                    type="datetime-local"
-                    value={session.enteredAt}
-                    onChange={(event) =>
-                      updateSession(session.key, (current) => ({
-                        ...current,
-                        enteredAt: event.target.value,
-                      }))
-                    }
-                    className="mt-1 h-11 w-full border border-violet-100 px-3 text-sm"
-                  />
-                </label>
-                <label className="text-xs font-semibold text-slate-600">
-                  Exit (leave blank if incomplete)
-                  <input
-                    type="datetime-local"
-                    value={session.exitedAt}
-                    onChange={(event) =>
-                      updateSession(session.key, (current) => ({
-                        ...current,
-                        exitedAt: event.target.value,
-                      }))
-                    }
-                    className="mt-1 h-11 w-full border border-violet-100 px-3 text-sm"
-                  />
-                </label>
-              </div>
+        {showProblems ? (
+          <div
+            role="alert"
+            className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-800"
+          >
+            <p className="font-semibold">
+              Fix {problems.length === 1 ? "this" : "these"} before saving
+            </p>
+            <ul className="mt-1 list-disc space-y-0.5 pl-4">
+              {problems.map((problem) => (
+                <li key={`${problem.sessionIndex}-${problem.field}-${problem.breakIndex ?? "s"}-${problem.message}`}>
+                  {problem.message}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
 
-              {session.breaks.map((attendanceBreak, breakIndex) => (
-                <div
-                  key={attendanceBreak.key}
-                  className="mt-3 grid gap-3 border-l-2 border-amber-300 pl-3 sm:grid-cols-[1fr_1fr_auto]"
-                >
-                  <label className="text-xs font-semibold text-slate-600">
-                    Break {breakIndex + 1} start
-                    <input
-                      required
-                      type="datetime-local"
-                      value={attendanceBreak.startedAt}
-                      onChange={(event) =>
-                        updateSession(session.key, (current) => ({
-                          ...current,
-                          breaks: current.breaks.map((item) =>
-                            item.key === attendanceBreak.key
-                              ? { ...item, startedAt: event.target.value }
-                              : item,
-                          ),
-                        }))
-                      }
-                      className="mt-1 h-11 w-full border border-violet-100 px-3 text-sm"
-                    />
-                  </label>
-                  <label className="text-xs font-semibold text-slate-600">
-                    Break end
-                    <input
-                      type="datetime-local"
-                      value={attendanceBreak.endedAt}
-                      onChange={(event) =>
-                        updateSession(session.key, (current) => ({
-                          ...current,
-                          breaks: current.breaks.map((item) =>
-                            item.key === attendanceBreak.key
-                              ? { ...item, endedAt: event.target.value }
-                              : item,
-                          ),
-                        }))
-                      }
-                      className="mt-1 h-11 w-full border border-violet-100 px-3 text-sm"
-                    />
-                  </label>
+        <div className="mt-5 space-y-4">
+          {editable.map((session, sessionIndex) => {
+            const enterErrors = enterProblems.get(sessionIndex) ?? [];
+            const exitErrors = exitProblems.get(sessionIndex) ?? [];
+            const enterInvalid = attemptedSubmit && enterErrors.length > 0;
+            const exitInvalid = attemptedSubmit && exitErrors.length > 0;
+            const enterErrorId = enterInvalid
+              ? `correction-enter-error-${sessionIndex}`
+              : undefined;
+            const exitErrorId = exitInvalid
+              ? `correction-exit-error-${sessionIndex}`
+              : undefined;
+            return (
+              <section
+                key={session.key}
+                className="border border-violet-100 p-4"
+              >
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold">Session {sessionIndex + 1}</h3>
                   <button
                     type="button"
                     onClick={() =>
-                      updateSession(session.key, (current) => ({
-                        ...current,
-                        breaks: current.breaks.filter(
-                          (item) => item.key !== attendanceBreak.key,
-                        ),
-                      }))
+                      setEditable((current) =>
+                        current.filter((item) => item.key !== session.key),
+                      )
                     }
-                    aria-label={`Remove break ${breakIndex + 1}`}
-                    className="mt-auto grid size-11 place-items-center border border-violet-100 text-red-700"
+                    className="inline-flex min-h-11 items-center gap-2 px-2 text-sm text-red-700"
                   >
                     <Trash2 className="size-4" aria-hidden="true" />
+                    Remove
                   </button>
                 </div>
-              ))}
-              <button
-                type="button"
-                onClick={() =>
-                  updateSession(session.key, (current) => ({
-                    ...current,
-                    breaks: [
-                      ...current.breaks,
-                      {
-                        endedAt: "",
-                        key: crypto.randomUUID(),
-                        startedAt: defaultTime,
-                      },
-                    ],
-                  }))
-                }
-                className="mt-3 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-amber-800"
-              >
-                <Plus className="size-4" aria-hidden="true" />
-                Add break
-              </button>
-            </section>
-          ))}
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <label className="text-xs font-semibold text-slate-600">
+                    Enter
+                    <input
+                      required
+                      step={1}
+                      type="datetime-local"
+                      value={session.enteredAt}
+                      aria-invalid={enterInvalid || undefined}
+                      aria-describedby={enterErrorId}
+                      onChange={(event) =>
+                        updateSession(session.key, (current) => ({
+                          ...current,
+                          enteredAt: event.target.value,
+                        }))
+                      }
+                      ref={(element) => {
+                        enterInputRefs.current.set(session.key, element);
+                      }}
+                      className={cn(
+                        "mt-1 h-11 w-full border px-3 text-sm",
+                        enterInvalid
+                          ? "border-red-400 bg-red-50"
+                          : "border-violet-100",
+                      )}
+                    />
+                    {enterInvalid ? (
+                      <p
+                        id={enterErrorId}
+                        className="mt-1 text-[0.6875rem] font-medium text-red-700"
+                      >
+                        {enterErrors.join(" ")}
+                      </p>
+                    ) : null}
+                  </label>
+                  <label className="text-xs font-semibold text-slate-600">
+                    Exit (leave blank if incomplete)
+                    <input
+                      step={1}
+                      type="datetime-local"
+                      value={session.exitedAt}
+                      aria-invalid={exitInvalid || undefined}
+                      aria-describedby={exitErrorId}
+                      onChange={(event) =>
+                        updateSession(session.key, (current) => ({
+                          ...current,
+                          exitedAt: event.target.value,
+                        }))
+                      }
+                      ref={(element) => {
+                        exitInputRefs.current.set(session.key, element);
+                      }}
+                      className={cn(
+                        "mt-1 h-11 w-full border px-3 text-sm",
+                        exitInvalid
+                          ? "border-red-400 bg-red-50"
+                          : "border-violet-100",
+                      )}
+                    />
+                    {exitInvalid ? (
+                      <p
+                        id={exitErrorId}
+                        className="mt-1 text-[0.6875rem] font-medium text-red-700"
+                      >
+                        {exitErrors.join(" ")}
+                      </p>
+                    ) : null}
+                  </label>
+                </div>
+
+                {session.breaks.map((attendanceBreak, breakIndex) => {
+                  const breakKey = `${session.key}:${attendanceBreak.key}`;
+                  const startErrors =
+                    breakStartProblems.get(`${sessionIndex}:${breakIndex}`) ?? [];
+                  const endErrors =
+                    breakEndProblems.get(`${sessionIndex}:${breakIndex}`) ?? [];
+                  const startInvalid = attemptedSubmit && startErrors.length > 0;
+                  const endInvalid = attemptedSubmit && endErrors.length > 0;
+                  const startErrorId = startInvalid
+                    ? `correction-break-start-error-${sessionIndex}-${breakIndex}`
+                    : undefined;
+                  const endErrorId = endInvalid
+                    ? `correction-break-end-error-${sessionIndex}-${breakIndex}`
+                    : undefined;
+                  return (
+                    <div
+                      key={attendanceBreak.key}
+                      className="mt-3 grid gap-3 border-l-2 border-amber-300 pl-3 sm:grid-cols-[1fr_1fr_auto]"
+                    >
+                      <label className="text-xs font-semibold text-slate-600">
+                        Break {breakIndex + 1} start
+                        <input
+                          required
+                          step={1}
+                          type="datetime-local"
+                          value={attendanceBreak.startedAt}
+                          aria-invalid={startInvalid || undefined}
+                          aria-describedby={startErrorId}
+                          onChange={(event) =>
+                            updateSession(session.key, (current) => ({
+                              ...current,
+                              breaks: current.breaks.map((item) =>
+                                item.key === attendanceBreak.key
+                                  ? { ...item, startedAt: event.target.value }
+                                  : item,
+                              ),
+                            }))
+                          }
+                          ref={(element) => {
+                            breakStartRefs.current.set(breakKey, element);
+                          }}
+                          className={cn(
+                            "mt-1 h-11 w-full border px-3 text-sm",
+                            startInvalid
+                              ? "border-red-400 bg-red-50"
+                              : "border-violet-100",
+                          )}
+                        />
+                        {startInvalid ? (
+                          <p
+                            id={startErrorId}
+                            className="mt-1 text-[0.6875rem] font-medium text-red-700"
+                          >
+                            {startErrors.join(" ")}
+                          </p>
+                        ) : null}
+                      </label>
+                      <label className="text-xs font-semibold text-slate-600">
+                        Break end
+                        <input
+                          step={1}
+                          type="datetime-local"
+                          value={attendanceBreak.endedAt}
+                          aria-invalid={endInvalid || undefined}
+                          aria-describedby={endErrorId}
+                          onChange={(event) =>
+                            updateSession(session.key, (current) => ({
+                              ...current,
+                              breaks: current.breaks.map((item) =>
+                                item.key === attendanceBreak.key
+                                  ? { ...item, endedAt: event.target.value }
+                                  : item,
+                              ),
+                            }))
+                          }
+                          ref={(element) => {
+                            breakEndRefs.current.set(breakKey, element);
+                          }}
+                          className={cn(
+                            "mt-1 h-11 w-full border px-3 text-sm",
+                            endInvalid
+                              ? "border-red-400 bg-red-50"
+                              : "border-violet-100",
+                          )}
+                        />
+                        {endInvalid ? (
+                          <p
+                            id={endErrorId}
+                            className="mt-1 text-[0.6875rem] font-medium text-red-700"
+                          >
+                            {endErrors.join(" ")}
+                          </p>
+                        ) : null}
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateSession(session.key, (current) => ({
+                            ...current,
+                            breaks: current.breaks.filter(
+                              (item) => item.key !== attendanceBreak.key,
+                            ),
+                          }))
+                        }
+                        aria-label={`Remove break ${breakIndex + 1}`}
+                        className="mt-auto grid size-11 place-items-center border border-violet-100 text-red-700"
+                      >
+                        <Trash2 className="size-4" aria-hidden="true" />
+                      </button>
+                    </div>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateSession(session.key, (current) => ({
+                      ...current,
+                      breaks: [
+                        ...current.breaks,
+                        {
+                          endedAt: "",
+                          key: crypto.randomUUID(),
+                          startedAt: defaultTime,
+                        },
+                      ],
+                    }))
+                  }
+                  className="mt-3 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-amber-800"
+                >
+                  <Plus className="size-4" aria-hidden="true" />
+                  Add break
+                </button>
+              </section>
+            );
+          })}
         </div>
 
         <button
@@ -512,10 +751,21 @@ function CorrectionPanel({
             minLength={3}
             maxLength={500}
             value={note}
+            aria-invalid={noteError || undefined}
             onChange={(event) => setNote(event.target.value)}
             placeholder="Explain what was corrected for the audit history…"
-            className="mt-2 min-h-24 w-full border border-violet-100 p-3 text-sm"
+            className={cn(
+              "mt-2 min-h-24 w-full border p-3 text-sm",
+              noteError
+                ? "border-red-400 bg-red-50"
+                : "border-violet-100",
+            )}
           />
+          {noteError ? (
+            <p className="mt-1 text-[0.6875rem] font-medium text-red-700">
+              Add at least 3 characters so the audit history is useful.
+            </p>
+          ) : null}
         </label>
 
         <div className="mt-5 grid grid-cols-2 gap-3">
@@ -850,20 +1100,16 @@ export function AttendanceWorkspace({
             );
           });
 
-          let hasReviewRequired = false;
           let hasRetryable = false;
           for (const action of next) {
-            if (action.state === "REVIEW_REQUIRED") {
-              hasReviewRequired = true;
-            } else if (action.state === "RETRYABLE") {
+            if (action.state === "RETRYABLE") {
               hasRetryable = true;
             }
           }
-          if (hasReviewRequired) {
-            setMessage(
-              "Some device changes need review before attendance is complete.",
-            );
-          } else if (hasRetryable) {
+          // The red issue banner above the summary already explains
+          // review-required actions, so we do not duplicate that copy
+          // in the page-level message strip.
+          if (hasRetryable) {
             setMessage("Some changes could not be sent and can be retried.");
           } else {
             setMessage("Attendance synchronized.");
@@ -1742,10 +1988,10 @@ export function AttendanceWorkspace({
                           {hasIssue ? (
                             <p className="mt-1 truncate text-xs font-medium text-red-700">
                               {workerReview
-                                ? shortReason(
+                                ? presentAttendanceIssue(
                                     workerReview,
-                                    workerReview.issueKind ?? "UNKNOWN",
-                                  )
+                                    snapshot.workDate,
+                                  ).rowSummary
                                 : calculation.exceptions[0]?.message}
                             </p>
                           ) : state.ordered.length > 0 ? (
