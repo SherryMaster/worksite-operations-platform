@@ -236,35 +236,6 @@ export async function getForemanAttendanceSnapshot(workDate: string) {
   return project ? getAttendanceSnapshot(project.id, workDate) : null;
 }
 
-export async function getAttendanceSyncExceptions(projectId: string) {
-  const supabase = await createServerSupabaseClient();
-  const result = await supabase
-    .from("attendance_sync_actions")
-    .select("client_action_id,action_type,status,result_data,processed_at")
-    .eq("project_id", projectId)
-    .in("status", ["FAILED", "CONFLICT"])
-    .order("processed_at", { ascending: false })
-    .limit(50);
-  if (result.error) {
-    throwQueryError("attendance_sync_exceptions", result.error);
-  }
-  return result.data.map((row) => {
-    const resultData =
-      row.result_data &&
-      typeof row.result_data === "object" &&
-      !Array.isArray(row.result_data)
-        ? row.result_data
-        : {};
-    return {
-      ...row,
-      message:
-        typeof resultData.message === "string"
-          ? resultData.message
-          : "The synchronized action needs review.",
-    };
-  });
-}
-
 export type AttendanceMonthRow = {
   date: string;
   exceptionCount: number;
