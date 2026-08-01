@@ -31,10 +31,15 @@ function action(
     actionType,
     clientActionId: crypto.randomUUID(),
     createdAt: new Date().toISOString(),
+    issueKind: null,
+    lastAttemptAt: null,
     message: null,
     payload,
     projectId: snapshot.projectId,
+    serverStatus: null,
     state: "PENDING",
+    workDate: snapshot.workDate,
+    workerId: null,
   };
 }
 

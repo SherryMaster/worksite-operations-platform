@@ -1,34 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Worksite Operations Platform
 
-## Getting Started
+Internal construction-workforce management application for company staff.
 
-First, run the development server:
+## Roles
+
+- **CEO** — company-wide access.
+- **Foreman** — access limited to the currently assigned project.
+
+Workers do not sign in.
+
+## Stack
+
+- Next.js 16, React, TypeScript, Tailwind CSS, shadcn/ui
+- Clerk authentication
+- Supabase database and storage
+- Vercel deployment
+
+Currency: MYR. Business timezone: Asia/Kuala_Lumpur.
+
+## Local development
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The app runs on `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment variables
 
-## Learn More
+Provide values for these names in `.env.local`. Secrets are never committed.
 
-To learn more about Next.js, take a look at the following resources:
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
+- `CLERK_SECRET_KEY`
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+- `SUPABASE_DB_URL`
+- `SUPABASE_DB_PASSWORD`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Useful scripts
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm run dev          # Local development server
+npm run format:check # Prettier check
+npm run lint         # ESLint
+npm run typecheck    # TypeScript
+npm run test:run     # Unit and component tests
+npm run test:db      # Database tests (run manually)
+npm run test:e2e     # Playwright tests (run manually)
+```
 
-## Deploy on Vercel
+## Workflow
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Reuse the existing task branch and pull request when one already exists.
+2. Otherwise create a focused branch from the latest `main`.
+3. Implement the change.
+4. Run the smallest relevant local checks.
+5. Commit and push the branch.
+6. Open or update one pull request.
+7. Stop.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Manual UAT aliases, manual Vercel deployments, and CI/Vercel monitoring are
+not part of the normal workflow.
+
+## Deployment
+
+- Feature branches automatically create or update a Vercel Preview.
+- Merges to `main` automatically update the Vercel Production deployment.
+
+## Documentation
+
+- `docs/PRD.md` — product scope and business behavior
+- `docs/STACKS.md` — approved technology and architecture
+- `docs/DESIGN.md` — detailed workflows, permissions, UI, and calculations
+- `docs/PLAN.md` — implementation order and remaining work
+- `AGENTS.md` — repository instructions for automated agents

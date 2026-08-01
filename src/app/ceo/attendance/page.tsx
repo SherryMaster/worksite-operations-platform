@@ -16,7 +16,6 @@ import { formatMinutes } from "@/lib/phase4/calculations";
 import {
   getAttendanceMonthRows,
   getAttendanceSnapshot,
-  getAttendanceSyncExceptions,
   listAttendanceProjects,
 } from "@/lib/phase4/data";
 import { cn } from "@/lib/utils";
@@ -87,9 +86,6 @@ export default async function CeoAttendancePage({
   const exceptionRows = allMonthRows.filter(
     (row) => row.exceptionCount > 0,
   ).length;
-  const syncExceptions = projectId
-    ? await getAttendanceSyncExceptions(projectId)
-    : [];
 
   return (
     <main>
@@ -173,26 +169,6 @@ export default async function CeoAttendancePage({
         </div>
       ) : view === "day" ? (
         <div className="mt-4 pb-4">
-          {syncExceptions.length > 0 ? (
-            <details className="mx-4 mt-5 border border-red-200 bg-red-50 p-4 sm:mx-6">
-              <summary className="cursor-pointer text-sm font-semibold text-red-900">
-                {syncExceptions.length} synchronized{" "}
-                {syncExceptions.length === 1 ? "action needs" : "actions need"}{" "}
-                review
-              </summary>
-              <ol className="mt-3 divide-y divide-red-100 text-xs text-red-950">
-                {syncExceptions.map((exception) => (
-                  <li key={exception.client_action_id} className="py-3">
-                    <p className="font-semibold">
-                      {exception.action_type.replaceAll("_", " ").toLowerCase()}{" "}
-                      · {exception.status.toLowerCase()}
-                    </p>
-                    <p className="mt-1">{exception.message}</p>
-                  </li>
-                ))}
-              </ol>
-            </details>
-          ) : null}
           <AttendanceWorkspace initialSnapshot={snapshot} mode="CEO" />
         </div>
       ) : (

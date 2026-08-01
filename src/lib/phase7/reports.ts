@@ -4,7 +4,6 @@ import { calculateAttendance, formatMinutes } from "@/lib/phase4/calculations";
 import {
   getAttendanceMonthRows,
   getAttendanceSnapshot,
-  getAttendanceSyncExceptions,
   listAttendanceProjects,
 } from "@/lib/phase4/data";
 import { getAuditEntries, listProjects } from "@/lib/phase2/data";
@@ -289,26 +288,6 @@ async function attendanceExceptions(filters: ReportFilters) {
         worker: row.workerName,
       })),
   );
-  const syncRows = (
-    await Promise.all(
-      byProject.map(async ({ project }) => ({
-        project,
-        rows: await getAttendanceSyncExceptions(project.id),
-      })),
-    )
-  ).flatMap(({ project, rows }) =>
-    rows
-      .filter((row) => inDateRange(row.processed_at, filters))
-      .map((row) => ({
-        action: "Review the synchronized action from Attendance.",
-        date: row.processed_at.slice(0, 10),
-        details: row.message,
-        project: project.name,
-        source: row.action_type.replaceAll("_", " ").toLocaleLowerCase(),
-        status: row.status,
-        worker: "Not available",
-      })),
-  );
   return result(
     "attendance-exceptions",
     filters,
@@ -321,7 +300,7 @@ async function attendanceExceptions(filters: ReportFilters) {
       { key: "details", label: "What needs attention" },
       { key: "action", label: "Recommended action" },
     ],
-    [...calculationRows, ...syncRows],
+    calculationRows,
   );
 }
 

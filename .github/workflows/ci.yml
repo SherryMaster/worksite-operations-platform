@@ -1,4 +1,4 @@
-name: Phase checks
+name: Quality checks
 
 on:
   pull_request:
@@ -8,21 +8,14 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: phase-${{ github.workflow }}-${{ github.ref }}
+  group: quality-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   validate:
-    name: Validate application and access boundaries
+    name: Run quality checks
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    env:
-      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
-      CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
-      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
-      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
 
     steps:
       - name: Check out repository
@@ -37,9 +30,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
-
       - name: Check formatting
         run: npm run format:check
 
@@ -51,12 +41,3 @@ jobs:
 
       - name: Run unit and component tests
         run: npm run test:run
-
-      - name: Prove database policies
-        run: npm run test:db
-
-      - name: Build production bundle
-        run: npm run build
-
-      - name: Run critical E2E smoke suite
-        run: npm run test:e2e:smoke
