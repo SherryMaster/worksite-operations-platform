@@ -352,8 +352,11 @@ export function validateCorrectionSessions(
       const left = usable[leftIdx]!;
       const right = usable[rightIdx]!;
       if (right.start >= (left.end ?? Number.POSITIVE_INFINITY)) break;
-      const leftEnd = left.end ?? Number.POSITIVE_INFINITY;
-      if (right.start < leftEnd) {
+      if (right.start < (left.end ?? Number.POSITIVE_INFINITY)) {
+        // The centralized open-session check below reports the
+        // "is still open" problem for any open session followed by
+        // another session, so we only record the overlap problem
+        // for the later session here.
         problems.push({
           field: "enter",
           message: `${sessionLabel(right.index)} overlaps ${sessionLabel(
@@ -361,15 +364,6 @@ export function validateCorrectionSessions(
           )}.`,
           sessionIndex: right.index,
         });
-        if (left.end === null) {
-          problems.push({
-            field: "exit",
-            message: `${sessionLabel(
-              left.index,
-            )} is still open. Close it before adding another session.`,
-            sessionIndex: left.index,
-          });
-        }
       }
     }
   }
@@ -1067,10 +1061,11 @@ export function inferLegacyActionMetadata(
 
   let inferred = false;
   const next = actions.map((action) => {
-    if (action.workerId && action.workDate) return action;
-
-    let workerId: string | null = null;
+    // Seed with the existing values so a valid existing workerId is
+    // never overwritten by a snapshot lookup.
+    let workerId: string | null = action.workerId;
     let workDate: string = action.workDate;
+    let changed = false;
 
     if (action.actionType === "EXIT") {
       const sessionId =
@@ -1079,8 +1074,14 @@ export function inferLegacyActionMetadata(
           : null;
       const map = sessionId ? sessionToWorker.get(sessionId) : undefined;
       if (map) {
-        workerId = map.workerId;
-        workDate = map.workDate;
+        if (!workerId) {
+          workerId = map.workerId;
+          changed = true;
+        }
+        if (!workDate) {
+          workDate = map.workDate;
+          changed = true;
+        }
       }
     } else if (action.actionType === "END_BREAK") {
       const breakId =
@@ -1090,28 +1091,36 @@ export function inferLegacyActionMetadata(
       const sessionId = breakId ? breakToSession.get(breakId) : null;
       const map = sessionId ? sessionToWorker.get(sessionId) : undefined;
       if (map) {
-        workerId = map.workerId;
-        workDate = map.workDate;
+        if (!workerId) {
+          workerId = map.workerId;
+          changed = true;
+        }
+        if (!workDate) {
+          workDate = map.workDate;
+          changed = true;
+        }
       }
     }
 
-    if (!workerId) {
+    if (!workerId || !workDate) {
       // Fall back to the current snapshot: search for the session/break id
       // before the snapshot refresh wiped the optimistic local record.
       const lookup = findWorkerInSnapshot(action, snapshot);
-      if (lookup.workerId) {
+      if (!workerId && lookup.workerId) {
         workerId = lookup.workerId;
+        changed = true;
       }
       if (!workDate && lookup.workDate) {
         workDate = lookup.workDate;
+        changed = true;
       }
     }
 
-    if (workerId || workDate) {
-      inferred = true;
-      return { ...action, workDate, workerId };
+    if (!changed) {
+      return action;
     }
-    return action;
+    inferred = true;
+    return { ...action, workDate, workerId };
   });
 
   return { actions: next, inferred };

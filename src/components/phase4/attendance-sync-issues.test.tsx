@@ -220,4 +220,74 @@ describe("AttendanceSyncIssues drawer", () => {
     );
     expect(onReview).toHaveBeenCalledTimes(1);
   });
+
+  it("opens a previously collapsed card when it becomes focused", async () => {
+    const workerB = "42000000-0000-0000-0000-000000000002";
+    // Worker A's failed correction is the most recent, so it is the
+    // first (default-open) card. Worker B's older correction is the
+    // second card and starts closed because it is not focused and not
+    // at index 0.
+    const workerAFailed = reviewAction({
+      actionType: "CORRECT_DAY",
+      clientActionId: "first",
+      createdAt: "2026-07-20T18:00:00+08:00",
+      serverStatus: "FAILED",
+    });
+    const workerBFailed = reviewAction({
+      actionType: "CORRECT_DAY",
+      clientActionId: "second",
+      createdAt: "2026-07-20T08:00:00+08:00",
+      serverStatus: "FAILED",
+      workerId: workerB,
+    });
+    const snapshotWithB: AttendanceSnapshot = {
+      ...snapshot,
+      workers: [
+        ...snapshot.workers,
+        {
+          id: workerB,
+          legalName: "Worker B",
+          skillName: null,
+          tradeName: null,
+        },
+      ],
+    };
+    const groupKey = (id: string) => id;
+    const { rerender } = render(
+      <AttendanceSyncIssues
+        open
+        focusedGroupKey={groupKey("first")}
+        onClose={vi.fn()}
+        onDiscard={vi.fn()}
+        onRetry={vi.fn()}
+        onReview={vi.fn()}
+        projectActions={[workerAFailed, workerBFailed]}
+        retryableActionIds={[]}
+        snapshot={snapshotWithB}
+      />,
+    );
+    const drawer = screen.getByRole("dialog");
+    // Worker B's card is closed because it is not focused and not at
+    // index 0.
+    expect(
+      within(drawer).getByText("Worker B").closest("article"),
+    ).not.toHaveTextContent("How to fix");
+
+    rerender(
+      <AttendanceSyncIssues
+        open
+        focusedGroupKey={groupKey("second")}
+        onClose={vi.fn()}
+        onDiscard={vi.fn()}
+        onRetry={vi.fn()}
+        onReview={vi.fn()}
+        projectActions={[workerAFailed, workerBFailed]}
+        retryableActionIds={[]}
+        snapshot={snapshotWithB}
+      />,
+    );
+    expect(
+      within(drawer).getByText("Worker B").closest("article"),
+    ).toHaveTextContent("How to fix");
+  });
 });

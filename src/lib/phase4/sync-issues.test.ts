@@ -211,6 +211,65 @@ describe("inferLegacyActionMetadata", () => {
     expect(recovered?.workerId).toBe(WORKER_A);
     expect(recovered?.workDate).toBe(WORK_DATE);
   });
+
+  it("preserves an existing workerId when only workDate is missing", () => {
+    const actions: AttendanceQueueAction[] = [
+      {
+        actionType: "EXIT",
+        clientActionId: "exit-keep",
+        createdAt: "2026-07-20T17:00:00+08:00",
+        issueKind: null,
+        lastAttemptAt: null,
+        message: null,
+        payload: { sessionId: "session-1" },
+        projectId: PROJECT,
+        serverStatus: "SYNCED",
+        state: "SYNCED",
+        workDate: "",
+        workerId: WORKER_B,
+      },
+    ];
+    // Snapshot points at worker A for the session id, but the EXIT
+    // already has a valid workerId. The workerId must not be replaced.
+    const snapshot: AttendanceSnapshot = {
+      dayType: "NORMAL",
+      projectId: PROJECT,
+      projectName: "Project",
+      sessions: [
+        {
+          breaks: [],
+          enteredAt: "2026-07-20T08:00:00+08:00",
+          exitedAt: null,
+          id: "session-1",
+          workerId: WORKER_A,
+        },
+      ],
+      updatedAt: "2026-07-20T00:00:00.000Z",
+      workDate: WORK_DATE,
+      workers: [
+        {
+          id: WORKER_A,
+          legalName: "Worker A",
+          skillName: null,
+          tradeName: null,
+        },
+        {
+          id: WORKER_B,
+          legalName: "Worker B",
+          skillName: null,
+          tradeName: null,
+        },
+      ],
+    };
+
+    const result = inferLegacyActionMetadata(actions, snapshot);
+    expect(result.inferred).toBe(true);
+    const recovered = result.actions.find(
+      (action) => action.clientActionId === "exit-keep",
+    );
+    expect(recovered?.workerId).toBe(WORKER_B);
+    expect(recovered?.workDate).toBe(WORK_DATE);
+  });
 });
 
 describe("selectRetryableActionIds", () => {
@@ -444,6 +503,30 @@ describe("validateCorrectionSessions", () => {
     expect(problems).toHaveLength(1);
     expect(problems[0]?.message).toBe("Session 2 overlaps Session 1.");
     expect(problems[0]?.sessionIndex).toBe(1);
+  });
+
+  it("reports the open-session error exactly once when an open session is followed by another session", () => {
+    const problems = validateCorrectionSessions(
+      [
+        {
+          breaks: [],
+          enteredAt: "2026-07-20T08:00:00",
+          exitedAt: "",
+        },
+        {
+          breaks: [],
+          enteredAt: "2026-07-20T13:00:00",
+          exitedAt: "2026-07-20T17:00:00",
+        },
+      ],
+      "2026-07-20",
+    );
+    const openMessages = problems.filter((problem) =>
+      problem.message.includes("is still open"),
+    );
+    expect(openMessages).toHaveLength(1);
+    expect(openMessages[0]?.sessionIndex).toBe(0);
+    expect(openMessages[0]?.field).toBe("exit");
   });
 
   it("returns no problems for a valid correction", () => {

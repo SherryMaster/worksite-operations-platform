@@ -52,12 +52,13 @@ npm run test:e2e     # Playwright tests (run manually)
 
 ## Workflow
 
-1. Branch from `main`.
-2. Implement the change.
-3. Run the smallest relevant local checks.
-4. Commit and push the branch.
-5. Open or update one pull request.
-6. Stop.
+1. Reuse the existing task branch and pull request when one already exists.
+2. Otherwise create a focused branch from the latest `main`.
+3. Implement the change.
+4. Run the smallest relevant local checks.
+5. Commit and push the branch.
+6. Open or update one pull request.
+7. Stop.
 
 Manual UAT aliases, manual Vercel deployments, and CI/Vercel monitoring are
 not part of the normal workflow.

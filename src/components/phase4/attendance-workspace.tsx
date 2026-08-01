@@ -310,6 +310,7 @@ function CorrectionPanel({
     new Map(),
   );
   const breakEndRefs = useRef<Map<string, HTMLInputElement | null>>(new Map());
+  const noteRef = useRef<HTMLTextAreaElement | null>(null);
 
   // The validation helper is the same one the issue drawer uses to
   // explain a previously rejected correction, so the wording stays in
@@ -329,8 +330,9 @@ function CorrectionPanel({
     [editableForValidation, workDate],
   );
   const showProblems = attemptedSubmit && problems.length > 0;
-  const noteError = note.trim().length > 0 && note.trim().length < 3;
-  const canSubmit = problems.length === 0 && note.trim().length >= 3;
+  const noteTrimmedLength = note.trim().length;
+  const noteError = attemptedSubmit && noteTrimmedLength < 3;
+  const canSubmit = problems.length === 0 && noteTrimmedLength >= 3;
 
   const enterProblems = useMemo(() => {
     const map = new Map<number, string[]>();
@@ -391,26 +393,40 @@ function CorrectionPanel({
   }
 
   function focusFirstProblem() {
-    if (problems.length === 0) return;
-    const first = problems[0]!;
-    if (first.field === "enter") {
-      enterInputRefs.current
-        .get(editable[first.sessionIndex]?.key ?? "")
-        ?.focus();
-    } else if (first.field === "exit") {
-      exitInputRefs.current
-        .get(editable[first.sessionIndex]?.key ?? "")
-        ?.focus();
-    } else if (first.field === "breakStart" && first.breakIndex !== undefined) {
-      const sessionKey = editable[first.sessionIndex]?.key ?? "";
-      const breakKey =
-        editable[first.sessionIndex]?.breaks[first.breakIndex]?.key ?? "";
-      breakStartRefs.current.get(`${sessionKey}:${breakKey}`)?.focus();
-    } else if (first.field === "breakEnd" && first.breakIndex !== undefined) {
-      const sessionKey = editable[first.sessionIndex]?.key ?? "";
-      const breakKey =
-        editable[first.sessionIndex]?.breaks[first.breakIndex]?.key ?? "";
-      breakEndRefs.current.get(`${sessionKey}:${breakKey}`)?.focus();
+    if (problems.length > 0) {
+      const first = problems[0]!;
+      if (first.field === "enter") {
+        enterInputRefs.current
+          .get(editable[first.sessionIndex]?.key ?? "")
+          ?.focus();
+        return;
+      }
+      if (first.field === "exit") {
+        exitInputRefs.current
+          .get(editable[first.sessionIndex]?.key ?? "")
+          ?.focus();
+        return;
+      }
+      if (first.field === "breakStart" && first.breakIndex !== undefined) {
+        const sessionKey = editable[first.sessionIndex]?.key ?? "";
+        const breakKey =
+          editable[first.sessionIndex]?.breaks[first.breakIndex]?.key ?? "";
+        breakStartRefs.current.get(`${sessionKey}:${breakKey}`)?.focus();
+        return;
+      }
+      if (first.field === "breakEnd" && first.breakIndex !== undefined) {
+        const sessionKey = editable[first.sessionIndex]?.key ?? "";
+        const breakKey =
+          editable[first.sessionIndex]?.breaks[first.breakIndex]?.key ?? "";
+        breakEndRefs.current.get(`${sessionKey}:${breakKey}`)?.focus();
+        return;
+      }
+    }
+    // Sessions are valid but the reason is missing or too short.
+    // Move focus to the reason textarea so the user sees why saving
+    // is blocked.
+    if (noteTrimmedLength < 3) {
+      noteRef.current?.focus();
     }
   }
 
@@ -760,7 +776,9 @@ function CorrectionPanel({
             maxLength={500}
             value={note}
             aria-invalid={noteError || undefined}
+            aria-describedby={noteError ? "correction-note-error" : undefined}
             onChange={(event) => setNote(event.target.value)}
+            ref={noteRef}
             placeholder="Explain what was corrected for the audit history…"
             className={cn(
               "mt-2 min-h-24 w-full border p-3 text-sm",
@@ -768,8 +786,12 @@ function CorrectionPanel({
             )}
           />
           {noteError ? (
-            <p className="mt-1 text-[0.6875rem] font-medium text-red-700">
-              Add at least 3 characters so the audit history is useful.
+            <p
+              id="correction-note-error"
+              className="mt-1 text-[0.6875rem] font-medium text-red-700"
+            >
+              Add a reason of at least 3 characters so the audit history is
+              useful.
             </p>
           ) : null}
         </label>
@@ -1054,12 +1076,34 @@ export function AttendanceWorkspace({
             if (response.status >= 500) {
               throw new Error("The attendance service is temporarily busy.");
             }
+            // 408 and 429 are transient and should retry on the next
+            // sync; do not change state to REVIEW_REQUIRED.
+            if (response.status === 408 || response.status === 429) {
+              throw new Error("The attendance service is temporarily busy.");
+            }
+            // Other non-OK 4xx responses are deterministic for the
+            // same payload (e.g. 400, 404, 409, 422). Mark them
+            // REVIEW_REQUIRED so a retry does not silently resend the
+            // same malformed request forever.
+            let responseMessage: string | null = null;
+            try {
+              const body = (await response.clone().json()) as {
+                message?: unknown;
+              };
+              if (body && typeof body.message === "string" && body.message) {
+                responseMessage = body.message;
+              }
+            } catch {
+              responseMessage = null;
+            }
+            const fallbackMessage =
+              "The server could not process these changes.";
             const updated: AttendanceQueueAction[] = pending.map((action) => ({
               ...action,
-              issueKind: "AUTHORIZATION",
-              message: "Sign in again or restore project access, then retry.",
+              issueKind: "UNKNOWN",
+              message: responseMessage ?? fallbackMessage,
               serverStatus: null,
-              state: "RETRYABLE",
+              state: "REVIEW_REQUIRED",
             }));
             await Promise.all(
               updated.map((action) => saveAttendanceAction(action)),
@@ -1073,7 +1117,7 @@ export function AttendanceWorkspace({
                   : action,
               ),
             );
-            setMessage("Sign in again or restore project access, then retry.");
+            setMessage(responseMessage ?? fallbackMessage);
             return;
           }
 
@@ -2077,6 +2121,8 @@ export function AttendanceWorkspace({
                               void enqueue("END_BREAK", {
                                 breakId: state.openBreak?.id,
                                 occurredAt: new Date().toISOString(),
+                                workerId: worker.id,
+                                workDate: snapshot.workDate,
                               })
                             }
                             className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-lg bg-amber-600 px-3 text-xs font-semibold text-slate-950"
@@ -2091,6 +2137,8 @@ export function AttendanceWorkspace({
                               void enqueue("EXIT", {
                                 occurredAt: new Date().toISOString(),
                                 sessionId: state.openSession?.id,
+                                workerId: worker.id,
+                                workDate: snapshot.workDate,
                               })
                             }
                             className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-lg bg-violet-700 px-3 text-xs font-semibold text-white"
@@ -2123,6 +2171,8 @@ export function AttendanceWorkspace({
                                       breakId: crypto.randomUUID(),
                                       occurredAt: new Date().toISOString(),
                                       sessionId: state.openSession?.id,
+                                      workerId: worker.id,
+                                      workDate: snapshot.workDate,
                                     })
                                   }
                                   className="flex min-h-10 w-full items-center gap-2 rounded-md px-3 text-left text-sm font-medium hover:bg-amber-50"

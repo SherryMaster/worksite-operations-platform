@@ -13,9 +13,14 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Record the error for follow-up. The user-facing message stays
-    // generic; the digest is the only technical reference we surface.
-    console.error("Workspace render error", error);
+    // Record a safe reference for follow-up. The user-facing message
+    // stays generic; the digest is the only technical reference we
+    // surface. Do not log the message, stack, or custom fields, which
+    // may include sensitive data.
+    const reference: { digest?: string; name?: string } = {};
+    if (error.digest) reference.digest = error.digest;
+    if (error.name) reference.name = error.name;
+    console.error("Workspace render error", reference);
   }, [error]);
 
   return (
