@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Worksite Operations mark</title>
+  <path
+    d="M126 157 L205 359 L256 224 L307 359 L386 157"
+    fill="none"
+    stroke="#6D28D9"
+    stroke-width="58"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>

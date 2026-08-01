@@ -26,9 +26,6 @@ export const metadata: Metadata = {
     template: "%s · Worksite Operations",
   },
   description: "Secure construction workforce operations.",
-  icons: {
-    apple: "/icons/worksite-192.png",
-  },
   manifest: "/manifest.webmanifest",
 };
 
