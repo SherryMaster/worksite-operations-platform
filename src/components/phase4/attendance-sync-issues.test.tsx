@@ -1,6 +1,6 @@
-import { render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AttendanceSyncIssues } from "@/components/phase4/attendance-sync-issues";
 import type {
@@ -11,6 +11,8 @@ import type {
 vi.mock("@/hooks/use-mobile", () => ({
   useIsMobile: () => false,
 }));
+
+afterEach(cleanup);
 
 const PROJECT = "41000000-0000-0000-0000-000000000001";
 const WORKER = "42000000-0000-0000-0000-000000000001";
@@ -86,10 +88,8 @@ describe("AttendanceSyncIssues drawer", () => {
         open
         onClose={vi.fn()}
         onDiscard={vi.fn()}
-        onRetry={vi.fn()}
         onReview={vi.fn()}
         projectActions={[failedCorrection]}
-        retryableActionIds={[]}
         snapshot={snapshot}
       />,
     );
@@ -123,10 +123,8 @@ describe("AttendanceSyncIssues drawer", () => {
         open
         onClose={vi.fn()}
         onDiscard={vi.fn()}
-        onRetry={vi.fn()}
         onReview={vi.fn()}
         projectActions={[failedCorrection]}
-        retryableActionIds={[]}
         snapshot={snapshot}
       />,
     );
@@ -155,16 +153,14 @@ describe("AttendanceSyncIssues drawer", () => {
         open
         onClose={vi.fn()}
         onDiscard={vi.fn()}
-        onRetry={vi.fn()}
         onReview={vi.fn()}
         projectActions={[failed]}
-        retryableActionIds={[]}
         snapshot={snapshot}
       />,
     );
     const drawer = screen.getByRole("dialog");
     expect(
-      within(drawer).queryByText(/Pending\s*·\s*0/i),
+      within(drawer).queryByText(/Pending device changes/i),
     ).not.toBeInTheDocument();
   });
 
@@ -179,10 +175,8 @@ describe("AttendanceSyncIssues drawer", () => {
         open
         onClose={vi.fn()}
         onDiscard={vi.fn()}
-        onRetry={vi.fn()}
         onReview={vi.fn()}
         projectActions={[failed]}
-        retryableActionIds={[]}
         snapshot={snapshot}
       />,
     );
@@ -208,10 +202,8 @@ describe("AttendanceSyncIssues drawer", () => {
         open
         onClose={vi.fn()}
         onDiscard={vi.fn()}
-        onRetry={vi.fn()}
         onReview={onReview}
         projectActions={[failed]}
-        retryableActionIds={[]}
         snapshot={snapshot}
       />,
     );
@@ -259,10 +251,8 @@ describe("AttendanceSyncIssues drawer", () => {
         focusedGroupKey={groupKey("first")}
         onClose={vi.fn()}
         onDiscard={vi.fn()}
-        onRetry={vi.fn()}
         onReview={vi.fn()}
         projectActions={[workerAFailed, workerBFailed]}
-        retryableActionIds={[]}
         snapshot={snapshotWithB}
       />,
     );
@@ -279,15 +269,60 @@ describe("AttendanceSyncIssues drawer", () => {
         focusedGroupKey={groupKey("second")}
         onClose={vi.fn()}
         onDiscard={vi.fn()}
-        onRetry={vi.fn()}
         onReview={vi.fn()}
         projectActions={[workerAFailed, workerBFailed]}
-        retryableActionIds={[]}
         snapshot={snapshotWithB}
       />,
     );
     expect(
       within(drawer).getByText("Worker B").closest("article"),
     ).toHaveTextContent("How to fix");
+  });
+
+  it("does not crash when an action carries a malformed timestamp and falls back to —", () => {
+    const malformed = reviewAction({
+      actionType: "CORRECT_DAY",
+      clientActionId: "correct-malformed",
+      createdAt: "2026-07-20T18:00:00+08:00",
+      message: "The corrected times overlap or contain an invalid interval.",
+      payload: {
+        sessions: [
+          {
+            breaks: [
+              {
+                endedAt: "not-a-real-timestamp",
+                startedAt: "also-not-a-real-timestamp",
+              },
+            ],
+            enteredAt: "definitely-not-a-timestamp",
+            exitedAt: "2026-07-20T08:40:99+08:00",
+            id: "session-1",
+          },
+        ],
+      },
+      serverStatus: "FAILED",
+    });
+    render(
+      <AttendanceSyncIssues
+        open
+        onClose={vi.fn()}
+        onDiscard={vi.fn()}
+        onReview={vi.fn()}
+        projectActions={[malformed]}
+        snapshot={snapshot}
+      />,
+    );
+    const drawer = screen.getByRole("dialog");
+    // The "Invalid correction" presentation must still render, and the
+    // malformed timestamps must surface as the safe "—" fallback rather
+    // than throwing a RangeError during render. The fallback is
+    // concatenated inline with surrounding text inside a `<span>`, so
+    // we match the em-dash with a substring rather than an exact
+    // element.
+    expect(
+      within(drawer).getAllByText("Invalid correction").length,
+    ).toBeGreaterThan(0);
+    const drawerHtml = drawer.innerHTML;
+    expect(drawerHtml).toContain("—");
   });
 });

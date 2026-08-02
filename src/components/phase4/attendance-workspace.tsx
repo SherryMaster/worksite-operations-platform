@@ -46,7 +46,10 @@ import {
 } from "@/lib/phase4/offline-store";
 import {
   buildAttendanceIssueGroups,
+  classifyIssue,
   inferLegacyActionMetadata,
+  issueGroupKey,
+  malaysiaInputFromIso,
   presentAttendanceIssue,
   primaryReviewAction,
   selectResolutionsAfterCorrection,
@@ -108,26 +111,6 @@ function malaysiaDateLabel(value: string) {
     timeZone: "Asia/Kuala_Lumpur",
     weekday: "short",
   }).format(parsed);
-}
-
-function malaysiaDateTimeInput(timestamp: string | null) {
-  if (!timestamp) return "";
-  // Include seconds so the editor preserves short sessions such as
-  // `08:40:16–08:40:34` instead of rounding them to `08:40–08:40`.
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    day: "2-digit",
-    hour: "2-digit",
-    hour12: false,
-    minute: "2-digit",
-    month: "2-digit",
-    second: "2-digit",
-    timeZone: "Asia/Kuala_Lumpur",
-    year: "numeric",
-  }).formatToParts(new Date(timestamp));
-  const values = Object.fromEntries(
-    parts.map((part) => [part.type, part.value]),
-  );
-  return `${values.year}-${values.month}-${values.day}T${values.hour}:${values.minute}:${values.second}`;
 }
 
 function inputToIso(value: string) {
@@ -291,12 +274,12 @@ function CorrectionPanel({
   const [editable, setEditable] = useState<EditableSession[]>(() =>
     sessions.map((session) => ({
       breaks: session.breaks.map((attendanceBreak) => ({
-        endedAt: malaysiaDateTimeInput(attendanceBreak.endedAt),
+        endedAt: malaysiaInputFromIso(attendanceBreak.endedAt),
         key: attendanceBreak.id,
-        startedAt: malaysiaDateTimeInput(attendanceBreak.startedAt),
+        startedAt: malaysiaInputFromIso(attendanceBreak.startedAt),
       })),
-      enteredAt: malaysiaDateTimeInput(session.enteredAt),
-      exitedAt: malaysiaDateTimeInput(session.exitedAt),
+      enteredAt: malaysiaInputFromIso(session.enteredAt),
+      exitedAt: malaysiaInputFromIso(session.exitedAt),
       key: session.id,
     })),
   );
@@ -314,21 +297,22 @@ function CorrectionPanel({
 
   // The validation helper is the same one the issue drawer uses to
   // explain a previously rejected correction, so the wording stays in
-  // sync.
-  const editableForValidation: EditableCorrectionSession[] = editable.map(
-    (session) => ({
-      breaks: session.breaks.map((attendanceBreak) => ({
-        endedAt: attendanceBreak.endedAt,
-        startedAt: attendanceBreak.startedAt,
-      })),
-      enteredAt: session.enteredAt,
-      exitedAt: session.exitedAt,
-    }),
-  );
-  const problems = useMemo(
-    () => validateCorrectionSessions(editableForValidation, workDate),
-    [editableForValidation, workDate],
-  );
+  // sync. The mapped projection lives inside the memo so the memo
+  // depends on the stable `editable` array, not on a new array
+  // produced on every render.
+  const problems = useMemo(() => {
+    const forValidation: EditableCorrectionSession[] = editable.map(
+      (session) => ({
+        breaks: session.breaks.map((attendanceBreak) => ({
+          endedAt: attendanceBreak.endedAt,
+          startedAt: attendanceBreak.startedAt,
+        })),
+        enteredAt: session.enteredAt,
+        exitedAt: session.exitedAt,
+      }),
+    );
+    return validateCorrectionSessions(forValidation, workDate);
+  }, [editable, workDate]);
   const showProblems = attemptedSubmit && problems.length > 0;
   const noteTrimmedLength = note.trim().length;
   const noteError = attemptedSubmit && noteTrimmedLength < 3;
@@ -850,7 +834,11 @@ function classifySyncResult(
   }
   if (result?.status === "FAILED") {
     return {
-      issueKind: classifyFailedMessage(result.message),
+      issueKind: classifyIssue({
+        ...action,
+        message: result.message,
+        serverStatus: result.status,
+      }),
       message: result.message,
       state: "REVIEW_REQUIRED",
     };
@@ -860,38 +848,6 @@ function classifySyncResult(
     message: "No server response was received.",
     state: "RETRYABLE",
   };
-}
-
-function classifyFailedMessage(message: string): AttendanceIssueKind {
-  const text = message.toLowerCase();
-  if (
-    text.includes("no longer have permission") ||
-    text.includes("foreman") ||
-    text.includes("another project") ||
-    text.includes("action identifier belongs to another user")
-  ) {
-    return "AUTHORIZATION";
-  }
-  if (
-    text.includes("session could not be found") ||
-    text.includes("session not found") ||
-    text.includes("break can only start") ||
-    text.includes("end the open break") ||
-    text.includes("open break could not be found")
-  ) {
-    return "DEPENDENCY";
-  }
-  if (
-    text.includes("already exited") ||
-    text.includes("invalid interval") ||
-    text.includes("overlap") ||
-    text.includes("conflicts with the current attendance") ||
-    text.includes("inactive") ||
-    text.includes("not active on this project")
-  ) {
-    return "VALIDATION";
-  }
-  return "UNKNOWN";
 }
 
 export function AttendanceWorkspace({
@@ -938,18 +894,16 @@ export function AttendanceWorkspace({
         snapshot,
       );
       if (inferred) {
-        for (const action of normalized) {
-          if (
-            action.workerId !==
-              stored.find((s) => s.clientActionId === action.clientActionId)
-                ?.workerId ||
-            action.workDate !==
-              stored.find((s) => s.clientActionId === action.clientActionId)
-                ?.workDate
-          ) {
-            await saveAttendanceAction(action);
-          }
-        }
+        // `inferLegacyActionMetadata` preserves the input identity for
+        // unchanged rows and returns a new object only when workerId or
+        // workDate was repaired, so identity comparison is the right
+        // (and cheaper) signal for "this row needs to be persisted".
+        const repaired = normalized.filter(
+          (action, index) => action !== stored[index],
+        );
+        await Promise.all(
+          repaired.map((action) => saveAttendanceAction(action)),
+        );
       }
       setActions(normalized);
     } else {
@@ -1367,6 +1321,13 @@ export function AttendanceWorkspace({
           void synchronize(currentSnapshot.projectId, currentSnapshot.workDate);
         }
       } catch {
+        // Local persistence failed: roll the optimistic snapshot back
+        // to the pre-action view so the worker row no longer shows an
+        // entrance, exit, or break that the user never confirmed, then
+        // mark the action review-required with the existing device
+        // storage message.
+        snapshotRef.current = currentSnapshot;
+        setSnapshot(currentSnapshot);
         setActions((current) =>
           current.map((item) =>
             item.clientActionId === action.clientActionId
@@ -1414,6 +1375,30 @@ export function AttendanceWorkspace({
     }
   }
 
+  const projectActions = useMemo(
+    () =>
+      snapshot
+        ? actions.filter((action) => action.projectId === snapshot.projectId)
+        : actions,
+    [actions, snapshot],
+  );
+
+  const actionsByWorker = useMemo(() => {
+    const map = new Map<string, AttendanceQueueAction[]>();
+    if (!snapshot) return map;
+    for (const action of projectActions) {
+      if (action.workDate !== snapshot.workDate) continue;
+      if (!action.workerId) continue;
+      const list = map.get(action.workerId);
+      if (list) {
+        list.push(action);
+      } else {
+        map.set(action.workerId, [action]);
+      }
+    }
+    return map;
+  }, [projectActions, snapshot]);
+
   const workerViews = useMemo(() => {
     if (!snapshot) return [];
     const normalizedQuery = query.trim().toLowerCase();
@@ -1428,30 +1413,13 @@ export function AttendanceWorkspace({
           snapshot.dayType,
           snapshot.workDate,
         );
-        const reviewAction = primaryReviewAction(
-          actions.filter(
-            (action) =>
-              action.projectId === snapshot.projectId &&
-              action.workDate === snapshot.workDate &&
-              action.workerId === worker.id,
-          ),
-        );
-        const localAction = (() => {
-          const sorted = [...actions]
-            .filter(
-              (action) =>
-                action.projectId === snapshot.projectId &&
-                action.workDate === snapshot.workDate &&
-                action.workerId === worker.id,
-            )
-            .sort((left, right) =>
-              right.createdAt.localeCompare(left.createdAt),
-            );
-          const latest = sorted[0];
-          if (!latest) return undefined;
-          if (latest.state === "SYNCED") return undefined;
-          return latest;
-        })();
+        const workerActions = actionsByWorker.get(worker.id) ?? [];
+        const reviewAction = primaryReviewAction(workerActions);
+        const latest = [...workerActions].sort((left, right) =>
+          right.createdAt.localeCompare(left.createdAt),
+        )[0];
+        const localAction =
+          latest && latest.state !== "SYNCED" ? latest : undefined;
         return {
           calculation,
           localAction,
@@ -1499,11 +1467,8 @@ export function AttendanceWorkspace({
           right.reviewAction !== null;
         return Number(rightIssue) - Number(leftIssue);
       });
-  }, [actions, context, filter, query, snapshot]);
+  }, [actionsByWorker, context, filter, query, snapshot]);
 
-  const projectActions = snapshot
-    ? actions.filter((action) => action.projectId === snapshot.projectId)
-    : actions;
   const pendingCount = projectActions.filter(
     (action) => action.state === "PENDING" || action.state === "SYNCING",
   ).length;
@@ -1519,7 +1484,7 @@ export function AttendanceWorkspace({
     for (const group of reviewGroups) {
       const workerKey = group.workerId ?? "unknown";
       const composite = `${workerKey}::${group.workDate}`;
-      map.set(composite, group.actionIds.join(":") || composite);
+      map.set(composite, issueGroupKey(group));
     }
     return map;
   }, [reviewGroups]);
@@ -1607,10 +1572,14 @@ export function AttendanceWorkspace({
 
   const handleReview = (group: (typeof reviewGroups)[number]) => {
     const worker = snapshot.workers.find((w) => w.id === group.workerId);
-    if (worker) {
-      setCorrectingWorker(worker);
-      setIssuesOpen(false);
+    if (!worker) {
+      setMessage(
+        "This device change is not linked to a worker on this date. Discard it and record the attendance again.",
+      );
+      return;
     }
+    setCorrectingWorker(worker);
+    setIssuesOpen(false);
   };
 
   const handleDiscard = async (actionIds: string[]) => {
@@ -2231,9 +2200,7 @@ export function AttendanceWorkspace({
         projectActions={projectActions}
         snapshot={snapshot}
         onDiscard={handleDiscard}
-        onRetry={handleRetry}
         onReview={handleReview}
-        retryableActionIds={retryableActionIds}
       />
 
       {correctingWorker ? (

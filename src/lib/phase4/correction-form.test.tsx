@@ -1,192 +1,153 @@
-import { cleanup, render } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { useRef, useState } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { validateCorrectionSessions } from "@/lib/phase4/sync-issues";
+import { AttendanceWorkspace } from "@/components/phase4/attendance-workspace";
+import * as offlineStore from "@/lib/phase4/offline-store";
+import type {
+  AttendanceQueueAction,
+  AttendanceSnapshot,
+} from "@/lib/phase4/types";
+
+vi.mock("@/hooks/use-mobile", () => ({
+  useIsMobile: () => false,
+}));
 
 afterEach(cleanup);
 
-/**
- * A minimal harness that mirrors the submit logic of the real
- * `CorrectionPanel`: validate, then enqueue. We test the harness
- * because `CorrectionPanel` is a private component inside
- * `attendance-workspace.tsx` and the AGENTS guidance discourages
- * duplicating or extracting it solely for tests.
- */
-function CorrectionFormHarness({
-  onSave,
-  workDate,
-}: {
-  onSave: () => void;
-  workDate: string;
-}) {
-  const [editable, setEditable] = useState([
+const PROJECT = "41000000-0000-0000-0000-000000000001";
+const WORKER = "42000000-0000-0000-0000-000000000001";
+const WORK_DATE = "2026-07-20";
+const SESSION_ID = "44000000-0000-0000-0000-000000000001";
+
+const baseSnapshot: AttendanceSnapshot = {
+  dayType: "NORMAL",
+  projectId: PROJECT,
+  projectName: "Project",
+  sessions: [
     {
       breaks: [],
-      enteredAt: "2026-07-20T08:40:00",
-      exitedAt: "2026-07-20T08:40:00",
-      key: "s1",
+      enteredAt: `${WORK_DATE}T08:00:00+08:00`,
+      exitedAt: `${WORK_DATE}T17:00:00+08:00`,
+      id: SESSION_ID,
+      workerId: WORKER,
     },
-  ]);
-  const [note, setNote] = useState("fix small session");
-  const [attempted, setAttempted] = useState(false);
-  const noteRef = useRef<HTMLTextAreaElement | null>(null);
-  const problems = validateCorrectionSessions(editable, workDate);
-  const noteTrimmedLength = note.trim().length;
-  const noteError = attempted && noteTrimmedLength < 3;
-  const canSubmit = problems.length === 0 && noteTrimmedLength >= 3;
-  return (
-    <form
-      onSubmit={(event) => {
-        event.preventDefault();
-        setAttempted(true);
-        if (!canSubmit) {
-          if (problems.length === 0) {
-            noteRef.current?.focus();
-          }
-          return;
-        }
-        onSave();
-      }}
-    >
-      <label>
-        Enter
-        <input
-          required
-          type="datetime-local"
-          value={editable[0]?.enteredAt ?? ""}
-          onChange={(event) =>
-            setEditable((current) =>
-              current.map((session) =>
-                session.key === "s1"
-                  ? { ...session, enteredAt: event.target.value }
-                  : session,
-              ),
-            )
-          }
-          aria-invalid={attempted && problems.length > 0}
-        />
-      </label>
-      <label>
-        Exit
-        <input
-          type="datetime-local"
-          value={editable[0]?.exitedAt ?? ""}
-          onChange={(event) =>
-            setEditable((current) =>
-              current.map((session) =>
-                session.key === "s1"
-                  ? { ...session, exitedAt: event.target.value }
-                  : session,
-              ),
-            )
-          }
-        />
-      </label>
-      <label>
-        Reason
-        <textarea
-          ref={noteRef}
-          aria-invalid={noteError || undefined}
-          aria-describedby={noteError ? "note-error" : undefined}
-          value={note}
-          onChange={(event) => setNote(event.target.value)}
-        />
-      </label>
-      {noteError ? (
-        <p id="note-error" role="alert">
-          Add a reason of at least 3 characters so the audit history is useful.
-        </p>
-      ) : null}
-      {attempted && problems.length > 0 ? (
-        <p role="alert">{problems[0]?.message}</p>
-      ) : null}
-      <button type="submit">Save correction</button>
-    </form>
-  );
-}
-
-/**
- * A second harness for the reason-only path: sessions are valid so
- * the form must focus the empty reason textarea on submit and never
- * call onSave.
- */
-function ReasonOnlyHarness({ onSave }: { onSave: () => void }) {
-  const [editable] = useState([
+  ],
+  updatedAt: `${WORK_DATE}T00:00:00.000Z`,
+  workDate: WORK_DATE,
+  workers: [
     {
-      breaks: [],
-      enteredAt: "2026-07-20T08:00:00",
-      exitedAt: "2026-07-20T17:00:00",
-      key: "s1",
+      id: WORKER,
+      legalName: "Worker A",
+      skillName: null,
+      tradeName: null,
     },
-  ]);
-  const [note, setNote] = useState("");
-  const [attempted, setAttempted] = useState(false);
-  const noteRef = useRef<HTMLTextAreaElement | null>(null);
-  const problems = validateCorrectionSessions(editable, "2026-07-20");
-  const noteTrimmedLength = note.trim().length;
-  const noteError = attempted && noteTrimmedLength < 3;
-  const canSubmit = problems.length === 0 && noteTrimmedLength >= 3;
-  return (
-    <form
-      onSubmit={(event) => {
-        event.preventDefault();
-        setAttempted(true);
-        if (!canSubmit) {
-          if (problems.length === 0) {
-            noteRef.current?.focus();
-          }
-          return;
-        }
-        onSave();
-      }}
-    >
-      <textarea
-        ref={noteRef}
-        aria-label="Reason for correction"
-        aria-invalid={noteError || undefined}
-        value={note}
-        onChange={(event) => setNote(event.target.value)}
-      />
-      {noteError ? (
-        <p role="alert">
-          Add a reason of at least 3 characters so the audit history is useful.
-        </p>
-      ) : null}
-      <button type="submit">Save correction</button>
-    </form>
+  ],
+};
+
+function mockIndexedDb() {
+  const snapshotStore = new Map<string, AttendanceSnapshot>();
+  const actionStore = new Map<string, AttendanceQueueAction>();
+  vi.spyOn(offlineStore, "saveAttendanceSnapshot").mockImplementation(
+    async (snapshot) => {
+      snapshotStore.set(`${snapshot.projectId}:${snapshot.workDate}`, snapshot);
+    },
   );
+  vi.spyOn(offlineStore, "saveAttendanceAction").mockImplementation(
+    async (action) => {
+      actionStore.set(action.clientActionId, action);
+    },
+  );
+  vi.spyOn(offlineStore, "listAttendanceActions").mockImplementation(async () =>
+    Array.from(actionStore.values()),
+  );
+  return { actionStore, snapshotStore };
 }
 
-describe("correction form submit gate", () => {
-  it("does not call onSave when the sessions are invalid", async () => {
-    const user = userEvent.setup();
-    const onSave = vi.fn();
-    const view = render(
-      <CorrectionFormHarness onSave={onSave} workDate="2026-07-20" />,
-    );
-    await user.click(view.getByRole("button", { name: "Save correction" }));
-    expect(onSave).not.toHaveBeenCalled();
-    expect(
-      view.getByText("Session 1 ends at the same time it starts."),
-    ).toBeInTheDocument();
+beforeEach(() => {
+  // The workspace calls `synchronize` when the device is online, but
+  // this test focuses on the correction save gate so we keep every
+  // network call out of scope.
+  Object.defineProperty(navigator, "onLine", {
+    configurable: true,
+    value: false,
   });
+});
 
-  it("does not call onSave and focuses the reason when the reason is empty", async () => {
+describe("AttendanceWorkspace correction save gate", () => {
+  it("does not enqueue a correction and focuses the reason field when the reason is empty", async () => {
+    const { actionStore } = mockIndexedDb();
     const user = userEvent.setup();
-    const onSave = vi.fn();
-    const view = render(<ReasonOnlyHarness onSave={onSave} />);
-    const textarea = view.getByLabelText(
-      "Reason for correction",
-    ) as HTMLTextAreaElement;
-    await user.click(view.getByRole("button", { name: "Save correction" }));
-    expect(onSave).not.toHaveBeenCalled();
+
+    render(<AttendanceWorkspace initialSnapshot={baseSnapshot} />);
+
+    // Open the production correction editor.
+    await screen.findByText("Worker A");
+    // The summary element has `aria-label` but `summary` is not
+    // promoted to role="button" by jsdom; query it directly by
+    // aria-label and click via mouseDown/click user events.
+    const more = await screen.findByLabelText(
+      /more attendance actions for worker a/i,
+    );
+    await user.click(more);
+    const correctTimes = await screen.findByRole("button", {
+      name: /correct times/i,
+    });
+    await user.click(correctTimes);
+
+    // Force the editor into a state where canSubmit is false by leaving
+    // the reason empty. The real CorrectionPanel still has the default
+    // session, which is valid, so the empty reason is the only blocker.
+    const save = await screen.findByRole("button", {
+      name: /save correction/i,
+    });
+    await user.click(save);
+
+    expect(actionStore.size).toBe(0);
+    const dialog = await screen.findByRole("dialog", {
+      name: /correct attendance/i,
+    });
     expect(
-      view.getByText(
+      within(dialog).getByText(
         "Add a reason of at least 3 characters so the audit history is useful.",
       ),
     ).toBeInTheDocument();
-    expect(document.activeElement).toBe(textarea);
+    expect(document.activeElement?.tagName).toBe("TEXTAREA");
+  });
+
+  it("does not enqueue a correction when the reason is too short", async () => {
+    const { actionStore } = mockIndexedDb();
+    const user = userEvent.setup();
+
+    render(<AttendanceWorkspace initialSnapshot={baseSnapshot} />);
+
+    const more = await screen.findByLabelText(
+      /more attendance actions for worker a/i,
+    );
+    await user.click(more);
+    await user.click(
+      await screen.findByRole("button", { name: /correct times/i }),
+    );
+
+    // Reason is required and must be at least 3 characters; provide
+    // a 2-character value so `canSubmit` is false purely because of
+    // the reason gate.
+    const dialog = await screen.findByRole("dialog", {
+      name: /correct attendance/i,
+    });
+    const reason = within(dialog).getByRole("textbox", { name: /reason/i });
+    await user.type(reason, "ab");
+
+    const save = within(dialog).getByRole("button", {
+      name: /save correction/i,
+    });
+    await user.click(save);
+
+    expect(actionStore.size).toBe(0);
+    expect(
+      within(dialog).getByText(
+        "Add a reason of at least 3 characters so the audit history is useful.",
+      ),
+    ).toBeInTheDocument();
   });
 });

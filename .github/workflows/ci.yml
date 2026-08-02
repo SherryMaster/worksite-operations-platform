@@ -16,6 +16,13 @@ jobs:
     name: Run quality checks
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+      CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
 
     steps:
       - name: Check out repository
@@ -41,3 +48,9 @@ jobs:
 
       - name: Run unit and component tests
         run: npm run test:run
+
+      - name: Run database policy and authorization tests
+        run: npm run test:db
+
+      - name: Run production build
+        run: npm run build

@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 import { cn } from "@/lib/utils";
 
 export function BrandMark({
@@ -8,16 +10,19 @@ export function BrandMark({
   inverted?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-3" aria-label="Worksite Operations">
-      <div
+    <div
+      role="group"
+      aria-label="Worksite Operations"
+      className="flex items-center gap-3"
+    >
+      <Image
+        src="/brand/worksite-mark.svg"
+        alt=""
         aria-hidden="true"
-        className={cn(
-          "grid size-9 shrink-0 place-items-center text-base font-bold tracking-[-0.12em]",
-          inverted ? "text-white" : "text-violet-700",
-        )}
-      >
-        WO
-      </div>
+        width={36}
+        height={36}
+        className="size-9 shrink-0"
+      />
       <div className={cn(compact && "sr-only")}>
         <p
           className={cn(

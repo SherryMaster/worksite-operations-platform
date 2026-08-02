@@ -26,6 +26,8 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   buildAttendanceIssueGroups,
+  correctionFromPayload,
+  issueGroupKey,
   presentAttendanceIssue,
   type AttendanceSyncIssueGroup,
   type CorrectionProblem,
@@ -43,31 +45,39 @@ type AttendanceSyncIssuesProps = {
   focusedGroupKey?: string | null;
   onClose: () => void;
   onDiscard: (actionIds: string[]) => Promise<void> | void;
-  onRetry: (actionIds: string[]) => Promise<void> | void;
   onReview: (group: AttendanceSyncIssueGroup) => void;
   open: boolean;
   projectActions: AttendanceQueueAction[];
-  retryableActionIds: string[];
   snapshot: AttendanceSnapshot;
 };
 
+function parseTimestamp(timestamp: string | null) {
+  if (!timestamp) return null;
+  const parsed = new Date(timestamp);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 function malaysiaTime(timestamp: string | null) {
   if (!timestamp) return "—";
+  const parsed = parseTimestamp(timestamp);
+  if (!parsed) return "—";
   return new Intl.DateTimeFormat("en-MY", {
     hour: "2-digit",
     minute: "2-digit",
     timeZone: "Asia/Kuala_Lumpur",
-  }).format(new Date(timestamp));
+  }).format(parsed);
 }
 
 function malaysiaTimeSeconds(timestamp: string | null) {
   if (!timestamp) return "—";
+  const parsed = parseTimestamp(timestamp);
+  if (!parsed) return "—";
   return new Intl.DateTimeFormat("en-MY", {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
     timeZone: "Asia/Kuala_Lumpur",
-  }).format(new Date(timestamp));
+  }).format(parsed);
 }
 
 function malaysiaDateLabel(value: string) {
@@ -82,12 +92,14 @@ function malaysiaDateLabel(value: string) {
 }
 
 function formatIsoSeconds(iso: string) {
+  const parsed = parseTimestamp(iso);
+  if (!parsed) return "—";
   return new Intl.DateTimeFormat("en-MY", {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
     timeZone: "Asia/Kuala_Lumpur",
-  }).format(new Date(iso));
+  }).format(parsed);
 }
 
 function formatSessionDuration(
@@ -229,41 +241,8 @@ function attemptedSessionsFromAction(
   action: AttendanceQueueAction,
 ): AttemptedSession[] | null {
   if (action.actionType !== "CORRECT_DAY") return null;
-  const raw = action.payload.sessions;
-  if (!Array.isArray(raw)) return null;
-  const result: AttemptedSession[] = [];
-  for (const entry of raw) {
-    if (!entry || typeof entry !== "object") continue;
-    const candidate = entry as Record<string, unknown>;
-    const enteredAt =
-      typeof candidate.enteredAt === "string" ? candidate.enteredAt : null;
-    if (!enteredAt) continue;
-    const exitedAt =
-      typeof candidate.exitedAt === "string" ? candidate.exitedAt : null;
-    const breaks = Array.isArray(candidate.breaks)
-      ? candidate.breaks
-          .map((breakEntry) => {
-            if (!breakEntry || typeof breakEntry !== "object") return null;
-            const candidateBreak = breakEntry as Record<string, unknown>;
-            const startedAt =
-              typeof candidateBreak.startedAt === "string"
-                ? candidateBreak.startedAt
-                : null;
-            if (!startedAt) return null;
-            const endedAt =
-              typeof candidateBreak.endedAt === "string"
-                ? candidateBreak.endedAt
-                : null;
-            return { endedAt, startedAt };
-          })
-          .filter(
-            (value): value is { endedAt: string | null; startedAt: string } =>
-              value !== null,
-          )
-      : [];
-    result.push({ breaks, enteredAt, exitedAt });
-  }
-  return result;
+  const sessions = correctionFromPayload(action);
+  return sessions.length > 0 ? sessions : null;
 }
 
 function problemsForSession(
@@ -536,6 +515,10 @@ function IssueCard({
               type="button"
               onClick={() => onReview(group)}
               className="min-h-11"
+              disabled={!worker}
+              aria-describedby={
+                worker ? undefined : `unresolved-${group.actionIds.join("-")}`
+              }
             >
               Correct attendance
             </Button>
@@ -549,6 +532,15 @@ function IssueCard({
               {discardLabel}
             </Button>
           </div>
+          {!worker ? (
+            <p
+              id={`unresolved-${group.actionIds.join("-")}`}
+              className="text-[0.6875rem] text-amber-900"
+            >
+              This saved change is not linked to a worker on this date. Discard
+              it and record the attendance again.
+            </p>
+          ) : null}
           <div className="border-t border-slate-100 pt-2">
             <button
               type="button"
@@ -607,11 +599,9 @@ export function AttendanceSyncIssues({
   focusedGroupKey,
   onClose,
   onDiscard,
-  onRetry,
   onReview,
   open,
   projectActions,
-  retryableActionIds,
   snapshot,
 }: AttendanceSyncIssuesProps) {
   const isMobile = useIsMobile();
@@ -640,11 +630,6 @@ export function AttendanceSyncIssues({
     }
     return map;
   }, [snapshot.workers]);
-
-  // Reference onRetry so an unused prop never trips the build while
-  // keeping the parent signature stable for the next iteration.
-  void onRetry;
-  void retryableActionIds;
 
   return (
     <>
@@ -700,9 +685,7 @@ export function AttendanceSyncIssues({
               </div>
             ) : (
               groups.map((group, index) => {
-                const groupKey =
-                  group.actionIds.join(":") ||
-                  `${group.workerId ?? "unknown"}-${group.workDate}-${index}`;
+                const groupKey = issueGroupKey(group);
                 const isFocused = focusedGroupKey === groupKey;
                 return (
                   <IssueCard
