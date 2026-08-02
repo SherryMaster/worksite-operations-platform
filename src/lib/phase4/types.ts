@@ -18,6 +18,7 @@ export type AttendanceWorker = {
   approvedLeaveType?: string | null;
   id: string;
   legalName: string;
+  photoId?: string | null;
   skillName: string | null;
   tradeName: string | null;
 };

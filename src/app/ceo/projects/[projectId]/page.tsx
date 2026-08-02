@@ -17,6 +17,7 @@ import {
 } from "@/app/ceo/actions";
 import { ActionButton } from "@/components/phase2/action-button";
 import { ManagedForm } from "@/components/phase2/managed-form";
+import { WorkerAvatar } from "@/components/worker-avatar";
 import { StatusBadge } from "@/components/phase2/status-badge";
 import { LeaveRequestList } from "@/components/phase5/leave-request-list";
 import { getProject, listForemen } from "@/lib/phase2/data";
@@ -335,16 +336,27 @@ export default async function ProjectDetailPage({
                 <Link
                   key={worker.id}
                   href={`/ceo/workers/${worker.id}`}
-                  className="flex items-center justify-between gap-4 p-5 hover:bg-slate-50"
+                  className="flex items-center gap-3 p-5 hover:bg-slate-50"
                 >
-                  <div>
-                    <p className="text-sm font-semibold">{worker.legal_name}</p>
-                    <p className="mt-1 text-xs text-slate-500">
+                  <WorkerAvatar
+                    workerId={worker.id}
+                    photoId={worker.photoId}
+                    name={worker.legal_name}
+                    size="sm"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold">
+                      {worker.legal_name}
+                    </p>
+                    <p className="mt-1 truncate text-xs text-slate-500">
                       {worker.tradeName ?? "No trade"} ·{" "}
                       {worker.skillName ?? "No skill level"}
                     </p>
                   </div>
-                  <ArrowUpRight className="size-4" aria-hidden="true" />
+                  <ArrowUpRight
+                    className="size-4 shrink-0"
+                    aria-hidden="true"
+                  />
                 </Link>
               ))}
             </div>

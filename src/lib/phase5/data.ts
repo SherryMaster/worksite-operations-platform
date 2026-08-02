@@ -13,6 +13,7 @@ export type LeaveRequestView = LeaveRequest & {
   leaveTypeName: string;
   projectName: string;
   workerName: string;
+  workerPhotoId: string | null;
 };
 
 function throwQueryError(
@@ -72,9 +73,16 @@ export async function listLeaveRequests(filters?: {
     requests[0].ends_on,
   );
 
-  const [workers, projects, leaveTypes, documents, attendance] =
+  const [workers, workerPhotos, projects, leaveTypes, documents, attendance] =
     await Promise.all([
       supabase.from("workers").select("id,legal_name").in("id", workerIds),
+      supabase
+        .from("worker_documents")
+        .select("id,worker_id")
+        .in("worker_id", workerIds)
+        .eq("file_kind", "PHOTO")
+        .eq("status", "ACTIVE")
+        .order("created_at", { ascending: false }),
       supabase.from("projects").select("id,name").in("id", projectIds),
       supabase.from("leave_types").select("id,name").in("id", leaveTypeIds),
       supabase
@@ -93,6 +101,7 @@ export async function listLeaveRequests(filters?: {
 
   for (const [operation, result] of [
     ["leave_workers", workers],
+    ["leave_worker_photos", workerPhotos],
     ["leave_projects", projects],
     ["leave_type_names", leaveTypes],
     ["leave_documents", documents],
@@ -104,6 +113,12 @@ export async function listLeaveRequests(filters?: {
   const workerNames = new Map(
     (workers.data ?? []).map((row) => [row.id, row.legal_name]),
   );
+  const workerPhotoIds = new Map<string, string>();
+  for (const photo of workerPhotos.data ?? []) {
+    if (!workerPhotoIds.has(photo.worker_id)) {
+      workerPhotoIds.set(photo.worker_id, photo.id);
+    }
+  }
   const projectNames = new Map(
     (projects.data ?? []).map((row) => [row.id, row.name]),
   );
@@ -130,6 +145,7 @@ export async function listLeaveRequests(filters?: {
       projectName:
         projectNames.get(request.project_id) ?? "Unavailable project",
       workerName: workerNames.get(request.worker_id) ?? "Worker record",
+      workerPhotoId: workerPhotoIds.get(request.worker_id) ?? null,
     }))
     .sort(
       (left, right) =>

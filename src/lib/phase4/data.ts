@@ -182,6 +182,29 @@ export async function getAttendanceSnapshot(
     throwQueryError("attendance_workers", workerResult.error);
   }
 
+  const photoRows =
+    workerIds.length === 0
+      ? []
+      : await (async () => {
+          const result = await supabase
+            .from("worker_documents")
+            .select("id,worker_id")
+            .in("worker_id", workerIds)
+            .eq("file_kind", "PHOTO")
+            .eq("status", "ACTIVE")
+            .order("created_at", { ascending: false });
+          if (result.error) {
+            throwQueryError("attendance_worker_photos", result.error);
+          }
+          return result.data;
+        })();
+  const photoIds = new Map<string, string>();
+  for (const photo of photoRows) {
+    if (!photoIds.has(photo.worker_id)) {
+      photoIds.set(photo.worker_id, photo.id);
+    }
+  }
+
   const tradeNames = new Map(tradeRows.map((trade) => [trade.id, trade.name]));
   const skillNames = new Map(skillRows.map((skill) => [skill.id, skill.name]));
   const leaveTypeNames = new Map(
@@ -209,6 +232,7 @@ export async function getAttendanceSnapshot(
       approvedLeaveType: leaveByWorker.get(worker.id) ?? null,
       id: worker.id,
       legalName: worker.legal_name,
+      photoId: photoIds.get(worker.id) ?? null,
       skillName: classification
         ? (skillNames.get(classification.skill_level_id) ?? null)
         : null,
@@ -248,6 +272,7 @@ export type AttendanceMonthRow = {
   totalMinutes: number;
   workerId: string;
   workerName: string;
+  workerPhotoId: string | null;
 };
 
 export async function getAttendanceMonthRows(
@@ -264,6 +289,7 @@ export async function getAttendanceMonthRows(
     sessionsResult,
     daysResult,
     workersResult,
+    photosResult,
     leaveDaysResult,
     leaveTypesResult,
   ] = await Promise.all([
@@ -284,6 +310,12 @@ export async function getAttendanceMonthRows(
       .lte("work_date", endDate),
     supabase.from("workers").select("id,legal_name").order("legal_name"),
     supabase
+      .from("worker_documents")
+      .select("id,worker_id")
+      .eq("file_kind", "PHOTO")
+      .eq("status", "ACTIVE")
+      .order("created_at", { ascending: false }),
+    supabase
       .from("approved_leave_days")
       .select("worker_id,leave_type_id,leave_date")
       .eq("project_id", projectId)
@@ -299,6 +331,9 @@ export async function getAttendanceMonthRows(
   }
   if (workersResult.error) {
     throwQueryError("attendance_month_workers", workersResult.error);
+  }
+  if (photosResult.error) {
+    throwQueryError("attendance_month_worker_photos", photosResult.error);
   }
   if (leaveDaysResult.error) {
     throwQueryError("attendance_month_leave", leaveDaysResult.error);
@@ -317,6 +352,12 @@ export async function getAttendanceMonthRows(
   const workerNames = new Map(
     workersResult.data.map((worker) => [worker.id, worker.legal_name]),
   );
+  const workerPhotoIds = new Map<string, string>();
+  for (const photo of photosResult.data ?? []) {
+    if (!workerPhotoIds.has(photo.worker_id)) {
+      workerPhotoIds.set(photo.worker_id, photo.id);
+    }
+  }
   const leaveTypeNames = new Map(
     leaveTypesResult.data.map((leaveType) => [leaveType.id, leaveType.name]),
   );
@@ -363,6 +404,7 @@ export async function getAttendanceMonthRows(
         totalMinutes: leaveTypeName ? 0 : calculation.totalPayableMinutes,
         workerId,
         workerName: workerNames.get(workerId) ?? "Worker record",
+        workerPhotoId: workerPhotoIds.get(workerId) ?? null,
       };
     })
     .sort(

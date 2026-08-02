@@ -8,6 +8,7 @@ import Link from "next/link";
 
 import { decideLeaveRequestAction } from "@/app/leave/actions";
 import { ActionButton } from "@/components/phase2/action-button";
+import { WorkerAvatar } from "@/components/worker-avatar";
 import { ManagedForm } from "@/components/phase2/managed-form";
 import { formatDate, formatDateTime } from "@/lib/phase2/format";
 import type { LeaveRequestView } from "@/lib/phase5/data";
@@ -52,8 +53,14 @@ export function LeaveRequestList({
           key={request.id}
           className="border-b border-slate-200 p-3 last:border-0 sm:p-4"
         >
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
+          <div className="flex items-start gap-3">
+            <WorkerAvatar
+              workerId={request.worker_id}
+              photoId={request.workerPhotoId}
+              name={request.workerName}
+              size="sm"
+            />
+            <div className="min-w-0 flex-1">
               <div className="flex min-w-0 items-center gap-2">
                 <h2 className="truncate text-sm font-semibold">
                   {request.workerName}

@@ -8,6 +8,7 @@ import {
 import Link from "next/link";
 
 import { FormSubmitButton } from "@/components/form-submit-button";
+import { WorkerAvatar } from "@/components/worker-avatar";
 import {
   CompactRecord,
   CompactRecordList,
@@ -194,12 +195,24 @@ export default async function WorkersPage({
                 {visibleWorkers.map((worker) => (
                   <tr key={worker.id}>
                     <td className="px-5 py-2.5">
-                      <p className="font-semibold">{worker.legal_name}</p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {maskIdentifier(
-                          worker.cnic_number ?? worker.passport_number,
-                        )}
-                      </p>
+                      <div className="flex items-center gap-3">
+                        <WorkerAvatar
+                          workerId={worker.id}
+                          photoId={worker.photoId}
+                          name={worker.legal_name}
+                          size="sm"
+                        />
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold">
+                            {worker.legal_name}
+                          </p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            {maskIdentifier(
+                              worker.cnic_number ?? worker.passport_number,
+                            )}
+                          </p>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-4 py-2.5">
                       {worker.tradeName ?? "Not classified"}
@@ -256,6 +269,14 @@ export default async function WorkersPage({
             {visibleWorkers.map((worker) => (
               <CompactRecord
                 key={worker.id}
+                leading={
+                  <WorkerAvatar
+                    workerId={worker.id}
+                    photoId={worker.photoId}
+                    name={worker.legal_name}
+                    size="sm"
+                  />
+                }
                 action={
                   <ChevronRight
                     className="size-4 text-slate-400"

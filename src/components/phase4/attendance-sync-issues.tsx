@@ -16,6 +16,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { WorkerAvatar } from "@/components/worker-avatar";
 import {
   Sheet,
   SheetContent,
@@ -128,15 +129,6 @@ function formatSessionDuration(
   return leftoverMinutes === 0
     ? `${hours} h`
     : `${hours} h ${leftoverMinutes} min`;
-}
-
-function workerInitials(name: string) {
-  return name
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
 }
 
 function BreakRow({
@@ -424,12 +416,12 @@ function IssueCard({
   return (
     <article className="rounded-lg border border-slate-200 bg-white">
       <header className="flex items-center gap-3 px-3 py-2.5">
-        <div
-          aria-hidden="true"
-          className="grid size-9 shrink-0 place-items-center rounded-full bg-slate-100 text-xs font-semibold text-slate-700"
-        >
-          {worker ? workerInitials(worker.legalName) : "??"}
-        </div>
+        <WorkerAvatar
+          workerId={worker?.id ?? null}
+          photoId={worker?.photoId ?? null}
+          name={worker?.legalName ?? "Unknown worker"}
+          size="sm"
+        />
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 flex-wrap items-center gap-1.5">
             <h3 className="truncate text-sm font-semibold">
