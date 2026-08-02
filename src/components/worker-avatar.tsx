@@ -9,12 +9,14 @@ const sizeClasses = {
   xs: "size-8 text-[0.625rem]",
   sm: "size-9 text-xs",
   md: "size-10 text-xs",
+  lg: "size-14 text-base",
 } as const;
 
 const imageSizes = {
   xs: "32px",
   sm: "36px",
   md: "40px",
+  lg: "56px",
 } as const;
 
 function workerInitials(name: string) {
