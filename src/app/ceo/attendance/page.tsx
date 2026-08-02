@@ -9,6 +9,7 @@ import {
 import Link from "next/link";
 
 import { FormSubmitButton } from "@/components/form-submit-button";
+import { WorkerAvatar } from "@/components/worker-avatar";
 import { PageHeader } from "@/components/operations/page-header";
 import { AttendanceWorkspace } from "@/components/phase4/attendance-workspace";
 import { malaysiaDateInputValue } from "@/lib/phase2/format";
@@ -238,6 +239,12 @@ export default async function CeoAttendancePage({
                 className="group border-b border-slate-200 last:border-0"
               >
                 <summary className="flex min-h-20 cursor-pointer list-none items-center gap-3 px-3 py-2.5">
+                  <WorkerAvatar
+                    workerId={row.workerId}
+                    photoId={row.workerPhotoId}
+                    name={row.workerName}
+                    size="sm"
+                  />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
                       <p className="truncate text-sm font-semibold">
@@ -333,8 +340,16 @@ export default async function CeoAttendancePage({
                 {monthRows.map((row) => (
                   <tr key={`${row.date}:${row.workerId}`}>
                     <td className="px-4 py-3 tabular-nums">{row.date}</td>
-                    <td className="px-4 py-3 font-semibold">
-                      {row.workerName}
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <WorkerAvatar
+                          workerId={row.workerId}
+                          photoId={row.workerPhotoId}
+                          name={row.workerName}
+                          size="xs"
+                        />
+                        <span className="font-semibold">{row.workerName}</span>
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       {formatMinutes(row.normalMinutes)}

@@ -18,6 +18,7 @@ export type PayrollWorkerView = PayrollWorker & {
   buckets: Array<PayrollBucket & { projectName: string }>;
   exceptions: PayrollException[];
   payment: PayrollPayment | null;
+  photoId: string | null;
   primaryProjectName: string | null;
   sourceDays: Array<PayrollSourceDay & { projectName: string }>;
   statement: PayrollStatement | null;
@@ -102,6 +103,29 @@ export async function getPayrollRun(
   const workerLines = workerResult.data ?? [];
   const projects = projectResult.data ?? [];
   const workerLineIds = workerLines.map((worker) => worker.id);
+  const workerIds = [...new Set(workerLines.map((worker) => worker.worker_id))];
+  const photoRows =
+    workerIds.length === 0
+      ? []
+      : await (async () => {
+          const result = await supabase
+            .from("worker_documents")
+            .select("id,worker_id")
+            .in("worker_id", workerIds)
+            .eq("file_kind", "PHOTO")
+            .eq("status", "ACTIVE")
+            .order("created_at", { ascending: false });
+          if (result.error) {
+            throwQueryError("payroll_worker_photos", result.error);
+          }
+          return result.data;
+        })();
+  const photoIds = new Map<string, string>();
+  for (const photo of photoRows) {
+    if (!photoIds.has(photo.worker_id)) {
+      photoIds.set(photo.worker_id, photo.id);
+    }
+  }
   const [
     bucketResult,
     sourceDayResult,
@@ -190,6 +214,7 @@ export async function getPayrollRun(
     payment:
       payments.find((payment) => payment.payroll_worker_id === worker.id) ??
       null,
+    photoId: photoIds.get(worker.worker_id) ?? null,
     primaryProjectName: worker.primary_project_id
       ? (projectNames.get(worker.primary_project_id) ?? "Unavailable project")
       : null,

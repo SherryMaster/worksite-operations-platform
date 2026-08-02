@@ -22,6 +22,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AppPageSkeleton } from "@/components/app-page-skeleton";
+import { WorkerAvatar } from "@/components/worker-avatar";
 import { AttendanceSyncIssues } from "@/components/phase4/attendance-sync-issues";
 import {
   Sheet,
@@ -1961,20 +1962,15 @@ export function AttendanceWorkspace({
                           hasIssue && "bg-red-50/45",
                         )}
                       >
-                        <div
-                          aria-hidden="true"
+                        <WorkerAvatar
+                          workerId={worker.id}
+                          photoId={worker.photoId}
+                          name={worker.legalName}
+                          size="sm"
                           className={cn(
-                            "grid size-9 shrink-0 place-items-center rounded-full bg-slate-100 text-xs font-semibold text-slate-700",
-                            hasIssue && "bg-red-100 text-red-800",
+                            hasIssue && "ring-2 ring-red-200 ring-offset-1",
                           )}
-                        >
-                          {worker.legalName
-                            .split(/\s+/)
-                            .slice(0, 2)
-                            .map((part) => part[0])
-                            .join("")
-                            .toUpperCase()}
-                        </div>
+                        />
                         <div className="min-w-0 flex-1">
                           <div className="flex min-w-0 items-center gap-2">
                             <h2 className="truncate text-sm font-semibold">

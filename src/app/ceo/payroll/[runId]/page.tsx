@@ -19,6 +19,7 @@ import {
 } from "@/app/ceo/payroll/actions";
 import { ActionButton } from "@/components/phase2/action-button";
 import { ManagedForm } from "@/components/phase2/managed-form";
+import { WorkerAvatar } from "@/components/worker-avatar";
 import {
   formatPayrollMinutes,
   formatSen,
@@ -308,6 +309,12 @@ export default async function PayrollRunPage({
                 href={`/ceo/payroll/${data.run.id}/workers/${worker.id}`}
                 className="flex min-h-20 items-center gap-3 border-b border-slate-200 p-3 last:border-0"
               >
+                <WorkerAvatar
+                  workerId={worker.worker_id}
+                  photoId={worker.photoId}
+                  name={worker.worker_name}
+                  size="sm"
+                />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -369,8 +376,18 @@ export default async function PayrollRunPage({
                   worker.public_holiday_minutes;
                 return (
                   <tr key={worker.id}>
-                    <td className="px-4 py-4 font-semibold">
-                      {worker.worker_name}
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-3">
+                        <WorkerAvatar
+                          workerId={worker.worker_id}
+                          photoId={worker.photoId}
+                          name={worker.worker_name}
+                          size="xs"
+                        />
+                        <span className="font-semibold">
+                          {worker.worker_name}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-4 py-4 text-slate-600">
                       {worker.primaryProjectName ?? "No project"}

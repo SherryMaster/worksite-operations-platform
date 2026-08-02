@@ -2,6 +2,7 @@ import { AlertTriangle, ChevronRight, Search, Users } from "lucide-react";
 import Link from "next/link";
 
 import { FormSubmitButton } from "@/components/form-submit-button";
+import { WorkerAvatar } from "@/components/worker-avatar";
 import {
   CompactRecord,
   CompactRecordList,
@@ -76,17 +77,12 @@ export default async function ForemanWorkersPage({
             <CompactRecord
               key={worker.id}
               leading={
-                <span
-                  aria-hidden="true"
-                  className="grid size-9 place-items-center rounded-full bg-violet-50 text-xs font-semibold text-violet-800"
-                >
-                  {worker.legal_name
-                    .split(/\s+/)
-                    .slice(0, 2)
-                    .map((part) => part[0])
-                    .join("")
-                    .toUpperCase()}
-                </span>
+                <WorkerAvatar
+                  workerId={worker.id}
+                  photoId={worker.photoId}
+                  name={worker.legal_name}
+                  size="sm"
+                />
               }
               action={
                 <Link
