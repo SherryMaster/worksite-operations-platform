@@ -36,6 +36,14 @@ describe("WorkerAvatar", () => {
     expect(screen.getByText("MA")).toBeInTheDocument();
   });
 
+  it("supports the larger worker-profile size", () => {
+    render(<WorkerAvatar name="Ahmed Khan" workerId="worker-1" size="lg" />);
+
+    expect(
+      screen.getByRole("img", { name: "Profile photo for Ahmed Khan" }),
+    ).toHaveClass("size-14", "text-base");
+  });
+
   it("renders initials when no photo is available", () => {
     render(<WorkerAvatar name="Imran Khan" workerId="worker-3" />);
 
