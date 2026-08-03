@@ -344,33 +344,45 @@ export type Database = {
         Row: {
           created_at: string;
           created_by: string;
+          expects_document_number: boolean;
           expects_expiry_date: boolean;
           expects_issue_date: boolean;
           id: string;
           is_active: boolean;
+          is_repeatable: boolean;
+          metadata_fields: Json;
           name: string;
+          system_code: string | null;
           updated_at: string;
           updated_by: string;
         };
         Insert: {
           created_at?: string;
           created_by?: string;
+          expects_document_number?: boolean;
           expects_expiry_date?: boolean;
           expects_issue_date?: boolean;
           id?: string;
           is_active?: boolean;
+          is_repeatable?: boolean;
+          metadata_fields?: Json;
           name: string;
+          system_code?: string | null;
           updated_at?: string;
           updated_by?: string;
         };
         Update: {
           created_at?: string;
           created_by?: string;
+          expects_document_number?: boolean;
           expects_expiry_date?: boolean;
           expects_issue_date?: boolean;
           id?: string;
           is_active?: boolean;
+          is_repeatable?: boolean;
+          metadata_fields?: Json;
           name?: string;
+          system_code?: string | null;
           updated_at?: string;
           updated_by?: string;
         };
@@ -1599,8 +1611,8 @@ export type Database = {
       };
       worker_documents: {
         Row: {
-          bucket_id: string;
-          byte_size: number;
+          bucket_id: string | null;
+          byte_size: number | null;
           changed_by: string | null;
           created_at: string;
           document_number: string | null;
@@ -1609,18 +1621,21 @@ export type Database = {
           file_kind: Database["public"]["Enums"]["worker_file_kind"];
           id: string;
           issue_date: string | null;
-          mime_type: string;
-          object_path: string;
-          original_filename: string;
+          metadata: Json;
+          mime_type: string | null;
+          normalized_document_number: string | null;
+          object_path: string | null;
+          original_filename: string | null;
           replaced_by_id: string | null;
           status: Database["public"]["Enums"]["worker_document_status"];
+          type_repeatable: boolean;
           updated_at: string;
           uploaded_by: string;
           worker_id: string;
         };
         Insert: {
-          bucket_id: string;
-          byte_size: number;
+          bucket_id?: string | null;
+          byte_size?: number | null;
           changed_by?: string | null;
           created_at?: string;
           document_number?: string | null;
@@ -1629,18 +1644,20 @@ export type Database = {
           file_kind: Database["public"]["Enums"]["worker_file_kind"];
           id?: string;
           issue_date?: string | null;
-          mime_type: string;
-          object_path: string;
-          original_filename: string;
+          metadata?: Json;
+          mime_type?: string | null;
+          object_path?: string | null;
+          original_filename?: string | null;
           replaced_by_id?: string | null;
           status?: Database["public"]["Enums"]["worker_document_status"];
+          type_repeatable?: boolean;
           updated_at?: string;
           uploaded_by?: string;
           worker_id: string;
         };
         Update: {
-          bucket_id?: string;
-          byte_size?: number;
+          bucket_id?: string | null;
+          byte_size?: number | null;
           changed_by?: string | null;
           created_at?: string;
           document_number?: string | null;
@@ -1649,11 +1666,13 @@ export type Database = {
           file_kind?: Database["public"]["Enums"]["worker_file_kind"];
           id?: string;
           issue_date?: string | null;
-          mime_type?: string;
-          object_path?: string;
-          original_filename?: string;
+          metadata?: Json;
+          mime_type?: string | null;
+          object_path?: string | null;
+          original_filename?: string | null;
           replaced_by_id?: string | null;
           status?: Database["public"]["Enums"]["worker_document_status"];
+          type_repeatable?: boolean;
           updated_at?: string;
           uploaded_by?: string;
           worker_id?: string;
@@ -1942,56 +1961,41 @@ export type Database = {
         Row: {
           address: string | null;
           alternate_phone: string | null;
-          cnic_number: string | null;
           created_at: string;
           created_by: string;
           id: string;
           legal_name: string;
           nationality: string | null;
           notes: string | null;
-          passport_number: string | null;
           phone_number: string;
           updated_at: string;
           updated_by: string;
-          work_permit_expiry_date: string | null;
-          work_permit_issue_date: string | null;
-          work_permit_number: string | null;
         };
         Insert: {
           address?: string | null;
           alternate_phone?: string | null;
-          cnic_number?: string | null;
           created_at?: string;
           created_by?: string;
           id?: string;
           legal_name: string;
           nationality?: string | null;
           notes?: string | null;
-          passport_number?: string | null;
           phone_number: string;
           updated_at?: string;
           updated_by?: string;
-          work_permit_expiry_date?: string | null;
-          work_permit_issue_date?: string | null;
-          work_permit_number?: string | null;
         };
         Update: {
           address?: string | null;
           alternate_phone?: string | null;
-          cnic_number?: string | null;
           created_at?: string;
           created_by?: string;
           id?: string;
           legal_name?: string;
           nationality?: string | null;
           notes?: string | null;
-          passport_number?: string | null;
           phone_number?: string;
           updated_at?: string;
           updated_by?: string;
-          work_permit_expiry_date?: string | null;
-          work_permit_issue_date?: string | null;
-          work_permit_number?: string | null;
         };
         Relationships: [
           {
@@ -2076,55 +2080,12 @@ export type Database = {
         Returns: string;
       };
       commit_migration_batch: { Args: { p_batch_id: string }; Returns: Json };
-      create_worker: {
+      find_worker_identity_duplicate: {
         Args: {
-          p_address: string;
-          p_alternate_phone: string;
-          p_assignment_starts_on: string;
-          p_cnic_number: string;
-          p_employment_starts_on: string;
-          p_employment_status: Database["public"]["Enums"]["worker_employment_status"];
-          p_food_deduction_sen: number;
-          p_hourly_rate_sen: number;
-          p_legal_name: string;
-          p_nationality: string;
-          p_notes: string;
-          p_passport_number: string;
-          p_phone_number: string;
-          p_project_id: string;
-          p_rate_starts_on: string;
-          p_skill_level_id: string;
-          p_trade_id: string;
-          p_work_permit_expiry_date: string;
-          p_work_permit_issue_date: string;
-          p_work_permit_number: string;
+          p_documents: Json;
+          p_exclude_worker_id?: string | null;
         };
-        Returns: string;
-      };
-      create_worker_record: {
-        Args: {
-          p_address: string;
-          p_alternate_phone: string;
-          p_assignment_starts_on: string;
-          p_cnic_number: string;
-          p_employment_starts_on: string;
-          p_employment_status: Database["public"]["Enums"]["worker_employment_status"];
-          p_food_deduction_sen: number;
-          p_hourly_rate_sen: number;
-          p_legal_name: string;
-          p_nationality: string;
-          p_notes: string;
-          p_passport_number: string;
-          p_phone_number: string;
-          p_project_id: string;
-          p_rate_starts_on: string;
-          p_skill_level_id: string;
-          p_trade_id: string;
-          p_work_permit_expiry_date: string;
-          p_work_permit_issue_date: string;
-          p_work_permit_number: string;
-        };
-        Returns: string;
+        Returns: { id: string; legal_name: string }[];
       };
       decide_leave_request: {
         Args: {
@@ -2134,25 +2095,19 @@ export type Database = {
         };
         Returns: undefined;
       };
-      edit_worker_profile: {
+      attach_worker_file: {
         Args: {
-          p_address: string;
-          p_alternate_phone: string;
-          p_cnic_number: string;
-          p_food_deduction_sen: number;
-          p_legal_name: string;
-          p_nationality: string;
-          p_notes: string;
-          p_passport_number: string;
-          p_phone_number: string;
-          p_skill_level_id: string;
-          p_trade_id: string;
-          p_work_permit_expiry_date: string;
-          p_work_permit_issue_date: string;
-          p_work_permit_number: string;
+          p_bucket_id: string;
+          p_byte_size: number;
+          p_document_id: string;
+          p_file_kind: Database["public"]["Enums"]["worker_file_kind"];
+          p_id: string;
+          p_mime_type: string;
+          p_object_path: string;
+          p_original_filename: string;
           p_worker_id: string;
         };
-        Returns: undefined;
+        Returns: string;
       };
       generate_payroll: { Args: { p_payroll_month: string }; Returns: string };
       move_worker: {
@@ -2173,33 +2128,45 @@ export type Database = {
         };
         Returns: string;
       };
-      register_worker_file: {
+      save_worker_record: {
         Args: {
-          p_bucket_id: string;
-          p_byte_size: number;
+          p_address: string;
+          p_confirm_duplicate?: boolean;
+          p_documents: Json;
+          p_food_deduction_sen: number;
+          p_hourly_rate_sen: number;
+          p_legal_name: string;
+          p_nationality: string;
+          p_phone_number: string;
+          p_rate_effective_on: string;
+          p_skill_level_id: string;
+          p_trade_id: string;
+          p_worker_id: string;
+        };
+        Returns: Json;
+      };
+      save_worker_document_metadata: {
+        Args: {
+          p_confirm_duplicate?: boolean;
+          p_document_id: string;
           p_document_number: string;
           p_document_type_id: string;
           p_expiry_date: string;
-          p_file_kind: Database["public"]["Enums"]["worker_file_kind"];
-          p_id: string;
           p_issue_date: string;
-          p_mime_type: string;
-          p_object_path: string;
-          p_original_filename: string;
-          p_replace_document_id: string;
+          p_metadata: Json;
           p_worker_id: string;
         };
-        Returns: undefined;
+        Returns: string;
       };
       remove_payroll_adjustment: {
         Args: { p_adjustment_id: string };
         Returns: undefined;
       };
-      remove_worker_file: {
-        Args: { p_document_id: string };
+      remove_worker_document: {
+        Args: { p_document_id: string; p_remove_document?: boolean };
         Returns: {
-          bucket_id: string;
-          object_path: string;
+          bucket_id: string | null;
+          object_path: string | null;
         }[];
       };
       set_worker_employment_status: {
@@ -2235,26 +2202,6 @@ export type Database = {
         Args: {
           p_project_id: string;
           p_starts_on: string;
-          p_worker_id: string;
-        };
-        Returns: undefined;
-      };
-      update_worker_profile: {
-        Args: {
-          p_address: string;
-          p_alternate_phone: string;
-          p_cnic_number: string;
-          p_food_deduction_sen: number;
-          p_legal_name: string;
-          p_nationality: string;
-          p_notes: string;
-          p_passport_number: string;
-          p_phone_number: string;
-          p_skill_level_id: string;
-          p_trade_id: string;
-          p_work_permit_expiry_date: string;
-          p_work_permit_issue_date: string;
-          p_work_permit_number: string;
           p_worker_id: string;
         };
         Returns: undefined;

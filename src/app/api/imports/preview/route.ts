@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { requireRole } from "@/lib/auth/access";
+import { validateWorkerFile } from "@/lib/phase3/files";
 import {
   parseImportWorkbook,
   type ImportIssue,
@@ -28,7 +29,7 @@ const stagedFilesSchema = z
         .int()
         .min(1)
         .max(10 * 1024 * 1024),
-      type: z.enum(["application/pdf", "image/jpeg", "image/png"]),
+      type: z.string().trim().min(1).max(150),
     }),
   )
   .max(100);
@@ -46,6 +47,10 @@ export async function POST(request: Request) {
   const parsedStaged = stagedFilesSchema.safeParse(stagedInput);
   if (
     !parsedStaged.success ||
+    (parsedStaged.success &&
+      parsedStaged.data.some(
+        (file) => !validateWorkerFile(file, "DOCUMENT").ok,
+      )) ||
     (parsedStaged.data.length > 0 && !parsedBatchId.success)
   ) {
     return NextResponse.json(
@@ -119,19 +124,26 @@ export async function POST(request: Request) {
     );
   }
 
-  const [projects, workers, trades, skills, documentTypes] = await Promise.all([
-    supabase.from("projects").select("name,client_name"),
-    supabase.from("workers").select("cnic_number,passport_number"),
-    supabase.from("trades").select("name").eq("is_active", true),
-    supabase.from("skill_levels").select("name").eq("is_active", true),
-    supabase
-      .from("document_types")
-      .select("name,expects_issue_date,expects_expiry_date")
-      .eq("is_active", true),
-  ]);
+  const [projects, identityDocuments, trades, skills, documentTypes] =
+    await Promise.all([
+      supabase.from("projects").select("name,client_name"),
+      supabase
+        .from("worker_documents")
+        .select("document_number,document_type_id")
+        .eq("status", "ACTIVE")
+        .not("document_number", "is", null),
+      supabase.from("trades").select("name").eq("is_active", true),
+      supabase.from("skill_levels").select("name").eq("is_active", true),
+      supabase
+        .from("document_types")
+        .select(
+          "id,name,system_code,expects_document_number,expects_issue_date,expects_expiry_date",
+        )
+        .eq("is_active", true),
+    ]);
   for (const [operation, response] of [
     ["projects", projects],
-    ["workers", workers],
+    ["worker_identity_documents", identityDocuments],
     ["trades", trades],
     ["skills", skills],
     ["document_types", documentTypes],
@@ -151,6 +163,7 @@ export async function POST(request: Request) {
 
   const lookup: ImportLookup = {
     documentTypes: (documentTypes.data ?? []).map((item) => ({
+      expectsDocumentNumber: item.expects_document_number,
       expectsExpiryDate: item.expects_expiry_date,
       expectsIssueDate: item.expects_issue_date,
       name: item.name,
@@ -159,11 +172,23 @@ export async function POST(request: Request) {
       (project) =>
         `${project.name.trim().toLocaleLowerCase()}|${project.client_name.trim().toLocaleLowerCase()}`,
     ),
-    existingWorkerIdentifiers: (workers.data ?? []).flatMap((worker) =>
-      [worker.cnic_number, worker.passport_number]
-        .filter((value): value is string => Boolean(value))
-        .map((value) => value.replace(/\s+/g, "").toLocaleUpperCase()),
-    ),
+    existingWorkerIdentifiers: (identityDocuments.data ?? [])
+      .filter((document) =>
+        (documentTypes.data ?? []).some(
+          (type) =>
+            type.id === document.document_type_id &&
+            ["CNIC", "PASSPORT"].includes(type.system_code ?? ""),
+        ),
+      )
+      .flatMap((document) =>
+        document.document_number
+          ? [
+              document.document_number
+                .replace(/[^A-Z0-9]+/gi, "")
+                .toLocaleUpperCase(),
+            ]
+          : [],
+      ),
     skillNames: (skills.data ?? []).map((item) => item.name),
     tradeNames: (trades.data ?? []).map((item) => item.name),
   };

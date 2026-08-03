@@ -429,6 +429,7 @@ type AuditQueryOptions = {
   module?: string;
   offset?: number;
   query?: string;
+  workerId?: string;
 };
 
 function auditDateRange(date: string) {
@@ -448,6 +449,12 @@ export async function getAuditEntryCount(
     .select("id", { count: "exact", head: true });
   if (options.module) query = query.eq("module", options.module);
   if (options.actorIds) query = query.in("actor_user_id", options.actorIds);
+  if (options.workerId) {
+    const workerId = options.workerId.replace(/[^a-f0-9-]/gi, "");
+    query = query.or(
+      `entity_id.eq.${workerId},before_data->>worker_id.eq.${workerId},after_data->>worker_id.eq.${workerId}`,
+    );
+  }
   const normalizedQuery = options.query?.trim().replace(/[%_,]/g, "");
   if (normalizedQuery) {
     const pattern = `%${normalizedQuery}%`;
@@ -484,6 +491,12 @@ export async function getAuditEntries(
     .order("occurred_at", { ascending: false });
   if (options.module) query = query.eq("module", options.module);
   if (options.actorIds) query = query.in("actor_user_id", options.actorIds);
+  if (options.workerId) {
+    const workerId = options.workerId.replace(/[^a-f0-9-]/gi, "");
+    query = query.or(
+      `entity_id.eq.${workerId},before_data->>worker_id.eq.${workerId},after_data->>worker_id.eq.${workerId}`,
+    );
+  }
   const normalizedQuery = options.query?.trim().replace(/[%_,]/g, "");
   if (normalizedQuery) {
     const pattern = `%${normalizedQuery}%`;
@@ -511,10 +524,83 @@ export async function getAuditEntries(
     return [];
   }
 
+  const records = data.map((entry) => {
+    const before =
+      entry.before_data &&
+      typeof entry.before_data === "object" &&
+      !Array.isArray(entry.before_data)
+        ? entry.before_data
+        : {};
+    const after =
+      entry.after_data &&
+      typeof entry.after_data === "object" &&
+      !Array.isArray(entry.after_data)
+        ? entry.after_data
+        : {};
+    return {
+      entry,
+      foremanUserId:
+        entry.entity_type === "application_users"
+          ? entry.entity_id
+          : typeof after.foreman_user_id === "string"
+            ? after.foreman_user_id
+            : typeof before.foreman_user_id === "string"
+              ? before.foreman_user_id
+              : null,
+      projectId:
+        entry.entity_type === "projects"
+          ? entry.entity_id
+          : typeof after.project_id === "string"
+            ? after.project_id
+            : typeof before.project_id === "string"
+              ? before.project_id
+              : null,
+      workerId:
+        entry.entity_type === "workers"
+          ? entry.entity_id
+          : typeof after.worker_id === "string"
+            ? after.worker_id
+            : typeof before.worker_id === "string"
+              ? before.worker_id
+              : null,
+    };
+  });
+  const userIds = [
+    ...new Set(
+      records.flatMap((record) =>
+        [record.entry.actor_user_id, record.foremanUserId].filter(
+          (value): value is string => Boolean(value),
+        ),
+      ),
+    ),
+  ];
+  const projectIds = [
+    ...new Set(
+      records
+        .map((record) => record.projectId)
+        .filter((value): value is string => Boolean(value)),
+    ),
+  ];
+  const workerIds = [
+    ...new Set(
+      records
+        .map((record) => record.workerId)
+        .filter((value): value is string => Boolean(value)),
+    ),
+  ];
   const [usersResult, projectsResult, workersResult] = await Promise.all([
-    supabase.from("application_users").select("id,clerk_user_id"),
-    supabase.from("projects").select("id,name"),
-    supabase.from("workers").select("id,legal_name"),
+    userIds.length
+      ? supabase
+          .from("application_users")
+          .select("id,clerk_user_id")
+          .in("id", userIds)
+      : Promise.resolve({ data: [], error: null }),
+    projectIds.length
+      ? supabase.from("projects").select("id,name").in("id", projectIds)
+      : Promise.resolve({ data: [], error: null }),
+    workerIds.length
+      ? supabase.from("workers").select("id,legal_name").in("id", workerIds)
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
   if (usersResult.error) {
@@ -543,44 +629,7 @@ export async function getAuditEntries(
     workersResult.data.map((worker) => [worker.id, worker.legal_name]),
   );
 
-  return data.map((entry) => {
-    const before =
-      entry.before_data &&
-      typeof entry.before_data === "object" &&
-      !Array.isArray(entry.before_data)
-        ? entry.before_data
-        : {};
-    const after =
-      entry.after_data &&
-      typeof entry.after_data === "object" &&
-      !Array.isArray(entry.after_data)
-        ? entry.after_data
-        : {};
-    const foremanUserId =
-      entry.entity_type === "application_users"
-        ? entry.entity_id
-        : typeof after.foreman_user_id === "string"
-          ? after.foreman_user_id
-          : typeof before.foreman_user_id === "string"
-            ? before.foreman_user_id
-            : null;
-    const projectId =
-      entry.entity_type === "projects"
-        ? entry.entity_id
-        : typeof after.project_id === "string"
-          ? after.project_id
-          : typeof before.project_id === "string"
-            ? before.project_id
-            : null;
-    const workerId =
-      entry.entity_type === "workers"
-        ? entry.entity_id
-        : typeof after.worker_id === "string"
-          ? after.worker_id
-          : typeof before.worker_id === "string"
-            ? before.worker_id
-            : null;
-
+  return records.map(({ entry, foremanUserId, projectId, workerId }) => {
     return {
       ...entry,
       actorName: userNames.get(entry.actor_user_id) ?? "System user",
@@ -595,6 +644,10 @@ export async function getAuditEntries(
         : null,
     };
   });
+}
+
+export async function getWorkerAuditEntries(workerId: string, limit = 30) {
+  return getAuditEntries(limit, { workerId });
 }
 
 export async function findAuditActorIds(actorQuery: string | undefined) {

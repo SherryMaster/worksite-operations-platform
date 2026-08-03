@@ -1,12 +1,7 @@
-import { FormRouteLoading } from "@/components/operations/route-loading";
+import { WorkerRecordRouteLoading } from "@/components/operations/route-loading";
 
 export default function Loading() {
   return (
-    <FormRouteLoading
-      backLabel="Back to worker"
-      title="Edit worker"
-      description="Update identity and contact information."
-      fields={10}
-    />
+    <WorkerRecordRouteLoading backLabel="Back to worker" title="Edit worker" />
   );
 }

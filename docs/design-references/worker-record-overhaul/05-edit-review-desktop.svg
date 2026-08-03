@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+<title>Edit worker — review changes desktop</title>
+<defs><filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="5" flood-color="#0F172A" flood-opacity="0.08"/></filter></defs>
+<rect x="0" y="0" width="1600" height="900" fill="#F6F7F9" rx="0" stroke-width="1"/>
+<rect x="0" y="0" width="230" height="900" fill="#FFFFFF" stroke="#E2E8F0" rx="0" stroke-width="1"/>
+<rect x="16" y="14" width="38" height="38" fill="#6D28D9" rx="10" stroke-width="1"/>
+<text x="35" y="41" font-size="24" font-weight="750" fill="white" text-anchor="middle" font-family="Inter, Geist, Arial, sans-serif">W</text>
+<text x="66" y="28" font-size="15" font-weight="700" fill="#111827" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Worksite</text>
+<text x="66" y="44" font-size="10" font-weight="600" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Operations</text>
+<text x="20" y="82" font-size="9" font-weight="700" fill="#94A3B8" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">OPERATIONS</text>
+<circle cx="28" cy="103" r="4" fill="none" stroke="#94A3B8" stroke-width="1.5"/>
+<text x="48" y="108" font-size="13" font-weight="600" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Home</text>
+<circle cx="28" cy="145" r="4" fill="none" stroke="#94A3B8" stroke-width="1.5"/>
+<text x="48" y="150" font-size="13" font-weight="600" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Projects</text>
+<rect x="10" y="171" width="206" height="38" fill="#F5F3FF" rx="9" stroke-width="1"/>
+<circle cx="28" cy="187" r="4" fill="none" stroke="#6D28D9" stroke-width="1.5"/>
+<text x="48" y="192" font-size="13" font-weight="600" fill="#6D28D9" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Workers</text>
+<circle cx="28" cy="229" r="4" fill="none" stroke="#94A3B8" stroke-width="1.5"/>
+<text x="48" y="234" font-size="13" font-weight="600" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Attendance</text>
+<circle cx="28" cy="271" r="4" fill="none" stroke="#94A3B8" stroke-width="1.5"/>
+<text x="48" y="276" font-size="13" font-weight="600" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Leave</text>
+<text x="20" y="316" font-size="9" font-weight="700" fill="#94A3B8" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">FINANCE</text>
+<circle cx="28" cy="337" r="4" fill="none" stroke="#94A3B8" stroke-width="1.5"/>
+<text x="48" y="342" font-size="13" font-weight="600" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Payroll</text>
+<text x="20" y="382" font-size="9" font-weight="700" fill="#94A3B8" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">REPORTING</text>
+<circle cx="28" cy="403" r="4" fill="none" stroke="#94A3B8" stroke-width="1.5"/>
+<text x="48" y="408" font-size="13" font-weight="600" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Reports</text>
+<text x="20" y="448" font-size="9" font-weight="700" fill="#94A3B8" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">ADMIN</text>
+<circle cx="28" cy="469" r="4" fill="none" stroke="#94A3B8" stroke-width="1.5"/>
+<text x="48" y="474" font-size="13" font-weight="600" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Settings</text>
+<circle cx="28" cy="511" r="4" fill="none" stroke="#94A3B8" stroke-width="1.5"/>
+<text x="48" y="516" font-size="13" font-weight="600" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Import center</text>
+<circle cx="28" cy="553" r="4" fill="none" stroke="#94A3B8" stroke-width="1.5"/>
+<text x="48" y="558" font-size="13" font-weight="600" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Audit</text>
+<line x1="230" y1="0" x2="230" y2="900" stroke="#E2E8F0" stroke-width="1"/>
+<rect x="230" y="0" width="1370" height="52" fill="#FFFFFF" stroke="#E2E8F0" rx="0" stroke-width="1"/>
+<text x="250" y="22" font-size="14" font-weight="700" fill="#111827" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Company operations</text>
+<text x="250" y="39" font-size="10" font-weight="500" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">CEO workspace</text>
+<circle cx="1570" cy="26" r="14" fill="#CBD5E1" stroke-width="1"/>
+<text x="270" y="92" font-size="13" font-weight="500" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">‹  Back to Ahmed</text>
+<text x="270" y="138" font-size="30" font-weight="750" fill="#111827" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Edit worker</text>
+<text x="270" y="165" font-size="14" font-weight="400" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Review the exact changes before saving.</text>
+<rect x="270" y="190" width="1280" height="76" fill="#FFFFFF" stroke="#E2E8F0" rx="12" stroke-width="1"/>
+<circle cx="296.0" cy="218" r="13" fill="#047857" stroke="#047857" stroke-width="1"/>
+<text x="296.0" y="223" font-size="11" font-weight="700" fill="white" text-anchor="middle" font-family="Inter, Geist, Arial, sans-serif">✓</text>
+<text x="318.0" y="214" font-size="12" font-weight="700" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Personal</text>
+<text x="318.0" y="233" font-size="9" font-weight="400" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Name, phone, nationality, address</text>
+<line x1="508.0" y1="208" x2="508.0" y2="248" stroke="#E2E8F0" stroke-width="1"/>
+<circle cx="552.0" cy="218" r="13" fill="#047857" stroke="#047857" stroke-width="1"/>
+<text x="552.0" y="223" font-size="11" font-weight="700" fill="white" text-anchor="middle" font-family="Inter, Geist, Arial, sans-serif">✓</text>
+<text x="574.0" y="214" font-size="12" font-weight="700" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Work &amp; pay</text>
+<text x="574.0" y="233" font-size="9" font-weight="400" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Rate, trade, skill, food deduction</text>
+<line x1="764.0" y1="208" x2="764.0" y2="248" stroke="#E2E8F0" stroke-width="1"/>
+<circle cx="808.0" cy="218" r="13" fill="#047857" stroke="#047857" stroke-width="1"/>
+<text x="808.0" y="223" font-size="11" font-weight="700" fill="white" text-anchor="middle" font-family="Inter, Geist, Arial, sans-serif">✓</text>
+<text x="830.0" y="214" font-size="12" font-weight="700" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Documents</text>
+<text x="830.0" y="233" font-size="9" font-weight="400" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Identity and supporting records</text>
+<line x1="1020.0" y1="208" x2="1020.0" y2="248" stroke="#E2E8F0" stroke-width="1"/>
+<circle cx="1064.0" cy="218" r="13" fill="#047857" stroke="#047857" stroke-width="1"/>
+<text x="1064.0" y="223" font-size="11" font-weight="700" fill="white" text-anchor="middle" font-family="Inter, Geist, Arial, sans-serif">✓</text>
+<text x="1086.0" y="214" font-size="12" font-weight="700" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Photo</text>
+<text x="1086.0" y="233" font-size="9" font-weight="400" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Optional profile photo</text>
+<line x1="1276.0" y1="208" x2="1276.0" y2="248" stroke="#E2E8F0" stroke-width="1"/>
+<circle cx="1320.0" cy="218" r="13" fill="#6D28D9" stroke="#6D28D9" stroke-width="1"/>
+<text x="1320.0" y="223" font-size="11" font-weight="700" fill="white" text-anchor="middle" font-family="Inter, Geist, Arial, sans-serif">5</text>
+<text x="1342.0" y="214" font-size="12" font-weight="700" fill="#111827" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Review</text>
+<text x="1342.0" y="233" font-size="9" font-weight="400" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Confirm before saving</text>
+<text x="270" y="292" font-size="24" font-weight="750" fill="#111827" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Review changes</text>
+<text x="270" y="318" font-size="13" font-weight="400" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Only changed values are emphasized. Effective history is preserved.</text>
+<rect x="270" y="350" width="820" height="356" fill="#FFFFFF" stroke="#E2E8F0" rx="12" stroke-width="1"/>
+<text x="288" y="378" font-size="16" font-weight="700" fill="#111827" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Changes to save</text>
+<line x1="270" y1="412" x2="1090" y2="412" stroke="#E2E8F0" stroke-width="1"/>
+<text x="292" y="422" font-size="12" font-weight="700" fill="#111827" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Phone number</text>
+<text x="490" y="422" font-size="12" font-weight="500" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">123456789</text>
+<text x="660" y="422" font-size="13" font-weight="600" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">→</text>
+<text x="700" y="422" font-size="12" font-weight="700" fill="#111827" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">+60 12 345 6789</text>
+<line x1="290" y1="448" x2="1070" y2="448" stroke="#E2E8F0" stroke-width="1"/>
+<text x="292" y="480" font-size="12" font-weight="700" fill="#111827" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Hourly rate</text>
+<text x="490" y="480" font-size="12" font-weight="500" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">RM 10.00</text>
+<text x="660" y="480" font-size="13" font-weight="600" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">→</text>
+<text x="700" y="480" font-size="12" font-weight="700" fill="#111827" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">RM 11.50</text>
+<line x1="290" y1="506" x2="1070" y2="506" stroke="#E2E8F0" stroke-width="1"/>
+<text x="292" y="538" font-size="12" font-weight="700" fill="#111827" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Work Permit expiry</text>
+<text x="490" y="538" font-size="12" font-weight="500" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">31 Jul 2026</text>
+<text x="660" y="538" font-size="13" font-weight="600" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">→</text>
+<text x="700" y="538" font-size="12" font-weight="700" fill="#111827" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">31 Jul 2027</text>
+<line x1="290" y1="564" x2="1070" y2="564" stroke="#E2E8F0" stroke-width="1"/>
+<text x="292" y="596" font-size="12" font-weight="700" fill="#111827" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Worker photo</text>
+<text x="490" y="596" font-size="12" font-weight="500" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Current photo</text>
+<text x="660" y="596" font-size="13" font-weight="600" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">→</text>
+<text x="700" y="596" font-size="12" font-weight="700" fill="#111827" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">New photo selected</text>
+<line x1="290" y1="622" x2="1070" y2="622" stroke="#E2E8F0" stroke-width="1"/>
+<rect x="292" y="626" width="776" height="54" fill="#EFF6FF" stroke="#BFDBFE" rx="10" stroke-width="1"/>
+<text x="310" y="648" font-size="11" font-weight="600" fill="#1D4ED8" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Rate change effective from</text>
+<text x="310" y="668" font-size="13" font-weight="700" fill="#1D4ED8" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">03 Aug 2026</text>
+<text x="880" y="660" font-size="11" font-weight="700" fill="#6D28D9" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Edit date</text>
+<rect x="1110" y="350" width="420" height="356" fill="#FFFFFF" stroke="#E2E8F0" rx="12" stroke-width="1"/>
+<text x="1128" y="378" font-size="16" font-weight="700" fill="#111827" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Unchanged areas</text>
+<line x1="1110" y1="412" x2="1530" y2="412" stroke="#E2E8F0" stroke-width="1"/>
+<text x="1134" y="418" font-size="12" font-weight="500" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">✓ Name, nationality and address</text>
+<text x="1134" y="448" font-size="12" font-weight="500" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">✓ Trade, skill and food deduction</text>
+<text x="1134" y="478" font-size="12" font-weight="500" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">✓ CNIC and Passport</text>
+<text x="1134" y="508" font-size="12" font-weight="500" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">✓ Employment and assignment remain managed</text>
+<text x="1134" y="538" font-size="12" font-weight="500" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">   from the worker profile, not this form.</text>
+<rect x="270" y="728" width="1260" height="52" fill="#FFFBEB" stroke="#FDE68A" rx="10" stroke-width="1"/>
+<text x="288" y="760" font-size="12" font-weight="600" fill="#B45309" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Saving updates the profile and effective records. Existing document file versions remain in history.</text>
+<rect x="270" y="812" width="110" height="42" fill="#FFFFFF" stroke="#E2E8F0" rx="10" stroke-width="1"/>
+<text x="325.0" y="839" font-size="14" font-weight="650" fill="#111827" text-anchor="middle" font-family="Inter, Geist, Arial, sans-serif">Back</text>
+<rect x="1350" y="812" width="180" height="42" fill="#6D28D9" stroke="#6D28D9" rx="10" stroke-width="1"/>
+<text x="1440.0" y="839" font-size="14" font-weight="650" fill="white" text-anchor="middle" font-family="Inter, Geist, Arial, sans-serif">Save changes</text>
+</svg>

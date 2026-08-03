@@ -106,16 +106,22 @@ begin
   end if;
   if (
     select count(*)
-    from public.workers
-    where passport_number = 'P7-PASSPORT'
+    from public.worker_documents
+    join public.document_types on document_types.id = worker_documents.document_type_id
+    where document_types.system_code = 'PASSPORT'
+      and worker_documents.document_number = 'P7-PASSPORT'
+      and worker_documents.status = 'ACTIVE'
   ) <> 1 then
     raise exception 'Import should create exactly one worker';
   end if;
   if (
     select hourly_rate_sen
     from public.worker_rate_periods
-    join public.workers on workers.id = worker_rate_periods.worker_id
-    where workers.passport_number = 'P7-PASSPORT'
+    join public.worker_documents on worker_documents.worker_id = worker_rate_periods.worker_id
+    join public.document_types on document_types.id = worker_documents.document_type_id
+    where document_types.system_code = 'PASSPORT'
+      and worker_documents.document_number = 'P7-PASSPORT'
+      and worker_documents.status = 'ACTIVE'
   ) <> 1850 then
     raise exception 'Imported worker rate should reconcile';
   end if;
@@ -139,8 +145,11 @@ do $$
 begin
   if (
     select count(*)
-    from public.workers
-    where passport_number = 'P7-PASSPORT'
+    from public.worker_documents
+    join public.document_types on document_types.id = worker_documents.document_type_id
+    where document_types.system_code = 'PASSPORT'
+      and worker_documents.document_number = 'P7-PASSPORT'
+      and worker_documents.status = 'ACTIVE'
   ) <> 1 then
     raise exception 'Retrying a committed batch must remain idempotent';
   end if;

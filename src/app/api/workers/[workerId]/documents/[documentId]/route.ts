@@ -29,7 +29,13 @@ export async function GET(
     .eq("id", documentId.data)
     .eq("worker_id", workerId.data)
     .maybeSingle();
-  if (error || !document) {
+  if (
+    error ||
+    !document ||
+    !document.bucket_id ||
+    !document.object_path ||
+    !document.original_filename
+  ) {
     return new Response("File not found or no longer authorized.", {
       status: 404,
     });

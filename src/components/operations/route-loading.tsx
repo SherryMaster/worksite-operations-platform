@@ -17,6 +17,7 @@ import {
   ProjectSummarySkeleton,
   ReportContentSkeleton,
   SettingsContentSkeleton,
+  WorkerRecordFormSkeleton,
 } from "@/components/operations/loading-skeletons";
 import { PageHeader } from "@/components/operations/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -161,27 +162,49 @@ export function WorkerDetailRouteLoading({
         {foreman ? "Workers" : "Back to workers"}
       </span>
       <ProfileHeaderSkeleton compact={foreman} />
-      <div className="mt-3 flex gap-4 overflow-hidden border-b border-slate-200 py-3 text-sm text-slate-500">
+      <div className="mt-4 hidden grid-cols-6 rounded-lg border border-slate-200 bg-white p-1 md:grid">
         {(foreman
-          ? ["Overview", "Documents"]
+          ? ["Overview", "Documents", "Attendance", "Leave"]
           : [
               "Overview",
-              "Employment",
-              "Assignments",
-              "Rates",
+              "Work history",
               "Documents",
-              "Attendance",
-              "Leave",
+              "Attendance & leave",
               "Payroll",
-              "Audit",
+              "Activity",
             ]
         ).map((label) => (
-          <span key={label} className="shrink-0">
-            {label}
-          </span>
+          <Skeleton key={label} className="mx-2 h-11 rounded-md" />
         ))}
       </div>
-      <DetailPanelsSkeleton cards={foreman ? 1 : 2} rows={3} />
+      <Skeleton className="mt-4 h-12 w-full rounded-lg md:hidden" />
+      <DetailPanelsSkeleton cards={2} rows={4} />
+    </main>
+  );
+}
+
+export function WorkerRecordRouteLoading({
+  title,
+  backLabel,
+}: {
+  title: string;
+  backLabel: string;
+}) {
+  return (
+    <main>
+      <span className="inline-flex items-center gap-2 text-sm text-slate-600">
+        <ChevronLeft className="size-4" />
+        {backLabel}
+      </span>
+      <div className="mt-4">
+        <h1 className="font-heading text-2xl font-semibold sm:text-3xl">
+          {title}
+        </h1>
+        <p className="mt-2 text-sm text-slate-500">
+          Nothing is saved until the final review.
+        </p>
+      </div>
+      <WorkerRecordFormSkeleton />
     </main>
   );
 }

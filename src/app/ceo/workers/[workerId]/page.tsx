@@ -1,75 +1,72 @@
-import {
-  AlertTriangle,
-  ArrowUpRight,
-  BriefcaseBusiness,
-  CalendarClock,
-  ChevronLeft,
-  FileText,
-  ImageIcon,
-  Pencil,
-  ShieldCheck,
-  UserRound,
-  WalletCards,
-} from "lucide-react";
-import Image from "next/image";
+import { ChevronLeft, Pencil } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import {
+  ProfileHeaderSkeleton,
+  WorkerSectionSkeleton,
+} from "@/components/operations/loading-skeletons";
+import {
+  CompactCard,
+  InfoRows,
+  WorkerDocumentList,
+  WorkerProfileHeader,
+  WorkerSectionPicker,
+} from "@/components/phase3/worker-detail";
+import {
+  formatDate,
+  formatDateTime,
+  malaysiaDateInputValue,
+} from "@/lib/phase2/format";
+import { presentAuditEntry } from "@/lib/phase2/audit";
+import { getWorkerAuditEntries } from "@/lib/phase2/data";
+import {
+  getWorkerCore,
+  getWorkerForSection,
+  getWorkerIdentity,
+} from "@/lib/phase3/data";
+import { formatSen, maskIdentifier } from "@/lib/phase3/format";
+import { getWorkerAttendanceMonth } from "@/lib/phase4/data";
+import { listLeaveRequests } from "@/lib/phase5/data";
+import { getWorkerPayrollHistory } from "@/lib/phase6/data";
+import { payrollMonthLabel } from "@/lib/phase6/calculations";
+import {
   changeWorkerEmploymentAction,
   changeWorkerRateAction,
   transferWorkerAction,
 } from "@/app/ceo/workers/actions";
-import { FormSubmitButton } from "@/components/form-submit-button";
-import {
-  DetailPanelsSkeleton,
-  ProfileHeaderSkeleton,
-} from "@/components/operations/loading-skeletons";
 import { ManagedForm } from "@/components/phase2/managed-form";
-import { ConfirmSubmitButton } from "@/components/phase3/confirm-submit-button";
-import { LeaveRequestList } from "@/components/phase5/leave-request-list";
-import { formatDate, malaysiaDateInputValue } from "@/lib/phase2/format";
 import {
-  getWorkerCore,
-  getWorkerForTab,
-  getWorkerIdentity,
-  listActiveDocumentTypes,
-  listAssignableProjects,
-} from "@/lib/phase3/data";
-import { formatSen, maskIdentifier } from "@/lib/phase3/format";
-import { listLeaveRequests } from "@/lib/phase5/data";
-import {
-  formatSen as formatPayrollSen,
-  payrollMonthLabel,
-} from "@/lib/phase6/calculations";
-import { getWorkerPayrollHistory } from "@/lib/phase6/data";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { listAssignableProjects } from "@/lib/phase3/data";
 
-function employmentLabel(status: string | undefined) {
-  return status
-    ? status
-        .toLowerCase()
-        .split("_")
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(" ")
-    : "No status";
-}
-
-function nextEmploymentStatuses(status: string | undefined) {
-  if (status === "ACTIVE") return ["SUSPENDED", "LEFT_COMPANY"] as const;
-  if (status === "SUSPENDED") return ["ACTIVE", "ARCHIVED"] as const;
-  if (status === "LEFT_COMPANY") return ["ACTIVE", "ARCHIVED"] as const;
-  return [] as const;
-}
-
+const sections = [
+  { label: "Overview", value: "overview" },
+  { label: "Work history", value: "work-history" },
+  { label: "Documents", value: "documents" },
+  { label: "Attendance & leave", value: "attendance-leave" },
+  { label: "Payroll", value: "payroll" },
+  { label: "Activity", value: "activity" },
+];
 const fileMessages: Record<string, string> = {
-  failed: "The file change could not be completed. Please retry.",
-  invalid: "Check the file type, size, document type, and required dates.",
-  removed: "File removed. Its metadata remains in history.",
+  "document-saved": "Document metadata and private file saved.",
+  "file-removed": "The file was removed; document metadata remains active.",
+  "metadata-saved": "Document metadata saved with no file attached.",
+  "metadata-saved-upload-failed":
+    "Document metadata was saved, but the optional file upload failed. Use Manage to retry.",
+  removed: "Document removed; its history is retained.",
   "removed-cleanup-warning":
-    "The file was removed from the app, but Storage cleanup needs support review.",
-  replaced: "File replaced and the earlier version retained in history.",
-  uploaded: "Private file uploaded.",
+    "The record was removed, but private-storage cleanup needs support review.",
+  failed: "The file change could not be completed. Please retry.",
+  invalid: "Check the document metadata and selected file.",
+  "photo-saved": "Worker photo saved.",
 };
 
 export default async function WorkerDetailPage({
@@ -77,916 +74,652 @@ export default async function WorkerDetailPage({
   searchParams,
 }: {
   params: Promise<{ workerId: string }>;
-  searchParams: Promise<{ file?: string; tab?: string }>;
+  searchParams: Promise<{
+    file?: string;
+    month?: string;
+    section?: string;
+    tab?: string;
+  }>;
 }) {
   const { workerId } = await params;
   const query = await searchParams;
-  const requestedTab = query.tab ?? (query.file ? "documents" : "overview");
-  const tab = [
-    "overview",
-    "employment",
-    "assignments",
-    "rates",
-    "documents",
-    "leave",
-    "payroll",
-    "audit",
-  ].includes(requestedTab)
-    ? requestedTab
-    : "overview";
   if (!(await getWorkerIdentity(workerId))) notFound();
-  const workerCorePromise = getWorkerCore(workerId);
-  const workerPromise = getWorkerForTab(workerId, tab, workerCorePromise);
-  const tabSkeletonCards = [
-    "overview",
-    "employment",
-    "assignments",
-    "rates",
-  ].includes(tab)
-    ? 2
-    : 1;
-
+  const requested = query.section ?? query.tab ?? "overview";
+  const section = sections.some((item) => item.value === requested)
+    ? requested
+    : "overview";
+  const corePromise = getWorkerCore(workerId);
   return (
     <main>
       <Link
         href="/ceo/workers"
-        className="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-slate-950"
+        className="inline-flex min-h-10 items-center gap-2 text-sm text-slate-600"
       >
         <ChevronLeft className="size-4" aria-hidden="true" />
         Back to workers
       </Link>
-
       <Suspense fallback={<ProfileHeaderSkeleton />}>
-        <WorkerProfileHeaderAndTabs
-          workerPromise={workerCorePromise}
-          tab={tab}
-        />
+        <Header workerPromise={corePromise} section={section} />
       </Suspense>
+      {query.file && fileMessages[query.file] ? (
+        <p
+          role="status"
+          className={`mt-4 rounded-lg border p-3 text-sm ${query.file.includes("failed") || query.file === "invalid" || query.file.includes("warning") ? "border-amber-200 bg-amber-50 text-amber-950" : "border-emerald-200 bg-emerald-50 text-emerald-900"}`}
+        >
+          {fileMessages[query.file]}
+        </p>
+      ) : null}
       <Suspense
-        key={tab}
-        fallback={<DetailPanelsSkeleton cards={tabSkeletonCards} />}
+        key={`${section}:${query.month ?? ""}`}
+        fallback={<WorkerSectionSkeleton section={section} />}
       >
-        <WorkerProfileContent
+        <Section
           workerId={workerId}
-          workerPromise={workerPromise}
-          query={query}
-          tab={tab}
+          section={section}
+          month={query.month}
+          corePromise={corePromise}
         />
       </Suspense>
     </main>
   );
 }
 
-async function WorkerProfileHeaderAndTabs({
+async function Header({
   workerPromise,
-  tab,
+  section,
 }: {
   workerPromise: ReturnType<typeof getWorkerCore>;
-  tab: string;
+  section: string;
 }) {
   const worker = await workerPromise;
   if (!worker) return null;
-  const currentStatus = worker.currentEmployment?.status;
-
   return (
     <>
-      <div className="mt-4 flex flex-col gap-4 border-b border-slate-200 pb-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="flex items-start gap-5">
-          <div className="relative grid size-14 shrink-0 place-items-center overflow-hidden rounded-lg border border-violet-100 bg-violet-50 font-heading text-lg font-semibold text-slate-500">
-            {worker.photoId ? (
-              <Image
-                src={`/api/workers/${worker.id}/documents/${worker.photoId}`}
-                alt=""
-                fill
-                unoptimized
-                className="object-cover"
-              />
-            ) : (
-              worker.legal_name
-                .split(/\s+/)
-                .slice(0, 2)
-                .map((part) => part[0])
-                .join("")
-            )}
-          </div>
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-md border border-violet-100 bg-white px-2 py-1 text-xs font-semibold">
-                {employmentLabel(currentStatus)}
-              </span>
-              <span className="text-xs text-slate-500">
-                {worker.projectName ?? "Awaiting assignment"}
-              </span>
-            </div>
-            <h1 className="mt-2 font-heading text-2xl font-semibold sm:text-3xl">
-              {worker.legal_name}
-            </h1>
-            <p className="mt-3 text-sm text-slate-600">
-              {worker.tradeName ?? "No trade"} ·{" "}
-              {worker.skillName ?? "No skill level"}
-            </p>
-          </div>
-        </div>
-        {currentStatus !== "ARCHIVED" ? (
-          <Link
-            href={`/ceo/workers/${worker.id}/edit`}
-            className="inline-flex min-h-11 items-center justify-center gap-2 border border-violet-100 bg-white px-4 text-sm font-semibold hover:border-violet-950"
-          >
-            <Pencil className="size-4" aria-hidden="true" />
-            Edit worker
-          </Link>
-        ) : null}
-      </div>
-
-      <nav
-        aria-label="Worker sections"
-        className="mt-3 flex gap-1 overflow-x-auto border-b border-slate-200"
-      >
-        {[
-          ["Overview", "overview"],
-          ["Employment", "employment"],
-          ["Assignments", "assignments"],
-          ["Rates", "rates"],
-          ["Documents", "documents"],
-          ["Attendance", "attendance"],
-          ["Leave", "leave"],
-          ["Payroll", "payroll"],
-          ["Audit", "audit"],
-        ].map(([label, value]) => (
-          <Link
-            key={value}
-            href={
-              value === "attendance"
-                ? `/ceo/attendance?query=${encodeURIComponent(worker.legal_name)}`
-                : `/ceo/workers/${worker.id}?tab=${value}`
-            }
-            className={
-              value === tab
-                ? "shrink-0 border-b-2 border-amber-600 px-4 py-3 text-sm font-semibold"
-                : "shrink-0 border-b-2 border-transparent px-4 py-3 text-sm text-slate-500 hover:text-slate-950"
-            }
-          >
-            {label}
-          </Link>
-        ))}
-      </nav>
+      <WorkerProfileHeader canEdit worker={worker} />
+      <WorkerSectionPicker
+        active={section}
+        basePath={`/ceo/workers/${worker.id}`}
+        sections={sections}
+      />
     </>
   );
 }
 
-async function WorkerProfileContent({
+function minutes(value: number) {
+  return `${Math.floor(value / 60)}h ${value % 60}m`;
+}
+
+async function Section({
   workerId,
-  workerPromise,
-  query,
-  tab,
+  section,
+  month,
+  corePromise,
 }: {
   workerId: string;
-  workerPromise: ReturnType<typeof getWorkerForTab>;
-  query: { file?: string; tab?: string };
-  tab: string;
+  section: string;
+  month?: string;
+  corePromise: ReturnType<typeof getWorkerCore>;
 }) {
-  const supportingDataPromise = Promise.all([
-    tab === "assignments"
-      ? listAssignableProjects().then((projects) => ({
-          documentTypes: [],
-          projects,
-          skills: [],
-          trades: [],
-        }))
-      : tab === "documents"
-        ? listActiveDocumentTypes().then((documentTypes) => ({
-            documentTypes,
-            projects: [],
-            skills: [],
-            trades: [],
-          }))
-        : Promise.resolve({
-            documentTypes: [],
-            projects: [],
-            skills: [],
-            trades: [],
-          }),
-    tab === "leave" ? listLeaveRequests({ workerId }) : Promise.resolve([]),
-    tab === "payroll" ? getWorkerPayrollHistory(workerId) : Promise.resolve([]),
-  ]);
-  const worker = await workerPromise;
-  if (!worker) return null;
-  const [options, leaveRequests, payrollHistory] = await supportingDataPromise;
-
-  const today = malaysiaDateInputValue();
-  const currentStatus = worker.currentEmployment?.status;
-  const activeDocuments = worker.documents.filter(
-    (document) =>
-      document.status === "ACTIVE" && document.file_kind === "DOCUMENT",
-  );
-  const fileHistory = worker.documents.filter(
-    (document) => document.status !== "ACTIVE",
-  );
-
-  return (
-    <>
-      {tab === "overview" ? (
-        <section className="mt-5 grid gap-4 xl:grid-cols-[1.3fr_0.7fr]">
-          <article className="border border-violet-100 bg-white">
-            <div className="border-b border-slate-200 p-5">
-              <h2 className="font-heading text-lg font-semibold">
-                Identity and contact
-              </h2>
-            </div>
-            <dl className="grid sm:grid-cols-2">
-              {[
-                ["Phone", worker.phone_number],
-                ["Alternate phone", worker.alternate_phone ?? "Not recorded"],
-                ["Nationality", worker.nationality ?? "Not recorded"],
-                ["CNIC", maskIdentifier(worker.cnic_number)],
-                ["Passport", maskIdentifier(worker.passport_number)],
-                ["Work permit", maskIdentifier(worker.work_permit_number)],
-                [
-                  "Permit issue",
-                  worker.work_permit_issue_date
-                    ? formatDate(worker.work_permit_issue_date)
-                    : "Not recorded",
-                ],
-                [
-                  "Permit expiry",
-                  worker.work_permit_expiry_date
-                    ? formatDate(worker.work_permit_expiry_date)
-                    : "Not recorded",
-                ],
-              ].map(([label, value]) => (
-                <div
-                  key={label}
-                  className="border-b border-slate-200 p-5 sm:odd:border-r"
-                >
-                  <dt className="text-xs font-semibold text-slate-500">
-                    {label}
-                  </dt>
-                  <dd className="mt-2 text-sm font-medium">{value}</dd>
-                </div>
-              ))}
-              <div className="p-5 sm:col-span-2">
-                <dt className="text-xs font-semibold text-slate-500">
-                  Address and notes
-                </dt>
-                <dd className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
-                  {[worker.address, worker.notes]
-                    .filter(Boolean)
-                    .join("\n\n") || "No address or notes recorded."}
-                </dd>
-              </div>
-            </dl>
-          </article>
-
-          <aside className="rounded-lg border border-slate-200 bg-white p-5">
-            <WalletCards
-              className="size-5 text-violet-700"
-              aria-hidden="true"
+  const currentMonth = /^\d{4}-\d{2}$/.test(month ?? "")
+    ? month!
+    : malaysiaDateInputValue().slice(0, 7);
+  if (section === "attendance-leave") {
+    const [attendance, leave] = await Promise.all([
+      getWorkerAttendanceMonth(workerId, currentMonth),
+      listLeaveRequests({ workerId }),
+    ]);
+    return (
+      <div className="mt-4 grid gap-4">
+        <form className="flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-white p-4">
+          <input type="hidden" name="section" value="attendance-leave" />
+          <label className="text-sm font-medium">
+            Month
+            <input
+              className="mt-1 block min-h-11 rounded-lg border border-slate-300 px-3"
+              type="month"
+              name="month"
+              defaultValue={currentMonth}
             />
-            <p className="mt-4 text-xs font-semibold text-slate-500">
-              Current hourly rate
-            </p>
-            <p className="mt-2 font-heading text-4xl font-semibold">
-              {formatSen(worker.currentRate?.hourly_rate_sen ?? null)}
-            </p>
-            <p className="mt-4 text-xs font-semibold text-slate-500">
-              Monthly food deduction
-            </p>
-            <p className="mt-2 font-heading text-3xl font-semibold">
-              {formatSen(worker.currentDeduction?.monthly_amount_sen ?? null)}
-            </p>
-          </aside>
-        </section>
-      ) : null}
-
-      {tab === "employment" ? (
-        <section className="mt-5 grid gap-4 lg:grid-cols-2">
-          <article className="border border-violet-100 bg-white p-5">
-            <UserRound className="size-5 text-violet-700" aria-hidden="true" />
-            <h2 className="mt-4 font-heading text-xl font-semibold">
-              Change employment status
-            </h2>
-            {nextEmploymentStatuses(currentStatus).length > 0 ? (
-              <ManagedForm
-                action={changeWorkerEmploymentAction.bind(null, worker.id)}
-                submitLabel="Save Status"
-                className="mt-5"
+          </label>
+          <button className="min-h-11 rounded-lg bg-violet-700 px-4 text-sm font-semibold text-white">
+            View month
+          </button>
+        </form>
+        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-slate-200 bg-slate-200 sm:grid-cols-4 lg:grid-cols-8">
+          {[
+            ["Payable days", attendance.totals.payableDays],
+            ["Payable time", minutes(attendance.totals.payableMinutes)],
+            ["Normal", minutes(attendance.totals.normalMinutes)],
+            ["Overtime", minutes(attendance.totals.overtimeMinutes)],
+            ["Sunday", minutes(attendance.totals.sundayMinutes)],
+            ["Public holiday", minutes(attendance.totals.publicHolidayMinutes)],
+            ["Exceptions", attendance.totals.exceptions],
+            ["Leave days", attendance.totals.leaveDays],
+          ].map(([label, value]) => (
+            <div key={label} className="bg-white p-3">
+              <p className="text-xs text-slate-500">{label}</p>
+              <p className="mt-1 font-heading text-lg font-semibold">{value}</p>
+            </div>
+          ))}
+        </div>
+        <CompactCard title="Attendance">
+          <div className="divide-y divide-slate-100">
+            {attendance.rows.length ? (
+              attendance.rows.map((row) => (
+                <div
+                  key={`${row.projectId}:${row.date}`}
+                  className="grid gap-1 px-4 py-3 text-sm sm:grid-cols-[8rem_1fr_auto_auto]"
+                >
+                  <span className="font-medium">{formatDate(row.date)}</span>
+                  <span className="break-words text-slate-600">
+                    {row.projectName}
+                  </span>
+                  <span>{row.leaveTypeName ?? minutes(row.totalMinutes)}</span>
+                  <span className="text-slate-500">
+                    {row.leaveTypeName ??
+                      (row.exceptionCount
+                        ? `${row.exceptionCount} exceptions`
+                        : row.status)}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <p className="p-4 text-sm text-slate-500">
+                No attendance for this month.
+              </p>
+            )}
+          </div>
+        </CompactCard>
+        <CompactCard title="Leave history">
+          <div className="divide-y divide-slate-100">
+            {leave.length ? (
+              leave.slice(0, 30).map((item) => (
+                <div
+                  key={item.id}
+                  className="grid gap-1 px-4 py-3 text-sm sm:grid-cols-[1fr_auto_auto]"
+                >
+                  <span>
+                    {item.leaveTypeName} · {item.projectName}
+                  </span>
+                  <span>
+                    {formatDate(item.starts_on)} – {formatDate(item.ends_on)}
+                  </span>
+                  <span className="font-medium">{item.status}</span>
+                </div>
+              ))
+            ) : (
+              <p className="p-4 text-sm text-slate-500">No leave history.</p>
+            )}
+          </div>
+        </CompactCard>
+      </div>
+    );
+  }
+  if (section === "payroll") {
+    const history = await getWorkerPayrollHistory(workerId);
+    return (
+      <div className="mt-4">
+        <CompactCard title="Payroll and payment history">
+          <div className="divide-y divide-slate-100">
+            {history.length ? (
+              history.map((line) => (
+                <Link
+                  key={line.id}
+                  href={`/ceo/payroll/${line.payroll_run_id}/workers/${line.id}`}
+                  className="grid min-h-14 gap-1 px-4 py-3 text-sm hover:bg-slate-50 sm:grid-cols-[1fr_auto_auto]"
+                >
+                  <span className="font-semibold">
+                    {line.run
+                      ? payrollMonthLabel(line.run.payroll_month)
+                      : "Payroll"}
+                  </span>
+                  <span>{formatSen(line.net_pay_sen)}</span>
+                  <span className="text-slate-500">{line.payment_status}</span>
+                </Link>
+              ))
+            ) : (
+              <p className="p-4 text-sm text-slate-500">No payroll history.</p>
+            )}
+          </div>
+        </CompactCard>
+      </div>
+    );
+  }
+  if (section === "activity") {
+    const entries = await getWorkerAuditEntries(workerId);
+    return (
+      <div className="mt-4">
+        <CompactCard title="Worker activity">
+          <div className="divide-y divide-slate-100">
+            {entries.length ? (
+              entries.map((entry) => {
+                const view = presentAuditEntry({
+                  action: entry.action,
+                  actorName: entry.actorName,
+                  afterData: entry.after_data,
+                  beforeData: entry.before_data,
+                  entityType: entry.entity_type,
+                  foremanName: entry.foremanName,
+                  module: entry.module,
+                  projectName: entry.projectName,
+                  source: entry.source,
+                  workerName: entry.workerName,
+                });
+                return (
+                  <article key={entry.id} className="px-4 py-3">
+                    <div className="flex flex-wrap justify-between gap-2">
+                      <h3 className="font-semibold">{view.title}</h3>
+                      <time className="text-xs text-slate-500">
+                        {formatDateTime(entry.occurred_at)}
+                      </time>
+                    </div>
+                    <p className="mt-1 text-sm text-slate-600">
+                      {view.summary}
+                    </p>
+                    {view.changes.length ? (
+                      <p className="mt-1 text-xs text-slate-500">
+                        {view.changes
+                          .map(
+                            (change) =>
+                              `${change.field}: ${change.from ?? "—"} → ${change.to}`,
+                          )
+                          .join(" · ")}
+                      </p>
+                    ) : null}
+                  </article>
+                );
+              })
+            ) : (
+              <p className="p-4 text-sm text-slate-500">
+                No activity recorded.
+              </p>
+            )}
+          </div>
+        </CompactCard>
+      </div>
+    );
+  }
+  const worker = await getWorkerForSection(workerId, section, corePromise);
+  if (!worker) return null;
+  if (section === "documents")
+    return (
+      <div className="mt-4">
+        <CompactCard
+          title="Documents"
+          action={
+            worker.currentEmployment?.status !== "ARCHIVED" ? (
+              <Link
+                href={`/ceo/workers/${workerId}/edit?stage=documents`}
+                className="inline-flex min-h-10 items-center gap-1 text-sm font-semibold text-violet-800"
               >
-                <label className="block space-y-2 text-sm font-medium">
+                <Pencil className="size-4" />
+                Manage
+              </Link>
+            ) : undefined
+          }
+        >
+          <WorkerDocumentList
+            canManage={worker.currentEmployment?.status !== "ARCHIVED"}
+            worker={worker}
+          />
+        </CompactCard>
+      </div>
+    );
+  if (section === "work-history") {
+    const projects = await listAssignableProjects();
+    return (
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <WorkHistoryActions
+          workerId={workerId}
+          status={worker.currentEmployment?.status ?? ""}
+          projects={projects}
+          currentProjectId={worker.currentAssignment?.project_id ?? ""}
+          currentRate={worker.currentRate?.hourly_rate_sen ?? 0}
+        />
+        <CompactCard title="Employment timeline">
+          <InfoRows
+            rows={worker.employment.map((item) => [
+              formatDate(item.starts_on),
+              `${item.status.replaceAll("_", " ")} · until ${formatDate(item.ends_on)}`,
+            ])}
+          />
+        </CompactCard>
+        <CompactCard title="Assignment timeline">
+          <InfoRows
+            rows={
+              worker.assignments.length
+                ? worker.assignments.map((item) => [
+                    formatDate(item.starts_on),
+                    `${item.projectName} · until ${formatDate(item.ends_on)}`,
+                  ])
+                : [["Current", "Awaiting assignment"]]
+            }
+          />
+        </CompactCard>
+        <CompactCard title="Trade and skill history">
+          <InfoRows
+            rows={worker.classifications.map((item) => [
+              formatDate(item.starts_on),
+              `${item.tradeName} · ${item.skillName}`,
+            ])}
+          />
+        </CompactCard>
+        <CompactCard title="Rate history">
+          <InfoRows
+            rows={worker.rates.map((item) => [
+              formatDate(item.starts_on),
+              `${formatSen(item.hourly_rate_sen)} · until ${formatDate(item.ends_on)}`,
+            ])}
+          />
+        </CompactCard>
+        <CompactCard title="Food-deduction history">
+          <InfoRows
+            rows={worker.foodDeductions.map((item) => [
+              formatDate(item.starts_on),
+              `${formatSen(item.monthly_amount_sen)} · until ${formatDate(item.ends_on)}`,
+            ])}
+          />
+        </CompactCard>
+        <aside className="rounded-xl border border-violet-200 bg-violet-50 p-4 text-sm text-violet-950">
+          <p className="font-semibold">Dedicated operations</p>
+          <p className="mt-1">
+            Employment status and project assignment remain separate from Edit
+            worker.
+          </p>
+          <Link
+            href={`/ceo/workers/${workerId}/edit?stage=work-pay`}
+            className="mt-3 inline-flex min-h-11 items-center font-semibold underline"
+          >
+            Review classification or pay changes
+          </Link>
+        </aside>
+      </div>
+    );
+  }
+  const alertCount = worker.documents.filter((item) =>
+    ["EXPIRED", "EXPIRING"].includes(item.expiryState),
+  ).length;
+  return (
+    <div className="mt-4 grid gap-4">
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-slate-200 bg-slate-200 sm:grid-cols-5">
+        {[
+          ["Project", worker.projectName ?? "Awaiting assignment"],
+          ["Status", worker.currentEmployment?.status ?? "Not recorded"],
+          ["Rate", formatSen(worker.currentRate?.hourly_rate_sen ?? null)],
+          [
+            "Food deduction",
+            formatSen(worker.currentDeduction?.monthly_amount_sen ?? null),
+          ],
+          ["Document alerts", alertCount],
+        ].map(([label, value]) => (
+          <div className="min-w-0 bg-white p-3" key={label}>
+            <p className="text-xs text-slate-500">{label}</p>
+            <p className="mt-1 break-words font-semibold">{value}</p>
+          </div>
+        ))}
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <CompactCard
+          title="Personal information"
+          action={
+            <Link
+              className="text-sm font-semibold text-violet-800"
+              href={`/ceo/workers/${workerId}/edit?stage=personal`}
+            >
+              Edit
+            </Link>
+          }
+        >
+          <InfoRows
+            rows={[
+              ["Phone", worker.phone_number],
+              ["Nationality", worker.nationality ?? "Not recorded"],
+              ["Address", worker.address ?? "Not recorded"],
+              [
+                "Primary identifier",
+                maskIdentifier(worker.primaryIdentifier?.number ?? null),
+              ],
+              ["Joined", formatDate(worker.created_at.slice(0, 10))],
+            ]}
+          />
+        </CompactCard>
+        <CompactCard
+          title="Job and pay"
+          action={
+            <Link
+              className="text-sm font-semibold text-violet-800"
+              href={`/ceo/workers/${workerId}/edit?stage=work-pay`}
+            >
+              Edit
+            </Link>
+          }
+        >
+          <InfoRows
+            rows={[
+              ["Project", worker.projectName ?? "Awaiting assignment"],
+              ["Trade", worker.tradeName ?? "Not recorded"],
+              ["Skill", worker.skillName ?? "Not recorded"],
+              [
+                "Hourly rate",
+                formatSen(worker.currentRate?.hourly_rate_sen ?? null),
+              ],
+              [
+                "Food deduction",
+                formatSen(worker.currentDeduction?.monthly_amount_sen ?? null),
+              ],
+            ]}
+          />
+        </CompactCard>
+      </div>
+      <CompactCard title="Needs attention">
+        <p className="p-4 text-sm text-slate-600">
+          {alertCount
+            ? `${alertCount} document${alertCount === 1 ? "" : "s"} need attention.`
+            : "No current document alerts."}
+        </p>
+      </CompactCard>
+      <OverviewAttendance workerId={workerId} month={currentMonth} />
+    </div>
+  );
+}
+
+function WorkHistoryActions({
+  workerId,
+  status,
+  projects,
+  currentProjectId,
+  currentRate,
+}: {
+  workerId: string;
+  status: string;
+  projects: Array<{ id: string; name: string }>;
+  currentProjectId: string;
+  currentRate: number;
+}) {
+  const today = malaysiaDateInputValue();
+  const statuses =
+    status === "ACTIVE"
+      ? ["SUSPENDED", "LEFT_COMPANY"]
+      : status === "ARCHIVED"
+        ? []
+        : ["ACTIVE", "ARCHIVED"];
+  const triggerClass =
+    "min-h-11 rounded-lg border border-violet-200 bg-white px-4 text-sm font-semibold text-violet-800";
+  return (
+    <CompactCard title="Manage work history">
+      <div className="flex flex-wrap gap-2 p-4">
+        {statuses.length ? (
+          <Sheet>
+            <SheetTrigger className={triggerClass}>Change status</SheetTrigger>
+            <SheetContent side="right">
+              <SheetHeader>
+                <SheetTitle>Change employment status</SheetTitle>
+                <SheetDescription>
+                  This creates an effective-dated employment record.
+                </SheetDescription>
+              </SheetHeader>
+              <ManagedForm
+                className="px-4"
+                action={changeWorkerEmploymentAction.bind(null, workerId)}
+                submitLabel="Save status"
+              >
+                <label className="grid gap-2 text-sm font-medium">
                   New status
                   <select
                     name="status"
-                    required
-                    className="h-11 w-full border border-violet-100 bg-white px-3"
+                    className="min-h-11 rounded-lg border border-slate-300 px-3"
                   >
-                    {nextEmploymentStatuses(currentStatus).map((status) => (
-                      <option key={status} value={status}>
-                        {employmentLabel(status)}
-                      </option>
+                    {statuses.map((item) => (
+                      <option key={item}>{item}</option>
                     ))}
                   </select>
                 </label>
-                <label className="block space-y-2 text-sm font-medium">
+                <label className="grid gap-2 text-sm font-medium">
                   Effective date
                   <input
-                    type="date"
-                    name="startsOn"
                     required
                     max={today}
                     defaultValue={today}
-                    className="h-11 w-full border border-violet-100 bg-white px-3"
+                    name="startsOn"
+                    type="date"
+                    className="min-h-11 rounded-lg border border-slate-300 px-3"
                   />
                 </label>
-                <label className="block space-y-2 text-sm font-medium">
-                  Reason (Optional)
+                <label className="grid gap-2 text-sm font-medium">
+                  Reason
                   <input
                     name="reason"
                     maxLength={500}
-                    className="h-11 w-full border border-violet-100 bg-white px-3"
+                    className="min-h-11 rounded-lg border border-slate-300 px-3"
                   />
                 </label>
               </ManagedForm>
-            ) : (
-              <p className="mt-4 text-sm text-slate-500">
-                Archived workers are read-only.
-              </p>
-            )}
-          </article>
-          <article className="border border-violet-100 bg-white">
-            <h3 className="border-b border-slate-200 p-5 font-heading text-lg font-semibold">
-              Employment history
-            </h3>
-            <ol className="divide-y divide-slate-200">
-              {worker.employment.map((period) => (
-                <li key={period.id} className="p-5">
-                  <div className="flex justify-between gap-4">
-                    <p className="font-semibold">
-                      {employmentLabel(period.status)}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      {formatDate(period.starts_on)} —{" "}
-                      {formatDate(period.ends_on)}
-                    </p>
-                  </div>
-                  {period.reason ? (
-                    <p className="mt-2 text-sm text-slate-600">
-                      {period.reason}
-                    </p>
-                  ) : null}
-                </li>
-              ))}
-            </ol>
-          </article>
-        </section>
-      ) : null}
-
-      {tab === "assignments" ? (
-        <section className="mt-5 grid gap-4 lg:grid-cols-2">
-          <article className="border border-violet-100 bg-white p-5">
-            <BriefcaseBusiness
-              className="size-5 text-violet-700"
-              aria-hidden="true"
-            />
-            <h2 className="mt-4 font-heading text-xl font-semibold">
-              Assign or transfer
-            </h2>
-            {currentStatus === "ACTIVE" ? (
+            </SheetContent>
+          </Sheet>
+        ) : null}
+        {status === "ACTIVE" ? (
+          <Sheet>
+            <SheetTrigger className={triggerClass}>
+              Transfer / assign
+            </SheetTrigger>
+            <SheetContent side="right">
+              <SheetHeader>
+                <SheetTitle>Transfer or assign</SheetTitle>
+                <SheetDescription>
+                  Changes project access from the effective date.
+                </SheetDescription>
+              </SheetHeader>
               <ManagedForm
-                action={transferWorkerAction.bind(null, worker.id)}
-                submitLabel="Save Assignment"
-                className="mt-5"
+                className="px-4"
+                action={transferWorkerAction.bind(null, workerId)}
+                submitLabel="Save assignment"
               >
-                <label className="block space-y-2 text-sm font-medium">
-                  Destination
+                <label className="grid gap-2 text-sm font-medium">
+                  Project
                   <select
                     name="projectId"
-                    defaultValue={worker.currentAssignment?.project_id ?? ""}
-                    className="h-11 w-full border border-violet-100 bg-white px-3"
+                    defaultValue={currentProjectId}
+                    className="min-h-11 rounded-lg border border-slate-300 px-3"
                   >
                     <option value="">Awaiting assignment</option>
-                    {options.projects.map((project) => (
+                    {projects.map((project) => (
                       <option key={project.id} value={project.id}>
                         {project.name}
                       </option>
                     ))}
                   </select>
                 </label>
-                <label className="block space-y-2 text-sm font-medium">
+                <label className="grid gap-2 text-sm font-medium">
                   Effective date
                   <input
-                    type="date"
-                    name="startsOn"
                     required
                     max={today}
                     defaultValue={today}
-                    className="h-11 w-full border border-violet-100 bg-white px-3"
+                    name="startsOn"
+                    type="date"
+                    className="min-h-11 rounded-lg border border-slate-300 px-3"
                   />
                 </label>
               </ManagedForm>
-            ) : (
-              <p className="mt-4 text-sm text-slate-500">
-                Only active workers can be assigned to projects.
-              </p>
-            )}
-          </article>
-          <article className="border border-violet-100 bg-white">
-            <h3 className="border-b border-slate-200 p-5 font-heading text-lg font-semibold">
-              Assignment history
-            </h3>
-            {worker.assignments.length === 0 ? (
-              <p className="p-5 text-sm text-slate-500">
-                This worker has always been awaiting assignment.
-              </p>
-            ) : (
-              <ol className="divide-y divide-slate-200">
-                {worker.assignments.map((assignment) => (
-                  <li key={assignment.id} className="p-5">
-                    <p className="font-semibold">{assignment.projectName}</p>
-                    <p className="mt-1 text-xs text-slate-500">
-                      {formatDate(assignment.starts_on)} —{" "}
-                      {formatDate(assignment.ends_on)}
-                    </p>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </article>
-        </section>
-      ) : null}
-
-      {tab === "rates" ? (
-        <section className="mt-5 grid gap-4 lg:grid-cols-2">
-          <article className="border border-violet-100 bg-white p-5">
-            <CalendarClock
-              className="size-5 text-violet-700"
-              aria-hidden="true"
-            />
-            <h2 className="mt-4 font-heading text-xl font-semibold">
-              Add effective rate
-            </h2>
-            {currentStatus !== "ARCHIVED" ? (
+            </SheetContent>
+          </Sheet>
+        ) : null}
+        {status !== "ARCHIVED" ? (
+          <Sheet>
+            <SheetTrigger className={triggerClass}>Add rate</SheetTrigger>
+            <SheetContent side="right">
+              <SheetHeader>
+                <SheetTitle>Add hourly rate</SheetTitle>
+                <SheetDescription>
+                  Earlier rates remain available to payroll history.
+                </SheetDescription>
+              </SheetHeader>
               <ManagedForm
-                action={changeWorkerRateAction.bind(null, worker.id)}
-                submitLabel="Save Rate"
-                className="mt-5"
+                className="px-4"
+                action={changeWorkerRateAction.bind(null, workerId)}
+                submitLabel="Save rate"
               >
-                <label className="block space-y-2 text-sm font-medium">
+                <label className="grid gap-2 text-sm font-medium">
                   Hourly rate (MYR)
                   <input
+                    required
+                    min="0.01"
+                    step="0.01"
+                    defaultValue={(currentRate / 100).toFixed(2)}
                     name="hourlyRate"
                     inputMode="decimal"
-                    required
-                    defaultValue={
-                      worker.currentRate
-                        ? (worker.currentRate.hourly_rate_sen / 100).toFixed(2)
-                        : ""
-                    }
-                    className="h-11 w-full border border-violet-100 bg-white px-3"
+                    className="min-h-11 rounded-lg border border-slate-300 px-3"
                   />
                 </label>
-                <label className="block space-y-2 text-sm font-medium">
+                <label className="grid gap-2 text-sm font-medium">
                   Effective date
                   <input
-                    type="date"
-                    name="startsOn"
                     required
                     defaultValue={today}
-                    className="h-11 w-full border border-violet-100 bg-white px-3"
+                    name="startsOn"
+                    type="date"
+                    className="min-h-11 rounded-lg border border-slate-300 px-3"
                   />
                 </label>
               </ManagedForm>
-            ) : (
-              <p className="mt-4 text-sm text-slate-500">
-                Archived workers are read-only.
-              </p>
-            )}
-          </article>
-          <article className="border border-violet-100 bg-white">
-            <h3 className="border-b border-slate-200 p-5 font-heading text-lg font-semibold">
-              Rate history
-            </h3>
-            <ol className="divide-y divide-slate-200">
-              {worker.rates.map((rate) => (
-                <li
-                  key={rate.id}
-                  className="flex items-center justify-between gap-4 p-5"
-                >
-                  <p className="font-semibold">
-                    {formatSen(rate.hourly_rate_sen)} / hour
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {formatDate(rate.starts_on)} — {formatDate(rate.ends_on)}
-                  </p>
-                </li>
-              ))}
-            </ol>
-          </article>
-        </section>
-      ) : null}
-
-      {tab === "documents" ? (
-        <section className="mt-5">
-          <div className="flex items-center gap-3">
-            <FileText className="size-5 text-violet-700" aria-hidden="true" />
-            <div>
-              <p className="text-xs font-semibold text-slate-500">
-                Private Storage
-              </p>
-              <h2 className="font-heading text-xl font-semibold">
-                Photos and documents
-              </h2>
-            </div>
-          </div>
-          {query.file && fileMessages[query.file] ? (
-            <p
-              className={
-                query.file === "failed" || query.file === "invalid"
-                  ? "mt-4 border border-red-200 bg-red-50 p-4 text-sm text-red-800"
-                  : "mt-4 border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"
-              }
-              aria-live="polite"
-            >
-              {fileMessages[query.file]}
-            </p>
-          ) : null}
-
-          {currentStatus === "ARCHIVED" ? (
-            <p className="mt-5 border border-violet-100 bg-slate-50 p-4 text-sm text-slate-600">
-              This worker is archived. Files remain available for authorized
-              viewing, but the record is read-only.
-            </p>
-          ) : (
-            <div className="mt-5 grid gap-6 xl:grid-cols-2">
-              <form
-                action={`/api/workers/${worker.id}/documents`}
-                method="post"
-                encType="multipart/form-data"
-                className="border border-violet-100 bg-white p-5"
-              >
-                <ImageIcon
-                  className="size-5 text-violet-700"
-                  aria-hidden="true"
-                />
-                <h3 className="mt-4 font-heading text-lg font-semibold">
-                  {worker.photoId ? "Replace Worker Photo" : "Add Worker Photo"}
-                </h3>
-                <input type="hidden" name="fileKind" value="PHOTO" />
-                <input
-                  type="hidden"
-                  name="replaceDocumentId"
-                  value={worker.photoId ?? ""}
-                />
-                <input type="hidden" name="documentTypeId" value="" />
-                <input type="hidden" name="documentNumber" value="" />
-                <input type="hidden" name="issueDate" value="" />
-                <input type="hidden" name="expiryDate" value="" />
-                <label className="mt-5 block space-y-2 text-sm font-medium">
-                  JPEG or PNG, up to 10 MB
-                  <input
-                    type="file"
-                    name="file"
-                    accept="image/jpeg,image/png"
-                    required
-                    className="block w-full border border-violet-100 p-3 text-sm"
-                  />
-                </label>
-                <FormSubmitButton
-                  pendingLabel="Saving photo…"
-                  className="mt-4 min-h-11 bg-violet-700 px-5 text-sm font-semibold text-white"
-                >
-                  Save Photo
-                </FormSubmitButton>
-              </form>
-
-              <form
-                action={`/api/workers/${worker.id}/documents`}
-                method="post"
-                encType="multipart/form-data"
-                className="border border-violet-100 bg-white p-5"
-              >
-                <FileText
-                  className="size-5 text-violet-700"
-                  aria-hidden="true"
-                />
-                <h3 className="mt-4 font-heading text-lg font-semibold">
-                  Upload document
-                </h3>
-                <input type="hidden" name="fileKind" value="DOCUMENT" />
-                <input type="hidden" name="replaceDocumentId" value="" />
-                <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                  <label className="space-y-2 text-sm font-medium">
-                    Document type
-                    <select
-                      name="documentTypeId"
-                      required
-                      className="h-11 w-full border border-violet-100 bg-white px-3"
-                    >
-                      <option value="">Select type</option>
-                      {options.documentTypes.map((type) => (
-                        <option key={type.id} value={type.id}>
-                          {type.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="space-y-2 text-sm font-medium">
-                    Document number (Optional)
-                    <input
-                      name="documentNumber"
-                      maxLength={100}
-                      className="h-11 w-full border border-violet-100 px-3"
-                    />
-                  </label>
-                  <label className="space-y-2 text-sm font-medium">
-                    Issue date
-                    <input
-                      type="date"
-                      name="issueDate"
-                      className="h-11 w-full border border-violet-100 px-3"
-                    />
-                  </label>
-                  <label className="space-y-2 text-sm font-medium">
-                    Expiry date
-                    <input
-                      type="date"
-                      name="expiryDate"
-                      className="h-11 w-full border border-violet-100 px-3"
-                    />
-                  </label>
-                  <label className="space-y-2 text-sm font-medium sm:col-span-2">
-                    PDF, JPEG, or PNG, up to 10 MB
-                    <input
-                      type="file"
-                      name="file"
-                      accept="application/pdf,image/jpeg,image/png"
-                      required
-                      className="block w-full border border-violet-100 p-3 text-sm"
-                    />
-                  </label>
-                </div>
-                <FormSubmitButton
-                  pendingLabel="Uploading document…"
-                  className="mt-4 min-h-11 bg-violet-700 px-5 text-sm font-semibold text-white"
-                >
-                  Upload Document
-                </FormSubmitButton>
-              </form>
-            </div>
-          )}
-
-          <div className="mt-6 border border-violet-100 bg-white">
-            <h3 className="border-b border-slate-200 p-5 font-heading text-lg font-semibold">
-              Current documents
-            </h3>
-            {activeDocuments.length === 0 ? (
-              <p className="p-5 text-sm text-slate-500">
-                No worker documents uploaded.
-              </p>
-            ) : (
-              <div className="divide-y divide-slate-200">
-                {activeDocuments.map((document) => (
-                  <article key={document.id} className="p-5">
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h4 className="font-semibold">
-                            {document.documentTypeName}
-                          </h4>
-                          {document.expiryState === "EXPIRED" ||
-                          document.expiryState === "EXPIRING" ? (
-                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-800">
-                              <AlertTriangle
-                                className="size-3.5"
-                                aria-hidden="true"
-                              />
-                              {document.expiryState === "EXPIRED"
-                                ? "Expired"
-                                : "Expires within 30 days"}
-                            </span>
-                          ) : null}
-                        </div>
-                        <p className="mt-1 text-xs text-slate-500">
-                          {document.original_filename} ·{" "}
-                          {document.expiry_date
-                            ? `Expires ${formatDate(document.expiry_date)}`
-                            : "No expiry date recorded"}
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <Link
-                          href={`/api/workers/${worker.id}/documents/${document.id}`}
-                          className="inline-flex min-h-11 items-center gap-2 border border-violet-100 px-3 text-sm font-semibold"
-                        >
-                          Open Private File
-                          <ArrowUpRight
-                            className="size-3.5"
-                            aria-hidden="true"
-                          />
-                        </Link>
-                        {currentStatus !== "ARCHIVED" ? (
-                          <form
-                            action={`/api/workers/${worker.id}/documents`}
-                            method="post"
-                          >
-                            <input type="hidden" name="intent" value="remove" />
-                            <input
-                              type="hidden"
-                              name="documentId"
-                              value={document.id}
-                            />
-                            <ConfirmSubmitButton
-                              message={`Remove ${document.documentTypeName ?? "this document"}? The file will no longer be available, but its history will remain.`}
-                              className="min-h-11 border border-red-200 px-3 text-sm font-semibold text-red-700"
-                            >
-                              Remove
-                            </ConfirmSubmitButton>
-                          </form>
-                        ) : null}
-                      </div>
-                    </div>
-                    {currentStatus !== "ARCHIVED" ? (
-                      <details className="mt-4 border-t border-slate-200 pt-4">
-                        <summary className="cursor-pointer text-sm font-semibold text-amber-800">
-                          Replace This Document
-                        </summary>
-                        <form
-                          action={`/api/workers/${worker.id}/documents`}
-                          method="post"
-                          encType="multipart/form-data"
-                          className="mt-4 grid gap-3 sm:grid-cols-2"
-                        >
-                          <input
-                            type="hidden"
-                            name="fileKind"
-                            value="DOCUMENT"
-                          />
-                          <input
-                            type="hidden"
-                            name="replaceDocumentId"
-                            value={document.id}
-                          />
-                          <input
-                            type="hidden"
-                            name="documentTypeId"
-                            value={document.document_type_id ?? ""}
-                          />
-                          <input
-                            name="documentNumber"
-                            defaultValue={document.document_number ?? ""}
-                            placeholder="Document number…"
-                            className="h-11 border border-violet-100 px-3 text-sm"
-                          />
-                          <input
-                            type="date"
-                            name="issueDate"
-                            defaultValue={document.issue_date ?? ""}
-                            aria-label="Replacement issue date"
-                            className="h-11 border border-violet-100 px-3 text-sm"
-                          />
-                          <input
-                            type="date"
-                            name="expiryDate"
-                            defaultValue={document.expiry_date ?? ""}
-                            aria-label="Replacement expiry date"
-                            className="h-11 border border-violet-100 px-3 text-sm"
-                          />
-                          <input
-                            type="file"
-                            name="file"
-                            accept="application/pdf,image/jpeg,image/png"
-                            required
-                            aria-label="Replacement file"
-                            className="border border-violet-100 p-3 text-sm sm:col-span-2"
-                          />
-                          <FormSubmitButton
-                            pendingLabel="Replacing document…"
-                            className="min-h-11 bg-violet-700 px-4 text-sm font-semibold text-white"
-                          >
-                            Replace Document
-                          </FormSubmitButton>
-                        </form>
-                      </details>
-                    ) : null}
-                  </article>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {fileHistory.length > 0 ? (
-            <details className="mt-4 border border-violet-100 bg-slate-50 p-5">
-              <summary className="cursor-pointer font-semibold">
-                Replaced and Removed File History ({fileHistory.length})
-              </summary>
-              <ol className="mt-4 divide-y divide-slate-200">
-                {fileHistory.map((document) => (
-                  <li key={document.id} className="py-3 text-sm">
-                    <span className="font-medium">
-                      {document.documentTypeName ?? "Worker photo"}
-                    </span>{" "}
-                    <span className="text-slate-500">
-                      · {employmentLabel(document.status)} ·{" "}
-                      {document.original_filename}
-                    </span>
-                  </li>
-                ))}
-              </ol>
-            </details>
-          ) : null}
-        </section>
-      ) : null}
-
-      {tab === "leave" ? (
-        <section className="mt-5">
-          <div className="mb-4">
-            <p className="text-xs font-semibold text-slate-500">
-              Full-day unpaid leave
-            </p>
-            <h2 className="mt-1 font-heading text-xl font-semibold">
-              Leave history
-            </h2>
-          </div>
-          <LeaveRequestList requests={leaveRequests} />
-        </section>
-      ) : null}
-
-      {tab === "payroll" ? (
-        <section className="mt-5">
-          <div className="mb-4">
-            <p className="text-xs font-semibold text-slate-500">
-              CEO-only financial history
-            </p>
-            <h2 className="mt-1 font-heading text-xl font-semibold">
-              Payroll and payments
-            </h2>
-          </div>
-          {payrollHistory.length === 0 ? (
-            <p className="border border-violet-100 bg-white p-5 text-sm text-slate-500">
-              This worker has no generated payroll history.
-            </p>
-          ) : (
-            <div className="divide-y divide-slate-200 border border-violet-100 bg-white">
-              {payrollHistory.map((payroll) => (
-                <article
-                  key={payroll.id}
-                  className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div>
-                    <p className="font-semibold">
-                      {payroll.run
-                        ? payrollMonthLabel(payroll.run.payroll_month)
-                        : "Payroll month"}
-                    </p>
-                    <p className="mt-1 text-sm text-slate-500">
-                      {payroll.run?.status === "APPROVED"
-                        ? payroll.payment
-                          ? "Paid in full"
-                          : "Approved · unpaid"
-                        : payroll.run?.status === "NEEDS_REVIEW"
-                          ? "Needs CEO review"
-                          : "Draft"}
-                    </p>
-                  </div>
-                  <div className="sm:text-right">
-                    <p className="font-heading text-2xl font-semibold">
-                      {formatPayrollSen(payroll.net_pay_sen)}
-                    </p>
-                    {payroll.run ? (
-                      <Link
-                        href={`/ceo/payroll/${payroll.run.id}/workers/${payroll.id}`}
-                        className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-amber-800"
-                      >
-                        Review calculation
-                        <ArrowUpRight className="size-3.5" aria-hidden="true" />
-                      </Link>
-                    ) : null}
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
-      ) : null}
-
-      {tab === "audit" ? (
-        <section className="mt-5 rounded-lg border border-slate-200 bg-white p-5">
-          <ShieldCheck className="size-5 text-violet-700" aria-hidden="true" />
-          <h2 className="mt-4 font-heading text-xl font-semibold">
-            Worker Audit History
-          </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-            Identity numbers and document contents are never copied into audit
-            details. Open the filtered company audit log to trace profile,
-            assignment, rate, status, and document changes.
+            </SheetContent>
+          </Sheet>
+        ) : (
+          <p className="text-sm text-slate-500">
+            Archived workers are read-only.
           </p>
-          <Link
-            href={`/ceo/audit?query=${encodeURIComponent(worker.legal_name)}`}
-            className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-violet-800 hover:bg-violet-50"
+        )}
+      </div>
+    </CompactCard>
+  );
+}
+
+async function OverviewAttendance({
+  workerId,
+  month,
+}: {
+  workerId: string;
+  month: string;
+}) {
+  const attendance = await getWorkerAttendanceMonth(workerId, month);
+  return (
+    <CompactCard title="Recent attendance">
+      <div className="divide-y divide-slate-100">
+        {attendance.rows.slice(0, 4).map((row) => (
+          <div
+            key={`${row.projectId}:${row.date}`}
+            className="flex justify-between gap-3 px-4 py-3 text-sm"
           >
-            Open Worker Audit
-            <ArrowUpRight className="size-4" aria-hidden="true" />
-          </Link>
-        </section>
-      ) : null}
-    </>
+            <span>
+              {formatDate(row.date)} · {row.projectName}
+            </span>
+            <span>{row.leaveTypeName ?? minutes(row.totalMinutes)}</span>
+          </div>
+        ))}
+        {attendance.rows.length === 0 ? (
+          <p className="p-4 text-sm text-slate-500">No recent attendance.</p>
+        ) : null}
+      </div>
+    </CompactCard>
   );
 }

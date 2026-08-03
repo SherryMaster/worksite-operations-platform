@@ -269,9 +269,7 @@ async function WorkerDirectory({
                             {worker.legal_name}
                           </p>
                           <p className="mt-1 text-xs text-slate-500">
-                            {maskIdentifier(
-                              worker.cnic_number ?? worker.passport_number,
-                            )}
+                            {maskIdentifier(worker.primaryIdentifier?.number)}
                           </p>
                         </div>
                       </div>
@@ -369,9 +367,7 @@ async function WorkerDirectory({
                     {worker.tradeName ?? "Not classified"}
                   </p>
                   <p className="mt-0.5 text-xs text-slate-500">
-                    {maskIdentifier(
-                      worker.cnic_number ?? worker.passport_number,
-                    )}
+                    {maskIdentifier(worker.primaryIdentifier?.number)}
                   </p>
                 </Link>
               </CompactRecord>

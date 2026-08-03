@@ -2,9 +2,12 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 
 import { requireRole } from "@/lib/auth/access";
+import {
+  bestEffortStorageCleanup,
+  uploadWorkerFile,
+} from "@/lib/phase3/file-storage";
 import { logger } from "@/lib/server/logger";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import {
@@ -20,6 +23,10 @@ import {
   type Phase3ActionState,
 } from "@/lib/phase3/validation";
 import { uuidSchema, type ActionState } from "@/lib/phase2/validation";
+import {
+  hasOptionalUploadFailures,
+  validateWorkerFile,
+} from "@/lib/phase3/files";
 
 async function getCeoContext() {
   await requireRole("CEO");
@@ -43,18 +50,20 @@ function optionalFormValue(formData: FormData, name: string) {
 }
 
 function workerInput(formData: FormData) {
+  let documents: unknown = [];
+  try {
+    documents = JSON.parse(String(formData.get("documentsJson") ?? "[]"));
+  } catch {
+    documents = null;
+  }
   return {
     legalName: formData.get("legalName"),
     phoneNumber: formData.get("phoneNumber"),
-    alternatePhone: optionalFormValue(formData, "alternatePhone"),
     address: optionalFormValue(formData, "address"),
     nationality: optionalFormValue(formData, "nationality"),
-    cnicNumber: optionalFormValue(formData, "cnicNumber"),
-    passportNumber: optionalFormValue(formData, "passportNumber"),
-    workPermitNumber: optionalFormValue(formData, "workPermitNumber"),
-    workPermitIssueDate: optionalFormValue(formData, "workPermitIssueDate"),
-    workPermitExpiryDate: optionalFormValue(formData, "workPermitExpiryDate"),
-    notes: optionalFormValue(formData, "notes"),
+    documents,
+    hourlyRate: formData.get("hourlyRate"),
+    rateEffectiveOn: optionalFormValue(formData, "rateEffectiveOn"),
     tradeId: formData.get("tradeId"),
     skillLevelId: formData.get("skillLevelId"),
     foodDeduction: formData.get("foodDeduction"),
@@ -62,46 +71,25 @@ function workerInput(formData: FormData) {
   };
 }
 
-function normalizedIdentifier(value: string | null) {
-  return value?.replace(/\s+/g, "").toUpperCase() ?? "";
-}
-
 async function findDuplicate(
   supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
-  cnicNumber: string | null,
-  passportNumber: string | null,
+  documents: Array<{
+    documentNumber: string | null;
+    documentTypeId: string;
+  }>,
   excludeWorkerId?: string,
 ) {
-  const matches = [];
-  if (cnicNumber) {
-    let query = supabase
-      .from("workers")
-      .select("id,legal_name")
-      .eq("cnic_number", normalizedIdentifier(cnicNumber))
-      .limit(1);
-    if (excludeWorkerId) query = query.neq("id", excludeWorkerId);
-    matches.push(query);
-  }
-  if (passportNumber) {
-    let query = supabase
-      .from("workers")
-      .select("id,legal_name")
-      .eq("passport_number", normalizedIdentifier(passportNumber))
-      .limit(1);
-    if (excludeWorkerId) query = query.neq("id", excludeWorkerId);
-    matches.push(query);
-  }
-  if (matches.length === 0) return null;
-
-  const results = await Promise.all(matches);
-  const failed = results.find((result) => result.error);
-  if (failed?.error) {
+  const result = await supabase.rpc("find_worker_identity_duplicate", {
+    p_documents: documents,
+    p_exclude_worker_id: excludeWorkerId ?? null,
+  });
+  if (result.error) {
     logger.error("worker_duplicate_lookup_failed", {
-      code: failed.error.code,
+      code: result.error.code,
     });
     throw new Error("Worker identity could not be checked.");
   }
-  return results.flatMap((result) => result.data)[0] ?? null;
+  return result.data[0] ?? null;
 }
 
 function databaseMessage(error: { code?: string; message: string }) {
@@ -119,71 +107,7 @@ export async function createWorkerAction(
   _previousState: Phase3ActionState,
   formData: FormData,
 ): Promise<Phase3ActionState> {
-  const result = createWorkerSchema.safeParse({
-    ...workerInput(formData),
-    employmentStatus: formData.get("employmentStatus"),
-    employmentStartsOn: formData.get("employmentStartsOn"),
-    hourlyRate: formData.get("hourlyRate"),
-    rateStartsOn: formData.get("rateStartsOn"),
-    projectId: formData.get("projectId"),
-    assignmentStartsOn: formData.get("assignmentStartsOn"),
-  });
-  if (!result.success) {
-    return actionError(
-      "Check the highlighted worker details.",
-      result.error.flatten().fieldErrors,
-    );
-  }
-
-  const { supabase } = await getCeoContext();
-  const duplicate = await findDuplicate(
-    supabase,
-    result.data.cnicNumber,
-    result.data.passportNumber,
-  );
-  if (duplicate && !result.data.confirmDuplicate) {
-    return {
-      status: "error",
-      message:
-        "A worker with the same CNIC or passport may already exist. Open that record before deciding to continue.",
-      duplicateWorkerId: duplicate.id,
-      duplicateWorkerName: duplicate.legal_name,
-    };
-  }
-
-  const { data, error } = await supabase.rpc("create_worker_record", {
-    p_address: result.data.address ?? "",
-    p_alternate_phone: result.data.alternatePhone ?? "",
-    p_assignment_starts_on: result.data.assignmentStartsOn,
-    p_cnic_number: normalizedIdentifier(result.data.cnicNumber),
-    p_employment_starts_on: result.data.employmentStartsOn,
-    p_employment_status: result.data.employmentStatus,
-    p_food_deduction_sen: moneyToSen(result.data.foodDeduction),
-    p_hourly_rate_sen: moneyToSen(result.data.hourlyRate),
-    p_legal_name: result.data.legalName,
-    p_nationality: result.data.nationality ?? "",
-    p_notes: result.data.notes ?? "",
-    p_passport_number: normalizedIdentifier(result.data.passportNumber),
-    p_phone_number: result.data.phoneNumber,
-    p_project_id: result.data.projectId ?? "",
-    p_rate_starts_on: result.data.rateStartsOn,
-    p_skill_level_id: result.data.skillLevelId,
-    p_trade_id: result.data.tradeId,
-    p_work_permit_expiry_date: result.data.workPermitExpiryDate ?? "",
-    p_work_permit_issue_date: result.data.workPermitIssueDate ?? "",
-    p_work_permit_number: normalizedIdentifier(result.data.workPermitNumber),
-  });
-  if (error) {
-    logger.error("worker_create_failed", { code: error.code });
-    return actionError(databaseMessage(error));
-  }
-
-  revalidatePath("/ceo");
-  revalidatePath("/ceo/workers");
-  revalidatePath("/ceo/projects");
-  revalidatePath("/foreman");
-  revalidatePath("/foreman/workers");
-  redirect(`/ceo/workers/${data}`);
+  return saveWorkerRecord(null, formData, createWorkerSchema);
 }
 
 export async function updateWorkerAction(
@@ -191,59 +115,211 @@ export async function updateWorkerAction(
   _previousState: Phase3ActionState,
   formData: FormData,
 ): Promise<Phase3ActionState> {
-  const id = uuidSchema.safeParse(workerId);
-  const result = updateWorkerSchema.safeParse(workerInput(formData));
-  if (!id.success || !result.success) {
+  return saveWorkerRecord(workerId, formData, updateWorkerSchema);
+}
+
+async function saveWorkerRecord(
+  workerId: string | null,
+  formData: FormData,
+  schema: typeof createWorkerSchema,
+): Promise<Phase3ActionState> {
+  const id = workerId ? uuidSchema.safeParse(workerId) : null;
+  const result = schema.safeParse(workerInput(formData));
+  if ((id && !id.success) || !result.success) {
     return actionError(
       "Check the highlighted worker details.",
       result.success ? undefined : result.error.flatten().fieldErrors,
     );
   }
 
+  const preflightFailures = new Map<string, string>();
+  for (const document of result.data.documents) {
+    const file = formData.get(`documentFile-${document.clientKey}`);
+    if (file instanceof File && file.size > 0) {
+      const validation = validateWorkerFile(file, "DOCUMENT");
+      if (!validation.ok)
+        preflightFailures.set(document.clientKey, validation.message);
+    }
+  }
+  const preflightPhoto = formData.get("photoFile");
+  if (preflightPhoto instanceof File && preflightPhoto.size > 0) {
+    const validation = validateWorkerFile(preflightPhoto, "PHOTO");
+    if (!validation.ok) preflightFailures.set("photo", validation.message);
+  }
+
   const { supabase } = await getCeoContext();
   const duplicate = await findDuplicate(
     supabase,
-    result.data.cnicNumber,
-    result.data.passportNumber,
-    id.data,
+    result.data.documents,
+    id?.success ? id.data : undefined,
   );
   if (duplicate && !result.data.confirmDuplicate) {
     return {
       status: "error",
       message:
-        "Another worker has the same CNIC or passport. Review that record before continuing.",
+        "A worker with the same CNIC or Passport may already exist. Review the masked match before deliberately continuing.",
       duplicateWorkerId: duplicate.id,
       duplicateWorkerName: duplicate.legal_name,
     };
   }
 
-  const { error } = await supabase.rpc("edit_worker_profile", {
+  const save = await supabase.rpc("save_worker_record", {
     p_address: result.data.address ?? "",
-    p_alternate_phone: result.data.alternatePhone ?? "",
-    p_cnic_number: normalizedIdentifier(result.data.cnicNumber),
+    p_confirm_duplicate: result.data.confirmDuplicate,
+    p_documents: result.data.documents,
     p_food_deduction_sen: moneyToSen(result.data.foodDeduction),
+    p_hourly_rate_sen: moneyToSen(result.data.hourlyRate),
     p_legal_name: result.data.legalName,
-    p_nationality: result.data.nationality ?? "",
-    p_notes: result.data.notes ?? "",
-    p_passport_number: normalizedIdentifier(result.data.passportNumber),
+    p_nationality: result.data.nationality,
     p_phone_number: result.data.phoneNumber,
+    p_rate_effective_on: result.data.rateEffectiveOn ?? "",
     p_skill_level_id: result.data.skillLevelId,
     p_trade_id: result.data.tradeId,
-    p_work_permit_expiry_date: result.data.workPermitExpiryDate ?? "",
-    p_work_permit_issue_date: result.data.workPermitIssueDate ?? "",
-    p_work_permit_number: normalizedIdentifier(result.data.workPermitNumber),
-    p_worker_id: id.data,
+    p_worker_id: id?.success ? id.data : "",
   });
-  if (error) {
-    logger.error("worker_update_failed", { code: error.code });
-    return actionError(databaseMessage(error));
+  if (save.error) {
+    logger.error("worker_record_save_failed", { code: save.error.code });
+    return actionError(databaseMessage(save.error));
+  }
+
+  const saved = save.data as {
+    documentIds?: Record<string, string>;
+    workerId?: string;
+  } | null;
+  const savedWorkerId = saved?.workerId;
+  if (!savedWorkerId)
+    return actionError("The saved worker could not be opened.");
+
+  const failures: Array<{ clientKey: string; message: string }> = [
+    ...preflightFailures,
+  ].map(([clientKey, message]) => ({ clientKey, message }));
+  for (const document of result.data.documents) {
+    if (document.fileAction === "remove" && document.id) {
+      const removal = await supabase.rpc("remove_worker_document", {
+        p_document_id: document.id,
+        p_remove_document: false,
+      });
+      if (removal.error) {
+        failures.push({
+          clientKey: document.clientKey,
+          message:
+            "The metadata was saved, but the existing file could not be removed.",
+        });
+      } else {
+        await bestEffortStorageCleanup({
+          bucketId: removal.data[0]?.bucket_id ?? null,
+          objectPath: removal.data[0]?.object_path ?? null,
+          supabase,
+        });
+      }
+    }
+    const file = formData.get(`documentFile-${document.clientKey}`);
+    if (preflightFailures.has(document.clientKey)) continue;
+    if (
+      document.fileAction !== "replace" ||
+      !(file instanceof File) ||
+      file.size === 0
+    )
+      continue;
+    const upload = await uploadWorkerFile({
+      documentId:
+        saved?.documentIds?.[document.clientKey] ?? document.id ?? undefined,
+      file,
+      kind: "DOCUMENT",
+      supabase,
+      workerId: savedWorkerId,
+    });
+    if (!upload.ok) {
+      failures.push({ clientKey: document.clientKey, message: upload.message });
+    }
+  }
+
+  let removedDocumentIds: string[] = [];
+  try {
+    const parsed = JSON.parse(
+      String(formData.get("removedDocumentIds") ?? "[]"),
+    );
+    if (Array.isArray(parsed)) {
+      removedDocumentIds = parsed.filter(
+        (value): value is string => uuidSchema.safeParse(value).success,
+      );
+    }
+  } catch {
+    removedDocumentIds = [];
+  }
+  if (removedDocumentIds.length > 0) {
+    const removedDocuments = await supabase
+      .from("worker_documents")
+      .select("bucket_id,object_path")
+      .in("id", removedDocumentIds)
+      .eq("status", "REMOVED");
+    for (const document of removedDocuments.data ?? []) {
+      await bestEffortStorageCleanup({
+        bucketId: document.bucket_id,
+        objectPath: document.object_path,
+        supabase,
+      });
+    }
+  }
+
+  const photoAction = String(formData.get("photoAction") ?? "keep");
+  const currentPhotoId = uuidSchema.safeParse(formData.get("currentPhotoId"));
+  if (photoAction === "remove" && currentPhotoId.success) {
+    const removal = await supabase.rpc("remove_worker_document", {
+      p_document_id: currentPhotoId.data,
+      p_remove_document: true,
+    });
+    if (!removal.error) {
+      await bestEffortStorageCleanup({
+        bucketId: removal.data[0]?.bucket_id ?? null,
+        objectPath: removal.data[0]?.object_path ?? null,
+        supabase,
+      });
+    } else {
+      failures.push({
+        clientKey: "photo",
+        message:
+          "The profile changes were saved, but the photo could not be removed.",
+      });
+    }
+  }
+  const photo = formData.get("photoFile");
+  if (photoAction === "replace" && photo instanceof File && photo.size > 0) {
+    if (preflightFailures.has("photo")) {
+      // Metadata is already safely committed; the Review warning offers retry.
+    } else {
+      const upload = await uploadWorkerFile({
+        file: photo,
+        kind: "PHOTO",
+        supabase,
+        workerId: savedWorkerId,
+      });
+      if (!upload.ok)
+        failures.push({ clientKey: "photo", message: upload.message });
+    }
   }
 
   revalidatePath("/ceo");
   revalidatePath("/ceo/workers");
-  revalidatePath(`/ceo/workers/${id.data}`);
+  revalidatePath(`/ceo/workers/${savedWorkerId}`);
+  revalidatePath("/ceo/projects");
+  revalidatePath("/foreman");
   revalidatePath("/foreman/workers");
-  return actionSuccess("Worker profile saved.");
+
+  return hasOptionalUploadFailures({ failed: failures, uploaded: [] })
+    ? {
+        status: "success",
+        message:
+          "Worker metadata was saved, but one or more optional files need retrying in Documents.",
+        partialUploadFailures: failures,
+        workerId: savedWorkerId,
+      }
+    : {
+        ...actionSuccess(
+          workerId ? "Worker changes saved." : "Worker created.",
+        ),
+        workerId: savedWorkerId,
+      };
 }
 
 export async function changeWorkerEmploymentAction(
@@ -352,8 +428,10 @@ export async function createDocumentTypeAction(
 ): Promise<ActionState> {
   const result = documentTypeSchema.safeParse({
     name: formData.get("name"),
+    expectsDocumentNumber: formData.get("expectsDocumentNumber"),
     expectsIssueDate: formData.get("expectsIssueDate"),
     expectsExpiryDate: formData.get("expectsExpiryDate"),
+    isRepeatable: formData.get("isRepeatable"),
   });
   if (!result.success) {
     return actionError(
@@ -364,8 +442,10 @@ export async function createDocumentTypeAction(
   const { actorId, supabase } = await getCeoContext();
   const { error } = await supabase.from("document_types").insert({
     created_by: actorId,
+    expects_document_number: result.data.expectsDocumentNumber,
     expects_expiry_date: result.data.expectsExpiryDate,
     expects_issue_date: result.data.expectsIssueDate,
+    is_repeatable: result.data.isRepeatable,
     name: result.data.name,
     updated_by: actorId,
   });

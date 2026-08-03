@@ -7,7 +7,7 @@ export function formatSen(value: number | null): string {
   return value === null ? "Not recorded" : moneyFormatter.format(value / 100);
 }
 
-export function maskIdentifier(value: string | null): string {
+export function maskIdentifier(value: string | null | undefined): string {
   if (!value) return "Not recorded";
   const compact = value.replace(/\s+/g, "");
   if (compact.length <= 4) return "••••";

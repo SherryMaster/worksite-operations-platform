@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+<title>Worker detail — desktop documents</title>
+<defs><filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="5" flood-color="#0F172A" flood-opacity="0.08"/></filter></defs>
+<rect x="0" y="0" width="1600" height="900" fill="#F6F7F9" rx="0" stroke-width="1"/>
+<rect x="0" y="0" width="230" height="900" fill="#FFFFFF" stroke="#E2E8F0" rx="0" stroke-width="1"/>
+<rect x="16" y="14" width="38" height="38" fill="#6D28D9" rx="10" stroke-width="1"/>
+<text x="35" y="41" font-size="24" font-weight="750" fill="white" text-anchor="middle" font-family="Inter, Geist, Arial, sans-serif">W</text>
+<text x="66" y="28" font-size="15" font-weight="700" fill="#111827" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Worksite</text>
+<text x="66" y="44" font-size="10" font-weight="600" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Operations</text>
+<text x="20" y="82" font-size="9" font-weight="700" fill="#94A3B8" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">OPERATIONS</text>
+<circle cx="28" cy="103" r="4" fill="none" stroke="#94A3B8" stroke-width="1.5"/>
+<text x="48" y="108" font-size="13" font-weight="600" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Home</text>
+<circle cx="28" cy="145" r="4" fill="none" stroke="#94A3B8" stroke-width="1.5"/>
+<text x="48" y="150" font-size="13" font-weight="600" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Projects</text>
+<rect x="10" y="171" width="206" height="38" fill="#F5F3FF" rx="9" stroke-width="1"/>
+<circle cx="28" cy="187" r="4" fill="none" stroke="#6D28D9" stroke-width="1.5"/>
+<text x="48" y="192" font-size="13" font-weight="600" fill="#6D28D9" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Workers</text>
+<circle cx="28" cy="229" r="4" fill="none" stroke="#94A3B8" stroke-width="1.5"/>
+<text x="48" y="234" font-size="13" font-weight="600" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Attendance</text>
+<circle cx="28" cy="271" r="4" fill="none" stroke="#94A3B8" stroke-width="1.5"/>
+<text x="48" y="276" font-size="13" font-weight="600" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Leave</text>
+<text x="20" y="316" font-size="9" font-weight="700" fill="#94A3B8" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">FINANCE</text>
+<circle cx="28" cy="337" r="4" fill="none" stroke="#94A3B8" stroke-width="1.5"/>
+<text x="48" y="342" font-size="13" font-weight="600" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Payroll</text>
+<text x="20" y="382" font-size="9" font-weight="700" fill="#94A3B8" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">REPORTING</text>
+<circle cx="28" cy="403" r="4" fill="none" stroke="#94A3B8" stroke-width="1.5"/>
+<text x="48" y="408" font-size="13" font-weight="600" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Reports</text>
+<text x="20" y="448" font-size="9" font-weight="700" fill="#94A3B8" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">ADMIN</text>
+<circle cx="28" cy="469" r="4" fill="none" stroke="#94A3B8" stroke-width="1.5"/>
+<text x="48" y="474" font-size="13" font-weight="600" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Settings</text>
+<circle cx="28" cy="511" r="4" fill="none" stroke="#94A3B8" stroke-width="1.5"/>
+<text x="48" y="516" font-size="13" font-weight="600" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Import center</text>
+<circle cx="28" cy="553" r="4" fill="none" stroke="#94A3B8" stroke-width="1.5"/>
+<text x="48" y="558" font-size="13" font-weight="600" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Audit</text>
+<line x1="230" y1="0" x2="230" y2="900" stroke="#E2E8F0" stroke-width="1"/>
+<rect x="230" y="0" width="1370" height="52" fill="#FFFFFF" stroke="#E2E8F0" rx="0" stroke-width="1"/>
+<text x="250" y="22" font-size="14" font-weight="700" fill="#111827" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Company operations</text>
+<text x="250" y="39" font-size="10" font-weight="500" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">CEO workspace</text>
+<circle cx="1570" cy="26" r="14" fill="#CBD5E1" stroke-width="1"/>
+<text x="270" y="86" font-size="13" font-weight="500" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">‹  Back to workers</text>
+<rect x="270" y="106" width="1280" height="150" fill="#FFFFFF" stroke="#E2E8F0" rx="12" stroke-width="1"/>
+<circle cx="324" cy="160" r="34" fill="#E2E8F0" stroke-width="1"/>
+<circle cx="324" cy="159" r="5" fill="none" stroke="#64748B" stroke-width="1.8"/>
+<path d="M315 174 c1-7 17-7 18 0" fill="none" stroke="#64748B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="370" y="124" width="64" height="26" fill="#ECFDF5" stroke="#A7F3D0" rx="13" stroke-width="1"/>
+<text x="402.0" y="142" font-size="12" font-weight="600" fill="#047857" text-anchor="middle" font-family="Inter, Geist, Arial, sans-serif">Active</text>
+<text x="444" y="142" font-size="11" font-weight="600" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">SAFAR</text>
+<text x="370" y="176" font-size="26" font-weight="750" fill="#111827" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Ahmed</text>
+<text x="370" y="202" font-size="13" font-weight="500" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Electrician · Helper</text>
+<text x="370" y="226" font-size="11" font-weight="500" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">CNIC 11•••••••77  ·  Joined 12 Jun 2025</text>
+<rect x="1392" y="132" width="132" height="42" fill="#6D28D9" stroke="#6D28D9" rx="10" stroke-width="1"/>
+<path d="M1410 159 l10-10 l4 4 l-10 10 h-4 z" fill="none" stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1466.0" y="159" font-size="14" font-weight="650" fill="white" text-anchor="middle" font-family="Inter, Geist, Arial, sans-serif">Edit worker</text>
+<line x1="270" y1="314" x2="1550" y2="314" stroke="#E2E8F0" stroke-width="1"/>
+<text x="376.6666666666667" y="298" font-size="12" font-weight="500" fill="#64748B" text-anchor="middle" font-family="Inter, Geist, Arial, sans-serif">Overview</text>
+<text x="590.0" y="298" font-size="12" font-weight="500" fill="#64748B" text-anchor="middle" font-family="Inter, Geist, Arial, sans-serif">Work history</text>
+<text x="803.3333333333334" y="298" font-size="12" font-weight="700" fill="#6D28D9" text-anchor="middle" font-family="Inter, Geist, Arial, sans-serif">Documents</text>
+<rect x="710.6666666666667" y="311" width="185.33333333333334" height="3" fill="#6D28D9" rx="2" stroke-width="1"/>
+<text x="1016.6666666666666" y="298" font-size="12" font-weight="500" fill="#64748B" text-anchor="middle" font-family="Inter, Geist, Arial, sans-serif">Attendance &amp; leave</text>
+<text x="1230.0000000000002" y="298" font-size="12" font-weight="500" fill="#64748B" text-anchor="middle" font-family="Inter, Geist, Arial, sans-serif">Payroll</text>
+<text x="1443.3333333333335" y="298" font-size="12" font-weight="500" fill="#64748B" text-anchor="middle" font-family="Inter, Geist, Arial, sans-serif">Activity</text>
+<text x="270" y="350" font-size="24" font-weight="750" fill="#111827" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Documents</text>
+<text x="270" y="375" font-size="12" font-weight="400" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Metadata remains useful even when no file is attached.</text>
+<rect x="1360" y="340" width="190" height="42" fill="#6D28D9" stroke="#6D28D9" rx="10" stroke-width="1"/>
+<text x="1455.0" y="367" font-size="14" font-weight="650" fill="white" text-anchor="middle" font-family="Inter, Geist, Arial, sans-serif">+ Add document</text>
+<rect x="270" y="410" width="1280" height="92" fill="#FFFFFF" stroke="#E2E8F0" rx="12" stroke-width="1"/>
+<rect x="295" y="447" width="14" height="18" fill="none" stroke="#6D28D9" rx="2" stroke-width="1.6"/>
+<line x1="299" y1="453" x2="306" y2="453" stroke="#6D28D9" stroke-width="1.4"/>
+<line x1="299" y1="457" x2="306" y2="457" stroke="#6D28D9" stroke-width="1.4"/>
+<text x="328" y="440" font-size="14" font-weight="750" fill="#111827" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">CNIC</text>
+<text x="328" y="463" font-size="11" font-weight="600" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">11•••••••77</text>
+<text x="600" y="448" font-size="12" font-weight="650" fill="#111827" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">No expiry</text>
+<text x="920" y="448" font-size="11" font-weight="500" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">No file</text>
+<rect x="1200" y="436" width="96" height="26" fill="#ECFDF5" stroke="#A7F3D0" rx="13" stroke-width="1"/>
+<text x="1248.0" y="454" font-size="12" font-weight="600" fill="#047857" text-anchor="middle" font-family="Inter, Geist, Arial, sans-serif">Complete</text>
+<rect x="1350" y="434" width="92" height="42" fill="#FFFFFF" stroke="#E2E8F0" rx="10" stroke-width="1"/>
+<text x="1396.0" y="461" font-size="14" font-weight="650" fill="#111827" text-anchor="middle" font-family="Inter, Geist, Arial, sans-serif">Manage</text>
+<rect x="270" y="518" width="1280" height="92" fill="#FFFFFF" stroke="#E2E8F0" rx="12" stroke-width="1"/>
+<rect x="295" y="555" width="14" height="18" fill="none" stroke="#6D28D9" rx="2" stroke-width="1.6"/>
+<line x1="299" y1="561" x2="306" y2="561" stroke="#6D28D9" stroke-width="1.4"/>
+<line x1="299" y1="565" x2="306" y2="565" stroke="#6D28D9" stroke-width="1.4"/>
+<text x="328" y="548" font-size="14" font-weight="750" fill="#111827" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Passport</text>
+<text x="328" y="571" font-size="11" font-weight="600" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">AB••••567</text>
+<text x="600" y="556" font-size="12" font-weight="650" fill="#111827" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Expires 01 Jan 2030</text>
+<text x="920" y="556" font-size="11" font-weight="500" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">passport.pdf</text>
+<rect x="1200" y="544" width="96" height="26" fill="#ECFDF5" stroke="#A7F3D0" rx="13" stroke-width="1"/>
+<text x="1248.0" y="562" font-size="12" font-weight="600" fill="#047857" text-anchor="middle" font-family="Inter, Geist, Arial, sans-serif">Complete</text>
+<rect x="1350" y="542" width="92" height="42" fill="#FFFFFF" stroke="#E2E8F0" rx="10" stroke-width="1"/>
+<text x="1396.0" y="569" font-size="14" font-weight="650" fill="#111827" text-anchor="middle" font-family="Inter, Geist, Arial, sans-serif">Manage</text>
+<rect x="270" y="626" width="1280" height="92" fill="#FFFFFF" stroke="#E2E8F0" rx="12" stroke-width="1"/>
+<rect x="295" y="663" width="14" height="18" fill="none" stroke="#6D28D9" rx="2" stroke-width="1.6"/>
+<line x1="299" y1="669" x2="306" y2="669" stroke="#6D28D9" stroke-width="1.4"/>
+<line x1="299" y1="673" x2="306" y2="673" stroke="#6D28D9" stroke-width="1.4"/>
+<text x="328" y="656" font-size="14" font-weight="750" fill="#111827" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Work Permit</text>
+<text x="328" y="679" font-size="11" font-weight="600" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">WP••••654</text>
+<text x="600" y="664" font-size="12" font-weight="650" fill="#B45309" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Expires 31 Aug 2026</text>
+<text x="920" y="664" font-size="11" font-weight="500" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">permit.jpg</text>
+<rect x="1200" y="652" width="96" height="26" fill="#FFFBEB" stroke="#FDE68A" rx="13" stroke-width="1"/>
+<text x="1248.0" y="670" font-size="12" font-weight="600" fill="#B45309" text-anchor="middle" font-family="Inter, Geist, Arial, sans-serif">Expiring</text>
+<rect x="1350" y="650" width="92" height="42" fill="#FFFFFF" stroke="#E2E8F0" rx="10" stroke-width="1"/>
+<text x="1396.0" y="677" font-size="14" font-weight="650" fill="#111827" text-anchor="middle" font-family="Inter, Geist, Arial, sans-serif">Manage</text>
+<rect x="270" y="734" width="1280" height="92" fill="#FFFFFF" stroke="#E2E8F0" rx="12" stroke-width="1"/>
+<rect x="295" y="771" width="14" height="18" fill="none" stroke="#6D28D9" rx="2" stroke-width="1.6"/>
+<line x1="299" y1="777" x2="306" y2="777" stroke="#6D28D9" stroke-width="1.4"/>
+<line x1="299" y1="781" x2="306" y2="781" stroke="#6D28D9" stroke-width="1.4"/>
+<text x="328" y="764" font-size="14" font-weight="750" fill="#111827" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">CIDB Personnel Card</text>
+<text x="328" y="787" font-size="11" font-weight="600" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">CIDB••482</text>
+<text x="600" y="772" font-size="12" font-weight="650" fill="#111827" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Expires 12 Jun 2027</text>
+<text x="920" y="772" font-size="11" font-weight="500" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">No file</text>
+<rect x="1200" y="760" width="96" height="26" fill="#ECFDF5" stroke="#A7F3D0" rx="13" stroke-width="1"/>
+<text x="1248.0" y="778" font-size="12" font-weight="600" fill="#047857" text-anchor="middle" font-family="Inter, Geist, Arial, sans-serif">Complete</text>
+<rect x="1350" y="758" width="92" height="42" fill="#FFFFFF" stroke="#E2E8F0" rx="10" stroke-width="1"/>
+<text x="1396.0" y="785" font-size="14" font-weight="650" fill="#111827" text-anchor="middle" font-family="Inter, Geist, Arial, sans-serif">Manage</text>
+<rect x="270" y="842" width="1280" height="46" fill="#F8FAFC" stroke="#E2E8F0" rx="10" stroke-width="1"/>
+<text x="288" y="871" font-size="12" font-weight="650" fill="#64748B" text-anchor="start" font-family="Inter, Geist, Arial, sans-serif">Replaced and removed document history (3)</text>
+<path d="M1510 858 l6 6 l-6 6" fill="none" stroke="#64748B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -107,7 +107,6 @@ begin
     id,
     legal_name,
     phone_number,
-    passport_number,
     created_by,
     updated_by
   )
@@ -115,10 +114,13 @@ begin
     worker_id,
     '${workerName}',
     '+60123456789',
-    'E2E-PHASE-5',
     ceo_id,
     ceo_id
   );
+
+  insert into public.worker_documents (worker_id, file_kind, document_type_id, document_number)
+  select worker_id, 'DOCUMENT', id, 'E2E-PHASE-5'
+  from public.document_types where system_code = 'PASSPORT';
 
   insert into public.worker_employment_periods (
     worker_id,

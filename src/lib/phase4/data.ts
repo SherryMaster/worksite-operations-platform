@@ -413,3 +413,175 @@ export async function getAttendanceMonthRows(
         left.workerName.localeCompare(right.workerName),
     );
 }
+
+export async function getWorkerAttendanceMonth(
+  workerId: string,
+  month: string,
+) {
+  const supabase = await createServerSupabaseClient();
+  const startDate = `${month}-01`;
+  const [year, monthNumber] = month.split("-").map(Number);
+  const endDate = new Date(Date.UTC(year, monthNumber, 0))
+    .toISOString()
+    .slice(0, 10);
+  const assignments = await supabase
+    .from("worker_project_assignments")
+    .select("project_id")
+    .eq("worker_id", workerId);
+  if (assignments.error) {
+    throwQueryError("worker_attendance_projects", assignments.error);
+  }
+
+  const projectIds = [
+    ...new Set((assignments.data ?? []).map((row) => row.project_id)),
+  ];
+  if (projectIds.length === 0) {
+    return {
+      rows: [],
+      totals: {
+        exceptions: 0,
+        leaveDays: 0,
+        normalMinutes: 0,
+        overtimeMinutes: 0,
+        payableDays: 0,
+        payableMinutes: 0,
+        publicHolidayMinutes: 0,
+        sundayMinutes: 0,
+      },
+    };
+  }
+  const [
+    projectsResult,
+    sessionsResult,
+    daysResult,
+    leaveResult,
+    leaveTypesResult,
+  ] = await Promise.all([
+    supabase.from("projects").select("id,name").in("id", projectIds),
+    supabase
+      .from("attendance_sessions")
+      .select("*")
+      .eq("worker_id", workerId)
+      .in("project_id", projectIds)
+      .gte("work_date", startDate)
+      .lte("work_date", endDate)
+      .eq("record_status", "ACTIVE")
+      .order("work_date", { ascending: false })
+      .order("entered_at"),
+    supabase
+      .from("project_days")
+      .select("project_id,work_date,day_type")
+      .in("project_id", projectIds)
+      .gte("work_date", startDate)
+      .lte("work_date", endDate),
+    supabase
+      .from("approved_leave_days")
+      .select("project_id,leave_date,leave_type_id")
+      .eq("worker_id", workerId)
+      .in("project_id", projectIds)
+      .gte("leave_date", startDate)
+      .lte("leave_date", endDate),
+    supabase.from("leave_types").select("id,name"),
+  ]);
+  for (const [operation, result] of [
+    ["worker_attendance_projects", projectsResult],
+    ["worker_attendance_sessions", sessionsResult],
+    ["worker_attendance_days", daysResult],
+    ["worker_attendance_leave", leaveResult],
+    ["worker_attendance_leave_types", leaveTypesResult],
+  ] as const) {
+    if (result.error) throwQueryError(operation, result.error);
+  }
+  const projects = projectsResult.data ?? [];
+  const sessionRows = sessionsResult.data ?? [];
+  const days = daysResult.data ?? [];
+  const leaveRows = leaveResult.data ?? [];
+  const leaveTypes = leaveTypesResult.data ?? [];
+  const breakRows = await loadBreaks(sessionRows.map((session) => session.id));
+  const sessions = mapSessions(sessionRows, breakRows);
+  const projectNames = new Map(
+    projects.map((project) => [project.id, project.name]),
+  );
+  const dayTypes = new Map(
+    days.map((day) => [`${day.project_id}:${day.work_date}`, day.day_type]),
+  );
+  const leaveTypeNames = new Map(
+    leaveTypes.map((type) => [type.id, type.name]),
+  );
+  const keys = new Set([
+    ...sessionRows.map(
+      (session) => `${session.project_id}:${session.work_date}`,
+    ),
+    ...leaveRows.map((leave) => `${leave.project_id}:${leave.leave_date}`),
+  ]);
+  const rows = [...keys]
+    .map((key) => {
+      const separator = key.indexOf(":");
+      const projectId = key.slice(0, separator);
+      const date = key.slice(separator + 1);
+      const sessionIds = new Set(
+        sessionRows
+          .filter(
+            (item) => item.project_id === projectId && item.work_date === date,
+          )
+          .map((item) => item.id),
+      );
+      const calculation = calculateAttendance(
+        sessions.filter((session) => sessionIds.has(session.id)),
+        dayTypes.get(key) ?? defaultDayType(date),
+        date,
+      );
+      const leave = leaveRows.find(
+        (item) => item.project_id === projectId && item.leave_date === date,
+      );
+      const leaveTypeName = leave
+        ? leave.leave_type_id
+          ? (leaveTypeNames.get(leave.leave_type_id) ?? "Approved leave")
+          : "Approved leave"
+        : null;
+      return {
+        date,
+        exceptionCount: leaveTypeName ? 0 : calculation.exceptions.length,
+        leaveTypeName,
+        normalMinutes: leaveTypeName ? 0 : calculation.normalMinutes,
+        overtimeMinutes: leaveTypeName ? 0 : calculation.overtimeMinutes,
+        projectId,
+        projectName: projectNames.get(projectId) ?? "Project",
+        publicHolidayMinutes: leaveTypeName
+          ? 0
+          : calculation.publicHolidayMinutes,
+        status: leaveTypeName ? ("LEAVE" as const) : calculation.status,
+        sundayMinutes: leaveTypeName ? 0 : calculation.sundayMinutes,
+        totalMinutes: leaveTypeName ? 0 : calculation.totalPayableMinutes,
+        workerId,
+      };
+    })
+    .sort((left, right) => right.date.localeCompare(left.date));
+
+  return {
+    rows: rows.slice(0, 62),
+    totals: rows.reduce(
+      (total, row) => ({
+        exceptions: total.exceptions + row.exceptionCount,
+        leaveDays: total.leaveDays + Number(Boolean(row.leaveTypeName)),
+        normalMinutes: total.normalMinutes + row.normalMinutes,
+        overtimeMinutes: total.overtimeMinutes + row.overtimeMinutes,
+        payableDays: total.payableDays + Number(row.totalMinutes > 0),
+        payableMinutes: total.payableMinutes + row.totalMinutes,
+        publicHolidayMinutes:
+          total.publicHolidayMinutes + row.publicHolidayMinutes,
+        sundayMinutes: total.sundayMinutes + row.sundayMinutes,
+      }),
+      {
+        exceptions: 0,
+        leaveDays: 0,
+        normalMinutes: 0,
+        overtimeMinutes: 0,
+        payableDays: 0,
+        payableMinutes: 0,
+        publicHolidayMinutes: 0,
+        sundayMinutes: 0,
+      },
+    ),
+  };
+}
