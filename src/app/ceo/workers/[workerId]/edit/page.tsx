@@ -1,13 +1,19 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
+import { Suspense } from "react";
 
 import { updateWorkerAction } from "@/app/ceo/workers/actions";
+import { FormContentSkeleton } from "@/components/operations/loading-skeletons";
 import {
   WorkerForm,
   type WorkerFormValues,
 } from "@/components/phase3/worker-form";
-import { getWorker, getWorkerOptions } from "@/lib/phase3/data";
+import {
+  getWorkerEditDefaults,
+  getWorkerIdentity,
+  getWorkerOptions,
+} from "@/lib/phase3/data";
 
 export default async function EditWorkerPage({
   params,
@@ -15,11 +21,47 @@ export default async function EditWorkerPage({
   params: Promise<{ workerId: string }>;
 }) {
   const { workerId } = await params;
-  const [worker, options] = await Promise.all([
-    getWorker(workerId),
-    getWorkerOptions(),
-  ]);
-  if (!worker) notFound();
+  if (!(await getWorkerIdentity(workerId))) notFound();
+  const workerPromise = getWorkerEditDefaults(workerId);
+  const optionsPromise = getWorkerOptions();
+
+  return (
+    <main>
+      <Link
+        href={`/ceo/workers/${workerId}`}
+        className="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-slate-950"
+      >
+        <ChevronLeft className="size-4" aria-hidden="true" />
+        Back to worker
+      </Link>
+      <div className="mt-4 max-w-3xl">
+        <h1 className="font-heading text-2xl font-semibold sm:text-3xl">
+          Edit worker
+        </h1>
+        <p className="mt-2 text-sm text-slate-600">
+          Profile, trade, skill, and deduction changes preserve their audit and
+          effective history.
+        </p>
+      </div>
+      <Suspense fallback={<FormContentSkeleton fields={10} />}>
+        <EditWorkerForm
+          workerPromise={workerPromise}
+          optionsPromise={optionsPromise}
+        />
+      </Suspense>
+    </main>
+  );
+}
+
+async function EditWorkerForm({
+  workerPromise,
+  optionsPromise,
+}: {
+  workerPromise: ReturnType<typeof getWorkerEditDefaults>;
+  optionsPromise: ReturnType<typeof getWorkerOptions>;
+}) {
+  const [worker, options] = await Promise.all([workerPromise, optionsPromise]);
+  if (!worker) return null;
 
   const values: WorkerFormValues = {
     address: worker.address ?? "",
@@ -50,33 +92,15 @@ export default async function EditWorkerPage({
   };
 
   return (
-    <main>
-      <Link
-        href={`/ceo/workers/${worker.id}`}
-        className="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-slate-950"
-      >
-        <ChevronLeft className="size-4" aria-hidden="true" />
-        Back to worker
-      </Link>
-      <div className="mt-4 max-w-3xl">
-        <h1 className="font-heading text-2xl font-semibold sm:text-3xl">
-          Edit {worker.legal_name}
-        </h1>
-        <p className="mt-2 text-sm text-slate-600">
-          Profile, trade, skill, and deduction changes preserve their audit and
-          effective history.
-        </p>
-      </div>
-      <div className="mt-5 max-w-3xl">
-        <WorkerForm
-          action={updateWorkerAction.bind(null, worker.id)}
-          mode="edit"
-          projects={options.projects}
-          skills={options.skills}
-          trades={options.trades}
-          values={values}
-        />
-      </div>
-    </main>
+    <div className="mt-5 max-w-3xl">
+      <WorkerForm
+        action={updateWorkerAction.bind(null, worker.id)}
+        mode="edit"
+        projects={options.projects}
+        skills={options.skills}
+        trades={options.trades}
+        values={values}
+      />
+    </div>
   );
 }

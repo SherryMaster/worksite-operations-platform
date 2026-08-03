@@ -502,9 +502,166 @@ export async function getWorker(
   };
 }
 
+export async function getWorkerIdentity(workerId: string) {
+  const supabase = await createServerSupabaseClient();
+  const result = await supabase
+    .from("workers")
+    .select("id")
+    .eq("id", workerId)
+    .maybeSingle();
+  if (result.error) throwQueryError("worker_identity", result.error);
+  return result.data;
+}
+
+export async function getWorkerCore(workerId: string) {
+  const data = await loadWorkerDataForIds([workerId]);
+  return (
+    summarizeWorkers(data).find((worker) => worker.id === workerId) ?? null
+  );
+}
+
+export async function getWorkerEditDefaults(workerId: string) {
+  const corePromise = getWorkerCore(workerId);
+  const supabase = await createServerSupabaseClient();
+  const [core, rates, deductions] = await Promise.all([
+    corePromise,
+    supabase
+      .from("worker_rate_periods")
+      .select("*")
+      .eq("worker_id", workerId)
+      .order("starts_on", { ascending: false }),
+    supabase
+      .from("worker_food_deduction_periods")
+      .select("*")
+      .eq("worker_id", workerId)
+      .order("starts_on", { ascending: false }),
+  ]);
+  if (rates.error) throwQueryError("worker_edit_rates", rates.error);
+  if (deductions.error) {
+    throwQueryError("worker_edit_deductions", deductions.error);
+  }
+  if (!core) return null;
+  const today = malaysiaDateInputValue();
+  return {
+    ...core,
+    currentDeduction: effective(deductions.data ?? [], today),
+    currentRate: effective(rates.data ?? [], today),
+  };
+}
+
+export async function getWorkerForTab(
+  workerId: string,
+  tab: string,
+  corePromise: ReturnType<typeof getWorkerCore> = getWorkerCore(workerId),
+): Promise<WorkerDetail | null> {
+  const core = await corePromise;
+  if (!core) return null;
+  const supabase = await createServerSupabaseClient();
+  const today = malaysiaDateInputValue();
+  let assignments: WorkerDetail["assignments"] = [];
+  let documents: WorkerDetail["documents"] = [];
+  let employment: Employment[] = [];
+  let rates: Rate[] = [];
+  let foodDeductions: Deduction[] = [];
+
+  if (tab === "employment") {
+    const result = await supabase
+      .from("worker_employment_periods")
+      .select("*")
+      .eq("worker_id", workerId)
+      .order("starts_on", { ascending: false });
+    if (result.error) throwQueryError("worker_tab_employment", result.error);
+    employment = result.data ?? [];
+  }
+
+  if (tab === "assignments") {
+    const [assignmentResult, projectResult] = await Promise.all([
+      supabase
+        .from("worker_project_assignments")
+        .select("*")
+        .eq("worker_id", workerId)
+        .order("starts_on", { ascending: false }),
+      supabase.from("projects").select("id,name"),
+    ]);
+    if (assignmentResult.error) {
+      throwQueryError("worker_tab_assignments", assignmentResult.error);
+    }
+    if (projectResult.error) {
+      throwQueryError("worker_tab_assignment_projects", projectResult.error);
+    }
+    const projectNames = new Map(
+      (projectResult.data ?? []).map((project) => [project.id, project.name]),
+    );
+    assignments = (assignmentResult.data ?? []).map((assignment) => ({
+      ...assignment,
+      projectName: projectNames.get(assignment.project_id) ?? "Unknown project",
+    }));
+  }
+
+  if (tab === "overview" || tab === "rates") {
+    const [rateResult, deductionResult] = await Promise.all([
+      supabase
+        .from("worker_rate_periods")
+        .select("*")
+        .eq("worker_id", workerId)
+        .order("starts_on", { ascending: false }),
+      supabase
+        .from("worker_food_deduction_periods")
+        .select("*")
+        .eq("worker_id", workerId)
+        .order("starts_on", { ascending: false }),
+    ]);
+    if (rateResult.error) throwQueryError("worker_tab_rates", rateResult.error);
+    if (deductionResult.error) {
+      throwQueryError("worker_tab_deductions", deductionResult.error);
+    }
+    rates = rateResult.data ?? [];
+    foodDeductions = deductionResult.data ?? [];
+  }
+
+  if (tab === "documents") {
+    const [documentResult, typeResult] = await Promise.all([
+      supabase
+        .from("worker_documents")
+        .select("*")
+        .eq("worker_id", workerId)
+        .order("created_at", { ascending: false }),
+      supabase.from("document_types").select("id,name").order("name"),
+    ]);
+    if (documentResult.error) {
+      throwQueryError("worker_tab_documents", documentResult.error);
+    }
+    if (typeResult.error) {
+      throwQueryError("worker_tab_document_types", typeResult.error);
+    }
+    const typeNames = new Map(
+      (typeResult.data ?? []).map((type) => [type.id, type.name]),
+    );
+    documents = (documentResult.data ?? []).map((document) => ({
+      ...document,
+      documentTypeName: document.document_type_id
+        ? (typeNames.get(document.document_type_id) ?? "Other")
+        : null,
+      expiryState: documentExpiryState(document.expiry_date, today),
+    }));
+  }
+
+  return {
+    ...core,
+    assignments,
+    classifications: [],
+    currentDeduction: effective(foodDeductions, today),
+    currentRate: effective(rates, today),
+    documents,
+    employment,
+    foodDeductions,
+    rates,
+  };
+}
+
 export async function getWorkerOptions() {
   const supabase = await createServerSupabaseClient();
-  const [trades, skills, projects, documentTypes] = await Promise.all([
+  const [trades, skills, projects] = await Promise.all([
     supabase
       .from("trades")
       .select("id,name")
@@ -520,21 +677,12 @@ export async function getWorkerOptions() {
       .select("id,name")
       .in("status", ["PLANNED", "ACTIVE"])
       .order("name"),
-    supabase
-      .from("document_types")
-      .select("*")
-      .eq("is_active", true)
-      .order("name"),
   ]);
   if (trades.error) throwQueryError("worker_options_trades", trades.error);
   if (skills.error) throwQueryError("worker_options_skills", skills.error);
   if (projects.error)
     throwQueryError("worker_options_projects", projects.error);
-  if (documentTypes.error) {
-    throwQueryError("worker_options_document_types", documentTypes.error);
-  }
   return {
-    documentTypes: documentTypes.data,
     projects: projects.data,
     skills: skills.data,
     trades: trades.data,
@@ -548,6 +696,28 @@ export async function listDocumentTypes() {
     .select("*")
     .order("name");
   if (error) throwQueryError("document_types", error);
+  return data;
+}
+
+export async function listActiveDocumentTypes() {
+  const supabase = await createServerSupabaseClient();
+  const { data, error } = await supabase
+    .from("document_types")
+    .select("*")
+    .eq("is_active", true)
+    .order("name");
+  if (error) throwQueryError("active_document_types", error);
+  return data;
+}
+
+export async function listAssignableProjects() {
+  const supabase = await createServerSupabaseClient();
+  const { data, error } = await supabase
+    .from("projects")
+    .select("id,name")
+    .in("status", ["PLANNED", "ACTIVE"])
+    .order("name");
+  if (error) throwQueryError("assignable_worker_projects", error);
   return data;
 }
 

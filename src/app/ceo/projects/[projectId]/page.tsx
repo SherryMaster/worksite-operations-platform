@@ -10,17 +10,24 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import {
   assignForemanAction,
   changeProjectStatusAction,
 } from "@/app/ceo/actions";
+import { DetailPanelsSkeleton } from "@/components/operations/loading-skeletons";
 import { ActionButton } from "@/components/phase2/action-button";
 import { ManagedForm } from "@/components/phase2/managed-form";
 import { WorkerAvatar } from "@/components/worker-avatar";
 import { StatusBadge } from "@/components/phase2/status-badge";
 import { LeaveRequestList } from "@/components/phase5/leave-request-list";
-import { getProject, listForemen } from "@/lib/phase2/data";
+import {
+  getCurrentWorkerCount,
+  getProjectHistory,
+  getProjectIdentity,
+  getProjectOverviewData,
+} from "@/lib/phase2/data";
 import {
   formatDate,
   formatDateTime,
@@ -60,23 +67,8 @@ export default async function ProjectDetailPage({
   )
     ? requestedTab!
     : "overview";
-  const [project, foremen, workers, leaveRequests] = await Promise.all([
-    getProject(projectId),
-    tab === "overview" ? listForemen() : Promise.resolve([]),
-    tab === "overview" || tab === "workforce"
-      ? listWorkers({ project: projectId })
-      : Promise.resolve([]),
-    tab === "leave" ? listLeaveRequests({ projectId }) : Promise.resolve([]),
-  ]);
+  const project = await getProjectIdentity(projectId);
   if (!project) notFound();
-
-  const availableForemen = foremen.filter(
-    (foreman) =>
-      foreman.isActive &&
-      foreman.applicationUserId !== project.currentForeman?.applicationUserId &&
-      !foreman.projectId,
-  );
-
   return (
     <main>
       <Link
@@ -87,6 +79,30 @@ export default async function ProjectDetailPage({
         Back to projects
       </Link>
 
+      <ProjectHeaderAndTabs project={project} tab={tab} />
+      <Suspense
+        key={tab}
+        fallback={
+          <DetailPanelsSkeleton
+            cards={tab === "history" ? 2 : tab === "overview" ? 2 : 1}
+          />
+        }
+      >
+        <ProjectDetailContent project={project} tab={tab} />
+      </Suspense>
+    </main>
+  );
+}
+
+function ProjectHeaderAndTabs({
+  project,
+  tab,
+}: {
+  project: NonNullable<Awaited<ReturnType<typeof getProjectIdentity>>>;
+  tab: string;
+}) {
+  return (
+    <>
       <div className="mt-4 flex flex-col gap-4 border-b border-slate-200 pb-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-3">
@@ -131,7 +147,6 @@ export default async function ProjectDetailPage({
           ))}
         </div>
       </div>
-
       <nav
         aria-label="Project sections"
         className="mt-3 flex gap-1 overflow-x-auto border-b border-slate-200"
@@ -160,7 +175,49 @@ export default async function ProjectDetailPage({
           </Link>
         ))}
       </nav>
+    </>
+  );
+}
 
+async function ProjectDetailContent({
+  project: projectIdentity,
+  tab,
+}: {
+  project: NonNullable<Awaited<ReturnType<typeof getProjectIdentity>>>;
+  tab: string;
+}) {
+  const projectId = projectIdentity.id;
+  const [overview, workerCount, workers, leaveRequests, history] =
+    await Promise.all([
+      tab === "overview"
+        ? getProjectOverviewData(projectId)
+        : Promise.resolve({ currentForeman: null, foremen: [] }),
+      tab === "overview"
+        ? getCurrentWorkerCount(projectId)
+        : Promise.resolve(0),
+      tab === "workforce"
+        ? listWorkers({ project: projectId })
+        : Promise.resolve([]),
+      tab === "leave" ? listLeaveRequests({ projectId }) : Promise.resolve([]),
+      tab === "history"
+        ? getProjectHistory(projectId)
+        : Promise.resolve({ assignments: [], statusHistory: [] }),
+    ]);
+  const project = {
+    ...projectIdentity,
+    currentForeman: overview.currentForeman,
+    assignments: history.assignments,
+    statusHistory: history.statusHistory,
+  };
+  const availableForemen = overview.foremen.filter(
+    (foreman) =>
+      foreman.isActive &&
+      foreman.applicationUserId !== project.currentForeman?.applicationUserId &&
+      !foreman.projectId,
+  );
+
+  return (
+    <>
       {tab === "overview" ? (
         <>
           <section className="mt-5 grid gap-4 xl:grid-cols-[1fr_0.4fr]">
@@ -207,10 +264,10 @@ export default async function ProjectDetailPage({
                 Workforce
               </p>
               <p className="mt-1 text-3xl font-semibold tabular-nums">
-                {workers.length}
+                {workerCount}
               </p>
               <p className="mt-1 text-sm text-slate-600">
-                {workers.length === 1
+                {workerCount === 1
                   ? "Worker currently assigned."
                   : "Workers currently assigned."}
               </p>
@@ -437,6 +494,6 @@ export default async function ProjectDetailPage({
           </div>
         </section>
       ) : null}
-    </main>
+    </>
   );
 }

@@ -1,6 +1,11 @@
 import { ArrowLeft, Plus } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 
+import {
+  FormContentSkeleton,
+  ListResultsSkeleton,
+} from "@/components/operations/loading-skeletons";
 import { PageHeader } from "@/components/operations/page-header";
 import { LeaveRequestForm } from "@/components/phase5/leave-request-form";
 import { LeaveRequestList } from "@/components/phase5/leave-request-list";
@@ -29,27 +34,15 @@ export default async function ForemanLeavePage({
   }>;
 }) {
   const params = await searchParams;
-  const [options, requests] = await Promise.all([
-    getLeaveSubmissionOptions(),
-    listLeaveRequests(),
-  ]);
   const resultMessage = params.result
     ? resultMessages[params.result]
     : undefined;
   const showingForm =
     params.view === "new" ||
     Boolean(params.result && !params.result.startsWith("submitted"));
-  const selectedStatus = params.status ?? "PENDING";
-  const visibleRequests =
-    selectedStatus === "ALL"
-      ? requests
-      : requests.filter((request) => request.status === selectedStatus);
-  const statuses = [
-    ["PENDING", "Pending"],
-    ["APPROVED", "Approved"],
-    ["REJECTED", "Rejected"],
-    ["ALL", "All"],
-  ] as const;
+  const contentKey = showingForm
+    ? "new"
+    : `requests|${params.status ?? "PENDING"}`;
 
   return (
     <main>
@@ -88,6 +81,51 @@ export default async function ForemanLeavePage({
         </p>
       ) : null}
 
+      <Suspense
+        key={contentKey}
+        fallback={
+          showingForm ? (
+            <FormContentSkeleton fields={5} />
+          ) : (
+            <ListResultsSkeleton columns={4} rows={6} className="mt-3" />
+          )
+        }
+      >
+        <ForemanLeaveContent params={params} showingForm={showingForm} />
+      </Suspense>
+    </main>
+  );
+}
+
+async function ForemanLeaveContent({
+  params,
+  showingForm,
+}: {
+  params: {
+    result?: string;
+    status?: "ALL" | "APPROVED" | "PENDING" | "REJECTED";
+    view?: string;
+  };
+  showingForm: boolean;
+}) {
+  const options = showingForm
+    ? await getLeaveSubmissionOptions()
+    : { leaveTypes: [], workers: [] };
+  const requests = showingForm ? [] : await listLeaveRequests();
+  const selectedStatus = params.status ?? "PENDING";
+  const visibleRequests =
+    selectedStatus === "ALL"
+      ? requests
+      : requests.filter((request) => request.status === selectedStatus);
+  const statuses = [
+    ["PENDING", "Pending"],
+    ["APPROVED", "Approved"],
+    ["REJECTED", "Rejected"],
+    ["ALL", "All"],
+  ] as const;
+
+  return (
+    <>
       {showingForm ? (
         <section className="mt-3 max-w-3xl rounded-lg border border-slate-200 bg-white p-4">
           <LeaveRequestForm
@@ -129,6 +167,6 @@ export default async function ForemanLeavePage({
           <LeaveRequestList requests={visibleRequests} />
         </section>
       )}
-    </main>
+    </>
   );
 }

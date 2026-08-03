@@ -1,11 +1,12 @@
 import { ArrowUpRight, CalendarDays, ChevronLeft, Users } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
+import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/phase2/status-badge";
-import { getProject } from "@/lib/phase2/data";
+import { getCurrentWorkerCount, getProjectIdentity } from "@/lib/phase2/data";
 import { formatDate } from "@/lib/phase2/format";
-import { listWorkers } from "@/lib/phase3/data";
 
 export default async function ForemanProjectPage({
   params,
@@ -13,11 +14,9 @@ export default async function ForemanProjectPage({
   params: Promise<{ projectId: string }>;
 }) {
   const { projectId } = await params;
-  const [project, workers] = await Promise.all([
-    getProject(projectId),
-    listWorkers({ project: projectId }),
-  ]);
+  const project = await getProjectIdentity(projectId);
   if (!project) notFound();
+  const workerCountPromise = getCurrentWorkerCount(projectId);
 
   return (
     <main>
@@ -28,6 +27,24 @@ export default async function ForemanProjectPage({
         <ChevronLeft className="size-4" aria-hidden="true" />
         Back to Today
       </Link>
+
+      <ForemanProjectSummary
+        project={project}
+        workerCountPromise={workerCountPromise}
+      />
+    </main>
+  );
+}
+
+function ForemanProjectSummary({
+  project,
+  workerCountPromise,
+}: {
+  project: NonNullable<Awaited<ReturnType<typeof getProjectIdentity>>>;
+  workerCountPromise: ReturnType<typeof getCurrentWorkerCount>;
+}) {
+  return (
+    <>
       <div className="mt-4 flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold text-slate-500">
@@ -70,20 +87,9 @@ export default async function ForemanProjectPage({
       </section>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <Link
-          href="/foreman/workers"
-          className="flex min-h-20 items-center gap-3 rounded-lg border border-slate-200 bg-white p-4"
-        >
-          <Users className="size-5 text-violet-700" aria-hidden="true" />
-          <div className="flex-1">
-            <p className="text-sm font-semibold">
-              {workers.length} current{" "}
-              {workers.length === 1 ? "worker" : "workers"}
-            </p>
-            <p className="mt-1 text-xs text-slate-500">Open worker list</p>
-          </div>
-          <ArrowUpRight className="size-4" aria-hidden="true" />
-        </Link>
+        <Suspense fallback={<Skeleton className="h-20 rounded-lg" />}>
+          <WorkerCountLink workerCountPromise={workerCountPromise} />
+        </Suspense>
         <Link
           href="/foreman/attendance"
           className="flex min-h-20 items-center gap-3 rounded-lg border border-slate-200 bg-white p-4"
@@ -98,6 +104,29 @@ export default async function ForemanProjectPage({
           <ArrowUpRight className="size-4" aria-hidden="true" />
         </Link>
       </div>
-    </main>
+    </>
+  );
+}
+
+async function WorkerCountLink({
+  workerCountPromise,
+}: {
+  workerCountPromise: ReturnType<typeof getCurrentWorkerCount>;
+}) {
+  const workerCount = await workerCountPromise;
+  return (
+    <Link
+      href="/foreman/workers"
+      className="flex min-h-20 items-center gap-3 rounded-lg border border-slate-200 bg-white p-4"
+    >
+      <Users className="size-5 text-violet-700" aria-hidden="true" />
+      <div className="flex-1">
+        <p className="text-sm font-semibold">
+          {workerCount} current {workerCount === 1 ? "worker" : "workers"}
+        </p>
+        <p className="mt-1 text-xs text-slate-500">Open worker list</p>
+      </div>
+      <ArrowUpRight className="size-4" aria-hidden="true" />
+    </Link>
   );
 }

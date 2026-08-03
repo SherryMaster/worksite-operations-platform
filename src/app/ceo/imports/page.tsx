@@ -1,6 +1,8 @@
 import { CheckCircle2, Download, FileWarning, History } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 
+import { ListResultsSkeleton } from "@/components/operations/loading-skeletons";
 import { PageHeader } from "@/components/operations/page-header";
 import { ImportWorkspace } from "@/components/phase7/import-workspace";
 import { formatDateTime } from "@/lib/phase2/format";
@@ -19,9 +21,7 @@ function issueCount(issues: unknown) {
   return Array.isArray(issues) ? issues.length : 0;
 }
 
-export default async function ImportCenterPage() {
-  const batches = await listMigrationBatches();
-
+export default function ImportCenterPage() {
   return (
     <main>
       <PageHeader
@@ -78,72 +78,88 @@ export default async function ImportCenterPage() {
           </div>
         </div>
 
-        {batches.length === 0 ? (
-          <p className="mt-4 border border-dashed border-violet-100 bg-white p-8 text-center text-sm text-slate-500">
-            No workbook has been previewed yet.
-          </p>
-        ) : (
-          <ol className="mt-3 overflow-hidden rounded-lg border border-slate-200 bg-white">
-            {batches.map((batch) => {
-              const errors = issueCount(batch.issues);
-              return (
-                <li
-                  key={batch.id}
-                  className="grid gap-3 border-b border-slate-200 p-3 last:border-0 lg:grid-cols-[minmax(0,1.4fr)_repeat(5,minmax(4rem,0.6fr))_auto] lg:items-center"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold">{batch.file_name}</p>
-                    <p className="mt-1 text-xs text-slate-500">
-                      Previewed {formatDateTime(batch.created_at)}
-                    </p>
-                    <p className="mt-1 font-mono text-[0.65rem] text-slate-400">
-                      {batch.file_checksum.slice(0, 12)}…
-                    </p>
-                  </div>
-                  {[
-                    ["Projects", "projects"],
-                    ["Workers", "workers"],
-                    ["Assignments", "assignments"],
-                    ["Rates", "rates"],
-                    ["Documents", "documents"],
-                  ].map(([label, key]) => (
-                    <div key={key}>
-                      <p className="text-xl font-semibold tabular-nums">
-                        {summaryValue(batch.summary, key)}
-                      </p>
-                      <p className="text-[0.6rem] uppercase tracking-wider text-slate-500">
-                        {label}
-                      </p>
-                    </div>
-                  ))}
-                  <div>
-                    <span
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold ${
-                        batch.status === "COMMITTED"
-                          ? "bg-emerald-100 text-emerald-800"
-                          : errors > 0
-                            ? "bg-red-100 text-red-800"
-                            : "bg-amber-100 text-amber-900"
-                      }`}
-                    >
-                      {batch.status === "COMMITTED" ? (
-                        <CheckCircle2 className="size-3.5" aria-hidden="true" />
-                      ) : (
-                        <FileWarning className="size-3.5" aria-hidden="true" />
-                      )}
-                      {batch.status === "COMMITTED"
-                        ? "Committed"
-                        : errors > 0
-                          ? `${errors} issue${errors === 1 ? "" : "s"}`
-                          : "Ready preview"}
-                    </span>
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
-        )}
+        <Suspense
+          fallback={
+            <ListResultsSkeleton columns={7} rows={4} className="mt-3" />
+          }
+        >
+          <ImportHistory />
+        </Suspense>
       </section>
     </main>
+  );
+}
+
+async function ImportHistory() {
+  const batches = await listMigrationBatches();
+
+  return (
+    <>
+      {batches.length === 0 ? (
+        <p className="mt-4 border border-dashed border-violet-100 bg-white p-8 text-center text-sm text-slate-500">
+          No workbook has been previewed yet.
+        </p>
+      ) : (
+        <ol className="mt-3 overflow-hidden rounded-lg border border-slate-200 bg-white">
+          {batches.map((batch) => {
+            const errors = issueCount(batch.issues);
+            return (
+              <li
+                key={batch.id}
+                className="grid gap-3 border-b border-slate-200 p-3 last:border-0 lg:grid-cols-[minmax(0,1.4fr)_repeat(5,minmax(4rem,0.6fr))_auto] lg:items-center"
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-semibold">{batch.file_name}</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Previewed {formatDateTime(batch.created_at)}
+                  </p>
+                  <p className="mt-1 font-mono text-[0.65rem] text-slate-400">
+                    {batch.file_checksum.slice(0, 12)}…
+                  </p>
+                </div>
+                {[
+                  ["Projects", "projects"],
+                  ["Workers", "workers"],
+                  ["Assignments", "assignments"],
+                  ["Rates", "rates"],
+                  ["Documents", "documents"],
+                ].map(([label, key]) => (
+                  <div key={key}>
+                    <p className="text-xl font-semibold tabular-nums">
+                      {summaryValue(batch.summary, key)}
+                    </p>
+                    <p className="text-[0.6rem] uppercase tracking-wider text-slate-500">
+                      {label}
+                    </p>
+                  </div>
+                ))}
+                <div>
+                  <span
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold ${
+                      batch.status === "COMMITTED"
+                        ? "bg-emerald-100 text-emerald-800"
+                        : errors > 0
+                          ? "bg-red-100 text-red-800"
+                          : "bg-amber-100 text-amber-900"
+                    }`}
+                  >
+                    {batch.status === "COMMITTED" ? (
+                      <CheckCircle2 className="size-3.5" aria-hidden="true" />
+                    ) : (
+                      <FileWarning className="size-3.5" aria-hidden="true" />
+                    )}
+                    {batch.status === "COMMITTED"
+                      ? "Committed"
+                      : errors > 0
+                        ? `${errors} issue${errors === 1 ? "" : "s"}`
+                        : "Ready preview"}
+                  </span>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </>
   );
 }

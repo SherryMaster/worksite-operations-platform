@@ -6,6 +6,7 @@ import {
   Users,
 } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { WorkerAvatar } from "@/components/worker-avatar";
@@ -14,12 +15,25 @@ import {
   CompactRecordList,
 } from "@/components/operations/compact-record-list";
 import { DataViewToolbar } from "@/components/operations/data-view-toolbar";
+import {
+  DirectoryToolbarSkeleton,
+  ListResultsSkeleton,
+} from "@/components/operations/loading-skeletons";
 import { PageHeader } from "@/components/operations/page-header";
 import { StatusChip } from "@/components/operations/status-chip";
 import { getWorkerOptions, listWorkersPage } from "@/lib/phase3/data";
 import { maskIdentifier } from "@/lib/phase3/format";
 
 const PAGE_SIZE = 25;
+
+type WorkerSearchParams = {
+  page?: string;
+  project?: string;
+  query?: string;
+  skill?: string;
+  status?: string;
+  trade?: string;
+};
 
 function statusLabel(status: string | undefined) {
   return status
@@ -34,50 +48,34 @@ function statusLabel(status: string | undefined) {
 export default async function WorkersPage({
   searchParams,
 }: {
-  searchParams: Promise<{
-    page?: string;
-    project?: string;
-    query?: string;
-    skill?: string;
-    status?: string;
-    trade?: string;
-  }>;
+  searchParams: Promise<WorkerSearchParams>;
 }) {
   const params = await searchParams;
   const requestedPage = Number(params.page ?? "1");
   const page =
     Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
-  const [workerPage, options] = await Promise.all([
-    listWorkersPage({ ...params, page, pageSize: PAGE_SIZE }),
-    getWorkerOptions(),
-  ]);
-  const {
-    items: visibleWorkers,
-    page: currentPage,
-    pageCount,
-    total,
-  } = workerPage;
-  const queryParams = new URLSearchParams(
-    Object.entries(params).filter((entry): entry is [string, string] =>
-      Boolean(entry[1]),
-    ),
-  );
-  const pageHref = (target: number) => {
-    queryParams.set("page", String(target));
-    return `/ceo/workers?${queryParams.toString()}`;
-  };
-  const activeFilterCount = [
+  const optionsPromise = getWorkerOptions();
+  const resultsPromise = listWorkersPage({
+    ...params,
+    page,
+    pageSize: PAGE_SIZE,
+  });
+  const resultsKey = [
+    page,
+    params.query?.trim().toLowerCase(),
     params.project,
     params.trade,
     params.skill,
     params.status,
-  ].filter(Boolean).length;
+  ]
+    .map((value) => value ?? "")
+    .join("|");
 
   return (
     <main>
       <PageHeader
         title="Workers"
-        description={`${total} matching workers`}
+        description="Search, review, and manage the company workforce."
         action={
           <Link
             href="/ceo/workers/new"
@@ -89,6 +87,50 @@ export default async function WorkersPage({
         }
       />
 
+      <Suspense fallback={<DirectoryToolbarSkeleton filters={4} />}>
+        <WorkerDirectory
+          part="toolbar"
+          optionsPromise={optionsPromise}
+          params={params}
+          resultsPromise={resultsPromise}
+        />
+      </Suspense>
+      <Suspense
+        key={resultsKey}
+        fallback={<ListResultsSkeleton columns={6} rows={7} showLeading />}
+      >
+        <WorkerDirectory
+          part="results"
+          optionsPromise={optionsPromise}
+          params={params}
+          resultsPromise={resultsPromise}
+        />
+      </Suspense>
+    </main>
+  );
+}
+
+async function WorkerDirectory({
+  optionsPromise,
+  params,
+  part,
+  resultsPromise,
+}: {
+  optionsPromise: ReturnType<typeof getWorkerOptions>;
+  params: WorkerSearchParams;
+  part: "results" | "toolbar";
+  resultsPromise: ReturnType<typeof listWorkersPage>;
+}) {
+  const options = part === "toolbar" ? await optionsPromise : null;
+  const workerPage = part === "results" ? await resultsPromise : null;
+  if (part === "toolbar" && options) {
+    const activeFilterCount = [
+      params.project,
+      params.trade,
+      params.skill,
+      params.status,
+    ].filter(Boolean).length;
+    return (
       <form action="/ceo/workers" className="mt-4">
         <DataViewToolbar
           action="/ceo/workers"
@@ -157,7 +199,27 @@ export default async function WorkersPage({
           </FormSubmitButton>
         </DataViewToolbar>
       </form>
+    );
+  }
+  if (!workerPage) return null;
+  const {
+    items: visibleWorkers,
+    page: currentPage,
+    pageCount,
+    total,
+  } = workerPage;
+  const queryParams = new URLSearchParams(
+    Object.entries(params).filter((entry): entry is [string, string] =>
+      Boolean(entry[1]),
+    ),
+  );
+  const pageHref = (target: number) => {
+    queryParams.set("page", String(target));
+    return `/ceo/workers?${queryParams.toString()}`;
+  };
 
+  return (
+    <>
       <div className="mt-3 flex items-center justify-between">
         <p className="text-xs text-slate-500">
           Showing {visibleWorkers.length} of {total}
@@ -341,6 +403,6 @@ export default async function WorkersPage({
           ) : null}
         </nav>
       ) : null}
-    </main>
+    </>
   );
 }

@@ -8,6 +8,7 @@ import {
   Users,
 } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 
 import {
   createForemanAction,
@@ -24,13 +25,19 @@ import {
   createDocumentTypeAction,
   setDocumentTypeActiveAction,
 } from "@/app/ceo/workers/actions";
+import { SettingsContentSkeleton } from "@/components/operations/loading-skeletons";
 import { PageHeader } from "@/components/operations/page-header";
 import { ActionButton } from "@/components/phase2/action-button";
 import { ManagedForm } from "@/components/phase2/managed-form";
 import { LeaveTypeSettings } from "@/components/phase5/leave-type-settings";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getSettingsData } from "@/lib/phase2/data";
+import {
+  getCompanySettings,
+  listForemen,
+  listSkillLevels,
+  listTrades,
+} from "@/lib/phase2/data";
 import { listDocumentTypes } from "@/lib/phase3/data";
 import { listLeaveTypes } from "@/lib/phase5/data";
 import type { Tables } from "@/types/database";
@@ -147,12 +154,6 @@ export default async function SettingsPage({
   ].includes(requestedSection ?? "")
     ? requestedSection!
     : "users";
-  const [data, documentTypes, leaveTypes] = await Promise.all([
-    getSettingsData(),
-    listDocumentTypes(),
-    listLeaveTypes(true),
-  ]);
-
   return (
     <main>
       <PageHeader
@@ -188,6 +189,30 @@ export default async function SettingsPage({
         ))}
       </nav>
 
+      <Suspense
+        key={section}
+        fallback={<SettingsContentSkeleton section={section} />}
+      >
+        <SettingsContent section={section} />
+      </Suspense>
+    </main>
+  );
+}
+
+async function SettingsContent({ section }: { section: string }) {
+  const [foremen, trades, skills, settings, documentTypes, leaveTypes] =
+    await Promise.all([
+      section === "users" ? listForemen() : Promise.resolve([]),
+      section === "trades" ? listTrades() : Promise.resolve([]),
+      section === "skills" ? listSkillLevels() : Promise.resolve([]),
+      section === "company" ? getCompanySettings() : Promise.resolve(null),
+      section === "documents" ? listDocumentTypes() : Promise.resolve([]),
+      section === "leave-types" ? listLeaveTypes(true) : Promise.resolve([]),
+    ]);
+  const data = { foremen, trades, skills, settings };
+
+  return (
+    <>
       {section === "users" ? (
         <section className="mt-6 space-y-4">
           <div className="flex items-center gap-3">
@@ -590,6 +615,6 @@ export default async function SettingsPage({
           </div>
         </section>
       ) : null}
-    </main>
+    </>
   );
 }

@@ -2,6 +2,7 @@ import "server-only";
 
 import { clerkClient } from "@clerk/nextjs/server";
 
+import { malaysiaDateInputValue } from "@/lib/phase2/format";
 import { logger } from "@/lib/server/logger";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { Tables } from "@/types/database";
@@ -250,6 +251,104 @@ export async function getProject(
   };
 }
 
+export async function getProjectIdentity(projectId: string) {
+  const supabase = await createServerSupabaseClient();
+  const result = await supabase
+    .from("projects")
+    .select("*")
+    .eq("id", projectId)
+    .maybeSingle();
+  if (result.error) throwQueryError("get_project_identity", result.error);
+  return result.data;
+}
+
+export async function getProjectHistory(projectId: string) {
+  const supabase = await createServerSupabaseClient();
+  const [assignmentsResult, historyResult, foremen] = await Promise.all([
+    supabase
+      .from("foreman_project_assignments")
+      .select("*")
+      .eq("project_id", projectId)
+      .order("starts_on", { ascending: false }),
+    supabase
+      .from("project_status_history")
+      .select("*")
+      .eq("project_id", projectId)
+      .order("effective_at", { ascending: false }),
+    listForemen(),
+  ]);
+  if (assignmentsResult.error) {
+    throwQueryError("get_project_assignment_history", assignmentsResult.error);
+  }
+  if (historyResult.error) {
+    throwQueryError("get_project_status_history", historyResult.error);
+  }
+  const foremenById = new Map(
+    foremen.map((foreman) => [foreman.applicationUserId, foreman]),
+  );
+  return {
+    assignments: assignmentsResult.data.map((assignment) => ({
+      ...assignment,
+      foreman: foremenById.get(assignment.foreman_user_id) ?? null,
+    })),
+    statusHistory: historyResult.data,
+  };
+}
+
+export async function getProjectOverviewData(projectId: string) {
+  const supabase = await createServerSupabaseClient();
+  const [assignmentResult, foremen] = await Promise.all([
+    supabase
+      .from("foreman_project_assignments")
+      .select("foreman_user_id")
+      .eq("project_id", projectId)
+      .is("ends_on", null)
+      .maybeSingle(),
+    listForemen(),
+  ]);
+  if (assignmentResult.error) {
+    throwQueryError("get_project_current_foreman", assignmentResult.error);
+  }
+  const currentForemanId = assignmentResult.data?.foreman_user_id;
+  const currentForeman = currentForemanId
+    ? (foremen.find(
+        (foreman) => foreman.applicationUserId === currentForemanId,
+      ) ?? null)
+    : null;
+  return { currentForeman, foremen };
+}
+
+export async function getCurrentWorkerCountsByProject() {
+  const supabase = await createServerSupabaseClient();
+  const today = malaysiaDateInputValue();
+  const result = await supabase
+    .from("worker_project_assignments")
+    .select("project_id")
+    .lte("starts_on", today)
+    .or(`ends_on.is.null,ends_on.gt.${today}`);
+  if (result.error) {
+    throwQueryError("current_worker_counts_by_project", result.error);
+  }
+  return result.data.reduce<Record<string, number>>((counts, assignment) => {
+    counts[assignment.project_id] = (counts[assignment.project_id] ?? 0) + 1;
+    return counts;
+  }, {});
+}
+
+export async function getCurrentWorkerCount(projectId: string) {
+  const supabase = await createServerSupabaseClient();
+  const today = malaysiaDateInputValue();
+  const result = await supabase
+    .from("worker_project_assignments")
+    .select("id", { count: "exact", head: true })
+    .eq("project_id", projectId)
+    .lte("starts_on", today)
+    .or(`ends_on.is.null,ends_on.gt.${today}`);
+  if (result.error)
+    throwQueryError("current_project_worker_count", result.error);
+  return result.count ?? 0;
+}
+
 export async function getDashboardData() {
   const [projects, foremen, settings] = await Promise.all([
     listProjects(),
@@ -307,6 +406,20 @@ export async function getSettingsData() {
     skills: skillsResult.data,
     settings,
   };
+}
+
+export async function listTrades() {
+  const supabase = await createServerSupabaseClient();
+  const result = await supabase.from("trades").select("*").order("name");
+  if (result.error) throwQueryError("get_trades", result.error);
+  return result.data;
+}
+
+export async function listSkillLevels() {
+  const supabase = await createServerSupabaseClient();
+  const result = await supabase.from("skill_levels").select("*").order("name");
+  if (result.error) throwQueryError("get_skill_levels", result.error);
+  return result.data;
 }
 
 type AuditQueryOptions = {

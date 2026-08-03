@@ -1,5 +1,5 @@
-import { AppPageSkeleton } from "@/components/app-page-skeleton";
+import { DashboardRouteLoading } from "@/components/operations/route-loading";
 
-export default function CeoLoading() {
-  return <AppPageSkeleton />;
+export default function Loading() {
+  return <DashboardRouteLoading />;
 }

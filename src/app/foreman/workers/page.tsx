@@ -1,5 +1,6 @@
 import { AlertTriangle, ChevronRight, Search, Users } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { WorkerAvatar } from "@/components/worker-avatar";
@@ -7,6 +8,7 @@ import {
   CompactRecord,
   CompactRecordList,
 } from "@/components/operations/compact-record-list";
+import { ListResultsSkeleton } from "@/components/operations/loading-skeletons";
 import { PageHeader } from "@/components/operations/page-header";
 import { StatusChip } from "@/components/operations/status-chip";
 import { listWorkersPage } from "@/lib/phase3/data";
@@ -18,24 +20,16 @@ export default async function ForemanWorkersPage({
   searchParams: Promise<{ page?: string; query?: string }>;
 }) {
   const params = await searchParams;
-  const requestedPage = Number(params.page ?? "1");
-  const page =
-    Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
-  const workers = await listWorkersPage({
-    page,
-    pageSize: 50,
-    query: params.query,
-  });
-  const pageHref = (target: number) => {
-    const query = new URLSearchParams();
-    if (params.query) query.set("query", params.query);
-    query.set("page", String(target));
-    return `/foreman/workers?${query.toString()}`;
-  };
+  const resultsKey = [params.page, params.query?.trim().toLowerCase()]
+    .map((value) => value ?? "")
+    .join("|");
 
   return (
     <main>
-      <PageHeader title="Workers" description={`${workers.total} assigned`} />
+      <PageHeader
+        title="Workers"
+        description="Current workers assigned to this project."
+      />
 
       <form action="/foreman/workers" className="relative mt-3 max-w-xl">
         <label>
@@ -61,6 +55,45 @@ export default async function ForemanWorkersPage({
         </FormSubmitButton>
       </form>
 
+      <Suspense
+        key={resultsKey}
+        fallback={
+          <ListResultsSkeleton
+            columns={3}
+            rows={7}
+            showLeading
+            className="mt-3"
+          />
+        }
+      >
+        <ForemanWorkerResults params={params} />
+      </Suspense>
+    </main>
+  );
+}
+
+async function ForemanWorkerResults({
+  params,
+}: {
+  params: { page?: string; query?: string };
+}) {
+  const requestedPage = Number(params.page ?? "1");
+  const page =
+    Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const workers = await listWorkersPage({
+    page,
+    pageSize: 50,
+    query: params.query,
+  });
+  const pageHref = (target: number) => {
+    const query = new URLSearchParams();
+    if (params.query) query.set("query", params.query);
+    query.set("page", String(target));
+    return `/foreman/workers?${query.toString()}`;
+  };
+
+  return (
+    <>
       {workers.items.length === 0 ? (
         <section className="mt-5 border border-dashed border-violet-100 bg-white px-5 py-14 text-center">
           <Users className="mx-auto size-7 text-slate-400" aria-hidden="true" />
@@ -152,6 +185,6 @@ export default async function ForemanWorkersPage({
           </div>
         </nav>
       ) : null}
-    </main>
+    </>
   );
 }
