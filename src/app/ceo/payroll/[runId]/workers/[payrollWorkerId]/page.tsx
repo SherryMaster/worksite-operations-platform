@@ -22,7 +22,7 @@ import {
   formatSen,
   payrollMonthLabel,
 } from "@/lib/phase6/calculations";
-import { getPayrollWorker } from "@/lib/phase6/data";
+import { getPayrollWorker, getPayrollWorkerIdentity } from "@/lib/phase6/data";
 
 const categoryLabels = {
   NORMAL: "Normal time · 1×",
@@ -37,6 +37,9 @@ export default async function PayrollWorkerPage({
   params: Promise<{ payrollWorkerId: string; runId: string }>;
 }) {
   const { payrollWorkerId, runId } = await params;
+  const identity = await getPayrollWorkerIdentity(payrollWorkerId, runId);
+  if (!identity) notFound();
+  const workerPromise = getPayrollWorker(payrollWorkerId, identity);
 
   return (
     <main>
@@ -49,21 +52,21 @@ export default async function PayrollWorkerPage({
       </Link>
 
       <Suspense fallback={<PayrollWorkerSkeleton />}>
-        <PayrollWorkerContent payrollWorkerId={payrollWorkerId} runId={runId} />
+        <PayrollWorkerContent runId={runId} workerPromise={workerPromise} />
       </Suspense>
     </main>
   );
 }
 
 async function PayrollWorkerContent({
-  payrollWorkerId,
   runId,
+  workerPromise,
 }: {
-  payrollWorkerId: string;
   runId: string;
+  workerPromise: ReturnType<typeof getPayrollWorker>;
 }) {
-  const data = await getPayrollWorker(payrollWorkerId);
-  if (!data || data.run.id !== runId) notFound();
+  const data = await workerPromise;
+  if (!data || data.run.id !== runId) return null;
   const { run, worker } = data;
 
   return (

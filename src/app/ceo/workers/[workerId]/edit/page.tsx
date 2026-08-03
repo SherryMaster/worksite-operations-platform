@@ -9,7 +9,11 @@ import {
   WorkerForm,
   type WorkerFormValues,
 } from "@/components/phase3/worker-form";
-import { getWorker, getWorkerOptions } from "@/lib/phase3/data";
+import {
+  getWorkerEditDefaults,
+  getWorkerIdentity,
+  getWorkerOptions,
+} from "@/lib/phase3/data";
 
 export default async function EditWorkerPage({
   params,
@@ -17,6 +21,9 @@ export default async function EditWorkerPage({
   params: Promise<{ workerId: string }>;
 }) {
   const { workerId } = await params;
+  if (!(await getWorkerIdentity(workerId))) notFound();
+  const workerPromise = getWorkerEditDefaults(workerId);
+  const optionsPromise = getWorkerOptions();
 
   return (
     <main>
@@ -37,18 +44,24 @@ export default async function EditWorkerPage({
         </p>
       </div>
       <Suspense fallback={<FormContentSkeleton fields={10} />}>
-        <EditWorkerForm workerId={workerId} />
+        <EditWorkerForm
+          workerPromise={workerPromise}
+          optionsPromise={optionsPromise}
+        />
       </Suspense>
     </main>
   );
 }
 
-async function EditWorkerForm({ workerId }: { workerId: string }) {
-  const [worker, options] = await Promise.all([
-    getWorker(workerId),
-    getWorkerOptions(),
-  ]);
-  if (!worker) notFound();
+async function EditWorkerForm({
+  workerPromise,
+  optionsPromise,
+}: {
+  workerPromise: ReturnType<typeof getWorkerEditDefaults>;
+  optionsPromise: ReturnType<typeof getWorkerOptions>;
+}) {
+  const [worker, options] = await Promise.all([workerPromise, optionsPromise]);
+  if (!worker) return null;
 
   const values: WorkerFormValues = {
     address: worker.address ?? "",

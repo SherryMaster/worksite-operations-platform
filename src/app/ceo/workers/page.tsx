@@ -15,7 +15,10 @@ import {
   CompactRecordList,
 } from "@/components/operations/compact-record-list";
 import { DataViewToolbar } from "@/components/operations/data-view-toolbar";
-import { DirectoryContentSkeleton } from "@/components/operations/loading-skeletons";
+import {
+  DirectoryToolbarSkeleton,
+  ListResultsSkeleton,
+} from "@/components/operations/loading-skeletons";
 import { PageHeader } from "@/components/operations/page-header";
 import { StatusChip } from "@/components/operations/status-chip";
 import { getWorkerOptions, listWorkersPage } from "@/lib/phase3/data";
@@ -48,6 +51,25 @@ export default async function WorkersPage({
   searchParams: Promise<WorkerSearchParams>;
 }) {
   const params = await searchParams;
+  const requestedPage = Number(params.page ?? "1");
+  const page =
+    Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const optionsPromise = getWorkerOptions();
+  const resultsPromise = listWorkersPage({
+    ...params,
+    page,
+    pageSize: PAGE_SIZE,
+  });
+  const resultsKey = [
+    page,
+    params.query?.trim().toLowerCase(),
+    params.project,
+    params.trade,
+    params.skill,
+    params.status,
+  ]
+    .map((value) => value ?? "")
+    .join("|");
 
   return (
     <main>
@@ -65,50 +87,50 @@ export default async function WorkersPage({
         }
       />
 
+      <Suspense fallback={<DirectoryToolbarSkeleton filters={4} />}>
+        <WorkerDirectory
+          part="toolbar"
+          optionsPromise={optionsPromise}
+          params={params}
+          resultsPromise={resultsPromise}
+        />
+      </Suspense>
       <Suspense
-        key={JSON.stringify(params)}
-        fallback={
-          <DirectoryContentSkeleton columns={6} filters={4} showLeading />
-        }
+        key={resultsKey}
+        fallback={<ListResultsSkeleton columns={6} rows={7} showLeading />}
       >
-        <WorkerDirectory params={params} />
+        <WorkerDirectory
+          part="results"
+          optionsPromise={optionsPromise}
+          params={params}
+          resultsPromise={resultsPromise}
+        />
       </Suspense>
     </main>
   );
 }
 
-async function WorkerDirectory({ params }: { params: WorkerSearchParams }) {
-  const requestedPage = Number(params.page ?? "1");
-  const page =
-    Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
-  const [workerPage, options] = await Promise.all([
-    listWorkersPage({ ...params, page, pageSize: PAGE_SIZE }),
-    getWorkerOptions(),
-  ]);
-  const {
-    items: visibleWorkers,
-    page: currentPage,
-    pageCount,
-    total,
-  } = workerPage;
-  const queryParams = new URLSearchParams(
-    Object.entries(params).filter((entry): entry is [string, string] =>
-      Boolean(entry[1]),
-    ),
-  );
-  const pageHref = (target: number) => {
-    queryParams.set("page", String(target));
-    return `/ceo/workers?${queryParams.toString()}`;
-  };
-  const activeFilterCount = [
-    params.project,
-    params.trade,
-    params.skill,
-    params.status,
-  ].filter(Boolean).length;
-
-  return (
-    <>
+async function WorkerDirectory({
+  optionsPromise,
+  params,
+  part,
+  resultsPromise,
+}: {
+  optionsPromise: ReturnType<typeof getWorkerOptions>;
+  params: WorkerSearchParams;
+  part: "results" | "toolbar";
+  resultsPromise: ReturnType<typeof listWorkersPage>;
+}) {
+  const options = part === "toolbar" ? await optionsPromise : null;
+  const workerPage = part === "results" ? await resultsPromise : null;
+  if (part === "toolbar" && options) {
+    const activeFilterCount = [
+      params.project,
+      params.trade,
+      params.skill,
+      params.status,
+    ].filter(Boolean).length;
+    return (
       <form action="/ceo/workers" className="mt-4">
         <DataViewToolbar
           action="/ceo/workers"
@@ -177,7 +199,27 @@ async function WorkerDirectory({ params }: { params: WorkerSearchParams }) {
           </FormSubmitButton>
         </DataViewToolbar>
       </form>
+    );
+  }
+  if (!workerPage) return null;
+  const {
+    items: visibleWorkers,
+    page: currentPage,
+    pageCount,
+    total,
+  } = workerPage;
+  const queryParams = new URLSearchParams(
+    Object.entries(params).filter((entry): entry is [string, string] =>
+      Boolean(entry[1]),
+    ),
+  );
+  const pageHref = (target: number) => {
+    queryParams.set("page", String(target));
+    return `/ceo/workers?${queryParams.toString()}`;
+  };
 
+  return (
+    <>
       <div className="mt-3 flex items-center justify-between">
         <p className="text-xs text-slate-500">
           Showing {visibleWorkers.length} of {total}

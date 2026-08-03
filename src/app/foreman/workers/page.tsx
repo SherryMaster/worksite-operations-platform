@@ -20,6 +20,9 @@ export default async function ForemanWorkersPage({
   searchParams: Promise<{ page?: string; query?: string }>;
 }) {
   const params = await searchParams;
+  const resultsKey = [params.page, params.query?.trim().toLowerCase()]
+    .map((value) => value ?? "")
+    .join("|");
 
   return (
     <main>
@@ -53,7 +56,7 @@ export default async function ForemanWorkersPage({
       </form>
 
       <Suspense
-        key={JSON.stringify(params)}
+        key={resultsKey}
         fallback={
           <ListResultsSkeleton
             columns={3}

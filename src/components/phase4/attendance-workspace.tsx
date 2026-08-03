@@ -1808,38 +1808,56 @@ export function AttendanceWorkspace({
         </section>
       ) : null}
 
-      <section
-        aria-label="Attendance summary"
-        className="mt-3 grid grid-cols-5 overflow-hidden rounded-lg border border-slate-200 bg-white"
-      >
-        {[
-          ["Expected", snapshot.workers.length],
-          ["Not entered", liveSummary.notEntered],
-          ["On site", liveSummary.onSite],
-          ["On break", liveSummary.onBreak],
-          ["Issues", liveSummary.issues + reviewCount],
-        ].map(([label, value]) => (
-          <div
-            key={label}
-            className={cn(
-              "border-r border-slate-200 px-1 py-2 text-center last:border-0 sm:px-3",
-              label === "Issues" && Number(value) > 0 && "bg-red-50",
-            )}
-          >
-            <p
+      {loadingDate ? (
+        <section
+          aria-label="Loading attendance summary for the selected date"
+          aria-busy="true"
+          className="mt-3 grid grid-cols-5 overflow-hidden rounded-lg border border-slate-200 bg-white"
+        >
+          {Array.from({ length: 5 }, (_, index) => (
+            <div
+              key={index}
+              className="space-y-2 border-r border-slate-200 px-1 py-2 text-center last:border-0 sm:px-3"
+            >
+              <Skeleton className="mx-auto h-5 w-8" />
+              <Skeleton className="mx-auto h-2.5 w-12 max-w-full" />
+            </div>
+          ))}
+        </section>
+      ) : (
+        <section
+          aria-label="Attendance summary"
+          className="mt-3 grid grid-cols-5 overflow-hidden rounded-lg border border-slate-200 bg-white"
+        >
+          {[
+            ["Expected", snapshot.workers.length],
+            ["Not entered", liveSummary.notEntered],
+            ["On site", liveSummary.onSite],
+            ["On break", liveSummary.onBreak],
+            ["Issues", liveSummary.issues + reviewCount],
+          ].map(([label, value]) => (
+            <div
+              key={label}
               className={cn(
-                "text-base font-semibold tabular-nums text-slate-950 sm:text-lg",
-                label === "Issues" && Number(value) > 0 && "text-red-700",
+                "border-r border-slate-200 px-1 py-2 text-center last:border-0 sm:px-3",
+                label === "Issues" && Number(value) > 0 && "bg-red-50",
               )}
             >
-              {value}
-            </p>
-            <p className="truncate text-[0.625rem] text-slate-500 sm:text-xs">
-              {label}
-            </p>
-          </div>
-        ))}
-      </section>
+              <p
+                className={cn(
+                  "text-base font-semibold tabular-nums text-slate-950 sm:text-lg",
+                  label === "Issues" && Number(value) > 0 && "text-red-700",
+                )}
+              >
+                {value}
+              </p>
+              <p className="truncate text-[0.625rem] text-slate-500 sm:text-xs">
+                {label}
+              </p>
+            </div>
+          ))}
+        </section>
+      )}
 
       {message ? (
         <p

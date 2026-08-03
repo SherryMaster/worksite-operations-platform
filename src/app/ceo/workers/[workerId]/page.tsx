@@ -30,7 +30,13 @@ import { ManagedForm } from "@/components/phase2/managed-form";
 import { ConfirmSubmitButton } from "@/components/phase3/confirm-submit-button";
 import { LeaveRequestList } from "@/components/phase5/leave-request-list";
 import { formatDate, malaysiaDateInputValue } from "@/lib/phase2/format";
-import { getWorker, getWorkerOptions } from "@/lib/phase3/data";
+import {
+  getWorkerCore,
+  getWorkerForTab,
+  getWorkerIdentity,
+  listActiveDocumentTypes,
+  listAssignableProjects,
+} from "@/lib/phase3/data";
 import { formatSen, maskIdentifier } from "@/lib/phase3/format";
 import { listLeaveRequests } from "@/lib/phase5/data";
 import {
@@ -88,7 +94,17 @@ export default async function WorkerDetailPage({
   ].includes(requestedTab)
     ? requestedTab
     : "overview";
-  const workerPromise = getWorker(workerId);
+  if (!(await getWorkerIdentity(workerId))) notFound();
+  const workerCorePromise = getWorkerCore(workerId);
+  const workerPromise = getWorkerForTab(workerId, tab, workerCorePromise);
+  const tabSkeletonCards = [
+    "overview",
+    "employment",
+    "assignments",
+    "rates",
+  ].includes(tab)
+    ? 2
+    : 1;
 
   return (
     <main>
@@ -101,11 +117,14 @@ export default async function WorkerDetailPage({
       </Link>
 
       <Suspense fallback={<ProfileHeaderSkeleton />}>
-        <WorkerProfileHeaderAndTabs workerPromise={workerPromise} tab={tab} />
+        <WorkerProfileHeaderAndTabs
+          workerPromise={workerCorePromise}
+          tab={tab}
+        />
       </Suspense>
       <Suspense
         key={tab}
-        fallback={<DetailPanelsSkeleton cards={tab === "overview" ? 2 : 1} />}
+        fallback={<DetailPanelsSkeleton cards={tabSkeletonCards} />}
       >
         <WorkerProfileContent
           workerId={workerId}
@@ -122,11 +141,11 @@ async function WorkerProfileHeaderAndTabs({
   workerPromise,
   tab,
 }: {
-  workerPromise: ReturnType<typeof getWorker>;
+  workerPromise: ReturnType<typeof getWorkerCore>;
   tab: string;
 }) {
   const worker = await workerPromise;
-  if (!worker) notFound();
+  if (!worker) return null;
   const currentStatus = worker.currentEmployment?.status;
 
   return (
@@ -222,24 +241,36 @@ async function WorkerProfileContent({
   tab,
 }: {
   workerId: string;
-  workerPromise: ReturnType<typeof getWorker>;
+  workerPromise: ReturnType<typeof getWorkerForTab>;
   query: { file?: string; tab?: string };
   tab: string;
 }) {
   const supportingDataPromise = Promise.all([
-    ["assignments", "documents"].includes(tab)
-      ? getWorkerOptions()
-      : Promise.resolve({
+    tab === "assignments"
+      ? listAssignableProjects().then((projects) => ({
           documentTypes: [],
-          projects: [],
+          projects,
           skills: [],
           trades: [],
-        }),
+        }))
+      : tab === "documents"
+        ? listActiveDocumentTypes().then((documentTypes) => ({
+            documentTypes,
+            projects: [],
+            skills: [],
+            trades: [],
+          }))
+        : Promise.resolve({
+            documentTypes: [],
+            projects: [],
+            skills: [],
+            trades: [],
+          }),
     tab === "leave" ? listLeaveRequests({ workerId }) : Promise.resolve([]),
     tab === "payroll" ? getWorkerPayrollHistory(workerId) : Promise.resolve([]),
   ]);
   const worker = await workerPromise;
-  if (!worker) notFound();
+  if (!worker) return null;
   const [options, leaveRequests, payrollHistory] = await supportingDataPromise;
 
   const today = malaysiaDateInputValue();

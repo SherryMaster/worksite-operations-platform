@@ -44,6 +44,15 @@ export default async function AuditPage({
   const activeFilterCount = [params.actor, params.area, params.date].filter(
     Boolean,
   ).length;
+  const resultsKey = [
+    params.page,
+    params.query?.trim().toLowerCase(),
+    params.actor?.trim().toLowerCase(),
+    params.area,
+    params.date,
+  ]
+    .map((value) => value ?? "")
+    .join("|");
 
   return (
     <main>
@@ -137,7 +146,7 @@ export default async function AuditPage({
       </form>
 
       <Suspense
-        key={JSON.stringify(params)}
+        key={resultsKey}
         fallback={<ListResultsSkeleton columns={4} rows={9} />}
       >
         <AuditResults params={params} />

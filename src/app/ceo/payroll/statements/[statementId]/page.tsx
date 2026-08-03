@@ -11,7 +11,11 @@ import {
   formatSen,
   payrollMonthLabel,
 } from "@/lib/phase6/calculations";
-import { getPayrollStatement } from "@/lib/phase6/data";
+import {
+  getPayrollStatement,
+  getPayrollStatementIdentity,
+  getPayrollWorkerIdentity,
+} from "@/lib/phase6/data";
 import type { Json } from "@/types/database";
 
 type SnapshotRecord = Record<string, Json | undefined>;
@@ -32,20 +36,24 @@ export default async function PayrollStatementPage({
   params: Promise<{ statementId: string }>;
 }) {
   const { statementId } = await params;
-  const statementPromise = getPayrollStatement(statementId);
+  const identity = await getPayrollStatementIdentity(statementId);
+  if (!identity) notFound();
+  const workerIdentity = await getPayrollWorkerIdentity(
+    identity.payroll_worker_id,
+  );
+  if (!workerIdentity) notFound();
+  const statementPromise = getPayrollStatement(statementId, identity);
 
   return (
     <main className="mx-auto max-w-5xl px-5 py-8 sm:px-8 print:max-w-none print:p-0">
       <div className="mb-6 flex items-center justify-between gap-4 print:hidden">
-        <Suspense
-          fallback={
-            <span className="text-sm font-semibold text-slate-500">
-              Payroll statement
-            </span>
-          }
+        <Link
+          href={`/ceo/payroll/${workerIdentity.payroll_run_id}/workers/${identity.payroll_worker_id}`}
+          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600"
         >
-          <StatementBackLink statementPromise={statementPromise} />
-        </Suspense>
+          <ArrowLeft className="size-4" aria-hidden="true" />
+          Worker payroll
+        </Link>
         <PrintStatementButton />
       </div>
 
@@ -56,32 +64,13 @@ export default async function PayrollStatementPage({
   );
 }
 
-async function StatementBackLink({
-  statementPromise,
-}: {
-  statementPromise: ReturnType<typeof getPayrollStatement>;
-}) {
-  const data = await statementPromise;
-  if (!data) notFound();
-
-  return (
-    <Link
-      href={`/ceo/payroll/${data.run.id}/workers/${data.statement.payroll_worker_id}`}
-      className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600"
-    >
-      <ArrowLeft className="size-4" aria-hidden="true" />
-      Worker payroll
-    </Link>
-  );
-}
-
 async function PayrollStatement({
   statementPromise,
 }: {
   statementPromise: ReturnType<typeof getPayrollStatement>;
 }) {
   const data = await statementPromise;
-  if (!data) notFound();
+  if (!data) return null;
   const snapshot = record(data.snapshot);
   const buckets = Array.isArray(snapshot.earning_buckets)
     ? snapshot.earning_buckets.map((item) => record(item))

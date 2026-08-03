@@ -8,9 +8,11 @@ import { ListResultsSkeleton } from "@/components/operations/loading-skeletons";
 import { PageHeader } from "@/components/operations/page-header";
 import { StatusBadge } from "@/components/phase2/status-badge";
 import { formatDate } from "@/lib/phase2/format";
-import { listProjects } from "@/lib/phase2/data";
+import {
+  getCurrentWorkerCountsByProject,
+  listProjects,
+} from "@/lib/phase2/data";
 import { projectStatusLabel, type ProjectStatus } from "@/lib/phase2/status";
-import { listWorkers } from "@/lib/phase3/data";
 
 const statuses: ProjectStatus[] = [
   "PLANNED",
@@ -96,18 +98,10 @@ async function ProjectResults({
   query: string;
   status: ProjectStatus | null;
 }) {
-  const [allProjects, workers] = await Promise.all([
+  const [allProjects, workerCounts] = await Promise.all([
     listProjects(),
-    listWorkers(),
+    getCurrentWorkerCountsByProject(),
   ]);
-  const workerCounts = workers.reduce(
-    (counts, worker) => {
-      const projectId = worker.currentAssignment?.project_id;
-      if (projectId) counts[projectId] = (counts[projectId] ?? 0) + 1;
-      return counts;
-    },
-    {} as Record<string, number>,
-  );
   const projects = allProjects.filter((project) => {
     const matchesQuery =
       !query ||

@@ -1,12 +1,10 @@
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { Suspense } from "react";
 
 import { updateProjectAction } from "@/app/ceo/actions";
-import { FormContentSkeleton } from "@/components/operations/loading-skeletons";
 import { ProjectForm } from "@/components/phase2/project-form";
-import { getProject } from "@/lib/phase2/data";
+import { getProjectIdentity } from "@/lib/phase2/data";
 
 export default async function EditProjectPage({
   params,
@@ -14,6 +12,11 @@ export default async function EditProjectPage({
   params: Promise<{ projectId: string }>;
 }) {
   const { projectId } = await params;
+  const project = await getProjectIdentity(projectId);
+  if (!project) notFound();
+  if (project.status === "ARCHIVED") {
+    redirect(`/ceo/projects/${project.id}`);
+  }
 
   return (
     <main>
@@ -30,20 +33,16 @@ export default async function EditProjectPage({
         </h1>
       </div>
 
-      <Suspense fallback={<FormContentSkeleton fields={7} />}>
-        <EditProjectForm projectId={projectId} />
-      </Suspense>
+      <EditProjectForm project={project} />
     </main>
   );
 }
 
-async function EditProjectForm({ projectId }: { projectId: string }) {
-  const project = await getProject(projectId);
-  if (!project) notFound();
-  if (project.status === "ARCHIVED") {
-    redirect(`/ceo/projects/${project.id}`);
-  }
-
+function EditProjectForm({
+  project,
+}: {
+  project: NonNullable<Awaited<ReturnType<typeof getProjectIdentity>>>;
+}) {
   return (
     <section className="mt-5 max-w-3xl">
       <ProjectForm

@@ -1,7 +1,7 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
-function LoadingRegion({
+export function LoadingRegion({
   children,
   className,
   label,
@@ -70,18 +70,25 @@ export function DashboardMetricsSkeleton() {
 }
 
 export function ListResultsSkeleton({
+  announced = true,
   columns = 5,
   rows = 6,
   showLeading = false,
   className,
 }: {
+  announced?: boolean;
   columns?: number;
   rows?: number;
   showLeading?: boolean;
   className?: string;
 }) {
   return (
-    <LoadingRegion label="Loading records" className={cn("mt-4", className)}>
+    <div
+      aria-busy="true"
+      aria-live={announced ? "polite" : undefined}
+      className={cn("mt-4", className)}
+    >
+      {announced ? <span className="sr-only">Loading records</span> : null}
       <div className="divide-y divide-slate-100 overflow-hidden rounded-lg border border-slate-200 bg-white md:hidden">
         {Array.from({ length: Math.min(rows, 5) }, (_, index) => (
           <div
@@ -125,7 +132,7 @@ export function ListResultsSkeleton({
           </div>
         ))}
       </div>
-    </LoadingRegion>
+    </div>
   );
 }
 
@@ -166,10 +173,29 @@ export function DirectoryContentSkeleton({
         </button>
       </div>
       <ListResultsSkeleton
+        announced={false}
         columns={columns}
         rows={7}
         showLeading={showLeading}
       />
+    </LoadingRegion>
+  );
+}
+
+export function DirectoryToolbarSkeleton({
+  filters = 3,
+}: {
+  filters?: number;
+}) {
+  return (
+    <LoadingRegion label="Loading filter options" className="mt-4">
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white p-2.5 shadow-sm">
+        <Skeleton className="h-10 min-w-48 flex-1" />
+        {Array.from({ length: filters }, (_, index) => (
+          <Skeleton key={index} className="hidden h-10 w-36 md:block" />
+        ))}
+        <Skeleton className="h-10 w-20" />
+      </div>
     </LoadingRegion>
   );
 }
@@ -218,9 +244,13 @@ export function ProjectHeaderSkeleton() {
         </div>
       </div>
       <div className="mt-3 flex gap-4 overflow-hidden border-b border-slate-200 py-3">
-        {Array.from({ length: 5 }, (_, index) => (
-          <Skeleton key={index} className="h-3.5 w-20 shrink-0" />
-        ))}
+        {["Overview", "Workforce", "Attendance", "Leave", "History"].map(
+          (label) => (
+            <span key={label} className="shrink-0 text-sm text-slate-500">
+              {label}
+            </span>
+          ),
+        )}
       </div>
     </LoadingRegion>
   );
@@ -316,11 +346,11 @@ export function AttendanceWorkspaceSkeleton({
         </div>
         <Skeleton className="h-10 w-36 rounded-lg" />
       </div>
-      <div className="mt-4 grid grid-cols-3 overflow-hidden rounded-lg border border-slate-200 bg-white">
-        {Array.from({ length: 3 }, (_, index) => (
+      <div className="mt-4 grid grid-cols-2 overflow-hidden rounded-lg border border-slate-200 bg-white sm:grid-cols-5">
+        {Array.from({ length: 5 }, (_, index) => (
           <div
             key={index}
-            className="space-y-2 border-r border-slate-200 p-3 last:border-0"
+            className="space-y-2 border-b border-r border-slate-200 p-3 last:border-0 sm:border-b-0"
           >
             <Skeleton className="h-3 w-20" />
             <Skeleton className="h-6 w-12" />
@@ -331,7 +361,35 @@ export function AttendanceWorkspaceSkeleton({
         <Skeleton className="h-10 flex-1 rounded-md" />
         <Skeleton className="h-10 w-24 rounded-md" />
       </div>
-      <ListResultsSkeleton columns={6} rows={7} showLeading className="mt-3" />
+      <ListResultsSkeleton
+        announced={false}
+        columns={6}
+        rows={7}
+        showLeading
+        className="mt-3"
+      />
+    </LoadingRegion>
+  );
+}
+
+export function AttendanceSummarySkeleton({ cards = 3 }: { cards?: number }) {
+  return (
+    <LoadingRegion
+      label="Loading attendance summary"
+      className="mt-4 grid overflow-hidden rounded-lg border border-slate-200 bg-white"
+    >
+      <div className={cn("grid", cards === 5 ? "grid-cols-5" : "grid-cols-3")}>
+        {Array.from({ length: cards }, (_, index) => (
+          <div
+            key={index}
+            className="space-y-2 border-r border-slate-200 p-3 last:border-0"
+          >
+            <Skeleton className="h-5 w-5" />
+            <Skeleton className="h-6 w-12" />
+            <Skeleton className="h-3 w-24 max-w-full" />
+          </div>
+        ))}
+      </div>
     </LoadingRegion>
   );
 }
@@ -377,7 +435,7 @@ export function ReportContentSkeleton() {
         </div>
         <Skeleton className="h-10 w-24 rounded-lg" />
       </div>
-      <ListResultsSkeleton columns={6} rows={8} />
+      <ListResultsSkeleton announced={false} columns={6} rows={8} />
     </LoadingRegion>
   );
 }
@@ -395,15 +453,47 @@ export function PayrollRunSkeleton() {
           <Skeleton className="h-11 w-32 rounded-md" />
         </div>
       </div>
-      <div className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-slate-200 bg-slate-200 xl:grid-cols-6">
-        {Array.from({ length: 6 }, (_, index) => (
+      <div className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-slate-200 bg-slate-200 xl:grid-cols-5">
+        {Array.from({ length: 5 }, (_, index) => (
           <div key={index} className="space-y-2 bg-white p-3">
             <Skeleton className="h-3 w-20" />
             <Skeleton className="h-6 w-24" />
           </div>
         ))}
       </div>
-      <ListResultsSkeleton columns={7} rows={8} />
+      <div className="mt-8">
+        <h2 className="font-heading text-xl font-semibold">Projects</h2>
+        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 3 }, (_, index) => (
+            <div
+              key={index}
+              className="space-y-4 border border-violet-100 bg-white p-5"
+            >
+              <Skeleton className="h-5 w-36" />
+              <div className="grid grid-cols-3 gap-3">
+                {Array.from({ length: 3 }, (_, cell) => (
+                  <div key={cell} className="space-y-2">
+                    <Skeleton className="h-3 w-14" />
+                    <Skeleton className="h-4 w-16" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="mt-8">
+        <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-violet-700">
+          Traceable calculations
+        </p>
+        <h2 className="font-heading text-xl font-semibold">Workers</h2>
+        <ListResultsSkeleton
+          announced={false}
+          columns={8}
+          rows={8}
+          className="mt-4"
+        />
+      </div>
     </LoadingRegion>
   );
 }
@@ -411,10 +501,10 @@ export function PayrollRunSkeleton() {
 export function PayrollWorkerSkeleton() {
   return (
     <LoadingRegion label="Loading worker payroll" className="mt-4">
-      <div className="flex items-end justify-between gap-4 border-b border-slate-200 pb-4">
+      <div className="flex min-w-0 flex-col gap-4 border-b border-slate-200 pb-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-3">
-          <Skeleton className="h-8 w-56" />
-          <Skeleton className="h-4 w-64" />
+          <Skeleton className="h-8 max-w-full w-56" />
+          <Skeleton className="h-4 max-w-full w-64" />
         </div>
         <div className="space-y-2 text-right">
           <Skeleton className="ml-auto h-3 w-16" />
@@ -438,34 +528,42 @@ export function PayrollStatementSkeleton() {
   return (
     <LoadingRegion label="Loading payroll statement" className="mt-6">
       <article className="rounded-lg border border-slate-200 bg-white p-5 sm:p-10">
-        <header className="flex justify-between gap-4 border-b-2 border-slate-200 pb-6">
+        <header className="flex min-w-0 flex-col justify-between gap-4 border-b-2 border-slate-200 pb-6 sm:flex-row">
           <div className="space-y-3">
             <Skeleton className="h-3 w-32" />
-            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-8 max-w-full w-64" />
             <Skeleton className="h-3 w-36" />
           </div>
           <div className="space-y-3">
             <Skeleton className="ml-auto h-6 w-32" />
-            <Skeleton className="h-3 w-48" />
+            <Skeleton className="h-3 max-w-full w-48" />
           </div>
         </header>
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
           <Skeleton className="h-20 rounded-md" />
           <Skeleton className="h-20 rounded-md" />
         </div>
-        <ListResultsSkeleton columns={4} rows={6} />
+        <ListResultsSkeleton announced={false} columns={4} rows={6} />
       </article>
     </LoadingRegion>
   );
 }
 
-export function SettingsContentSkeleton() {
+export function SettingsContentSkeleton({
+  section = "users",
+}: {
+  section?: string;
+}) {
+  const rows =
+    section === "company" ? 3 : section === "import-template" ? 2 : 4;
   return (
     <LoadingRegion label="Loading settings" className="mt-6">
       <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-5">
-        <Skeleton className="h-6 w-52" />
-        <Skeleton className="h-3 w-80" />
-        {Array.from({ length: 4 }, (_, index) => (
+        <h2 className="font-heading text-lg font-semibold capitalize">
+          {section.replaceAll("-", " ")}
+        </h2>
+        <Skeleton className="h-3 max-w-full w-80" />
+        {Array.from({ length: rows }, (_, index) => (
           <div key={index} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
             <Skeleton className="h-10 rounded-md" />
             <Skeleton className="h-10 rounded-md" />

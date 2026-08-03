@@ -40,6 +40,9 @@ export default async function ForemanLeavePage({
   const showingForm =
     params.view === "new" ||
     Boolean(params.result && !params.result.startsWith("submitted"));
+  const contentKey = showingForm
+    ? "new"
+    : `requests|${params.status ?? "PENDING"}`;
 
   return (
     <main>
@@ -79,7 +82,7 @@ export default async function ForemanLeavePage({
       ) : null}
 
       <Suspense
-        key={JSON.stringify(params)}
+        key={contentKey}
         fallback={
           showingForm ? (
             <FormContentSkeleton fields={5} />
@@ -105,10 +108,10 @@ async function ForemanLeaveContent({
   };
   showingForm: boolean;
 }) {
-  const [options, requests] = await Promise.all([
-    getLeaveSubmissionOptions(),
-    listLeaveRequests(),
-  ]);
+  const options = showingForm
+    ? await getLeaveSubmissionOptions()
+    : { leaveTypes: [], workers: [] };
+  const requests = showingForm ? [] : await listLeaveRequests();
   const selectedStatus = params.status ?? "PENDING";
   const visibleRequests =
     selectedStatus === "ALL"
