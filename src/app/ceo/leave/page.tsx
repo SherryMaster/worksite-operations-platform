@@ -1,8 +1,10 @@
 import { ClipboardList, Plus } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { DataViewToolbar } from "@/components/operations/data-view-toolbar";
+import { DirectoryContentSkeleton } from "@/components/operations/loading-skeletons";
 import { PageHeader } from "@/components/operations/page-header";
 import { LeaveRequestForm } from "@/components/phase5/leave-request-form";
 import { LeaveRequestList } from "@/components/phase5/leave-request-list";
@@ -39,35 +41,9 @@ export default async function CeoLeavePage({
   )
     ? (params.status as "ALL" | "PENDING" | "APPROVED" | "REJECTED")
     : "PENDING";
-  const [options, requests] = await Promise.all([
-    getLeaveSubmissionOptions(),
-    listLeaveRequests({
-      projectId: params.project,
-      status: selectedStatus === "ALL" ? undefined : selectedStatus,
-      workerId: params.worker,
-    }),
-  ]);
   const resultMessage = params.result
     ? resultMessages[params.result]
     : undefined;
-  const requestedPage = Number(params.page ?? "1");
-  const page =
-    Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
-  const pageCount = Math.max(1, Math.ceil(requests.length / PAGE_SIZE));
-  const currentPage = Math.min(page, pageCount);
-  const visibleRequests = requests.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE,
-  );
-  const pageHref = (target: number) => {
-    const query = new URLSearchParams(
-      Object.entries(params).filter((entry): entry is [string, string] =>
-        Boolean(entry[1]),
-      ),
-    );
-    query.set("page", String(target));
-    return `/ceo/leave?${query.toString()}`;
-  };
 
   return (
     <main>
@@ -89,6 +65,58 @@ export default async function CeoLeavePage({
         </p>
       ) : null}
 
+      <Suspense
+        key={JSON.stringify(params)}
+        fallback={<DirectoryContentSkeleton columns={5} filters={3} />}
+      >
+        <LeaveReviewContent params={params} selectedStatus={selectedStatus} />
+      </Suspense>
+    </main>
+  );
+}
+
+async function LeaveReviewContent({
+  params,
+  selectedStatus,
+}: {
+  params: {
+    project?: string;
+    page?: string;
+    result?: string;
+    status?: string;
+    worker?: string;
+  };
+  selectedStatus: "ALL" | "PENDING" | "APPROVED" | "REJECTED";
+}) {
+  const [options, requests] = await Promise.all([
+    getLeaveSubmissionOptions(),
+    listLeaveRequests({
+      projectId: params.project,
+      status: selectedStatus === "ALL" ? undefined : selectedStatus,
+      workerId: params.worker,
+    }),
+  ]);
+  const requestedPage = Number(params.page ?? "1");
+  const page =
+    Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const pageCount = Math.max(1, Math.ceil(requests.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const visibleRequests = requests.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
+  const pageHref = (target: number) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter((entry): entry is [string, string] =>
+        Boolean(entry[1]),
+      ),
+    );
+    query.set("page", String(target));
+    return `/ceo/leave?${query.toString()}`;
+  };
+
+  return (
+    <>
       <details className="mt-4 rounded-lg border border-slate-200 bg-white">
         <summary className="flex cursor-pointer items-center gap-2 p-4 font-semibold">
           <Plus className="size-4 text-violet-700" aria-hidden="true" />
@@ -206,6 +234,6 @@ export default async function CeoLeavePage({
           </nav>
         ) : null}
       </section>
-    </main>
+    </>
   );
 }

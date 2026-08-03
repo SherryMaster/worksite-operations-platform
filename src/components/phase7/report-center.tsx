@@ -3,7 +3,6 @@ import Link from "next/link";
 
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { DataViewToolbar } from "@/components/operations/data-view-toolbar";
-import { PageHeader } from "@/components/operations/page-header";
 import { ReportDesktopTable } from "@/components/phase7/report-desktop-table";
 import { listAttendanceProjects } from "@/lib/phase4/data";
 import { listWorkers } from "@/lib/phase3/data";
@@ -63,11 +62,6 @@ export async function ReportCenter({
     role,
     searchParams,
   );
-  const [report, projects, workers] = await Promise.all([
-    loadReport(parsed.reportId, parsed.filters),
-    listAttendanceProjects(),
-    listWorkers(),
-  ]);
   const permittedReports = reportsForRole(role);
   const usesProject = !["audit-activity"].includes(parsed.reportId);
   const usesWorker = ![
@@ -75,6 +69,11 @@ export async function ReportCenter({
     "attendance-exceptions",
     "audit-activity",
   ].includes(parsed.reportId);
+  const [report, projects, workers] = await Promise.all([
+    loadReport(parsed.reportId, parsed.filters),
+    usesProject ? listAttendanceProjects() : Promise.resolve([]),
+    usesWorker ? listWorkers() : Promise.resolve([]),
+  ]);
   const usesDate = parsed.reportId === "daily-attendance";
   const usesMonth = [
     "monthly-attendance",
@@ -118,12 +117,7 @@ export async function ReportCenter({
   };
 
   return (
-    <main>
-      <PageHeader
-        title="Reports"
-        description="Browse predefined operational reports and export the filtered results."
-      />
-
+    <>
       <form
         className="mt-4"
         action={role === "CEO" ? "/ceo/reports" : "/foreman/reports"}
@@ -443,6 +437,6 @@ export async function ReportCenter({
           </nav>
         ) : null}
       </section>
-    </main>
+    </>
   );
 }

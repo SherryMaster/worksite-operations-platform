@@ -12,11 +12,13 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import {
   approvePayrollAction,
   generatePayrollAction,
 } from "@/app/ceo/payroll/actions";
+import { PayrollRunSkeleton } from "@/components/operations/loading-skeletons";
 import { ActionButton } from "@/components/phase2/action-button";
 import { ManagedForm } from "@/components/phase2/managed-form";
 import { WorkerAvatar } from "@/components/worker-avatar";
@@ -38,6 +40,31 @@ export default async function PayrollRunPage({
 }) {
   const { runId } = await params;
   const query = await searchParams;
+
+  return (
+    <main>
+      <Link
+        href="/ceo/payroll"
+        className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-950"
+      >
+        <ArrowLeft className="size-4" aria-hidden="true" />
+        Payroll months
+      </Link>
+
+      <Suspense fallback={<PayrollRunSkeleton />}>
+        <PayrollRunContent runId={runId} query={query} />
+      </Suspense>
+    </main>
+  );
+}
+
+async function PayrollRunContent({
+  runId,
+  query,
+}: {
+  runId: string;
+  query: { page?: string };
+}) {
   const data = await getPayrollRun(runId);
   if (!data) notFound();
 
@@ -77,15 +104,7 @@ export default async function PayrollRunPage({
     `/ceo/payroll/${data.run.id}?page=${target}`;
 
   return (
-    <main>
-      <Link
-        href="/ceo/payroll"
-        className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-950"
-      >
-        <ArrowLeft className="size-4" aria-hidden="true" />
-        Payroll months
-      </Link>
-
+    <>
       <div className="mt-4 flex flex-col gap-4 border-b border-slate-200 pb-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="font-heading text-2xl font-semibold sm:text-3xl">
@@ -525,6 +544,6 @@ export default async function PayrollRunPage({
           </div>
         )}
       </section>
-    </main>
+    </>
   );
 }

@@ -8,6 +8,7 @@ import {
   Users,
 } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 
 import {
   createForemanAction,
@@ -24,6 +25,7 @@ import {
   createDocumentTypeAction,
   setDocumentTypeActiveAction,
 } from "@/app/ceo/workers/actions";
+import { SettingsContentSkeleton } from "@/components/operations/loading-skeletons";
 import { PageHeader } from "@/components/operations/page-header";
 import { ActionButton } from "@/components/phase2/action-button";
 import { ManagedForm } from "@/components/phase2/managed-form";
@@ -147,12 +149,6 @@ export default async function SettingsPage({
   ].includes(requestedSection ?? "")
     ? requestedSection!
     : "users";
-  const [data, documentTypes, leaveTypes] = await Promise.all([
-    getSettingsData(),
-    listDocumentTypes(),
-    listLeaveTypes(true),
-  ]);
-
   return (
     <main>
       <PageHeader
@@ -188,6 +184,22 @@ export default async function SettingsPage({
         ))}
       </nav>
 
+      <Suspense key={section} fallback={<SettingsContentSkeleton />}>
+        <SettingsContent section={section} />
+      </Suspense>
+    </main>
+  );
+}
+
+async function SettingsContent({ section }: { section: string }) {
+  const [data, documentTypes, leaveTypes] = await Promise.all([
+    getSettingsData(),
+    section === "documents" ? listDocumentTypes() : Promise.resolve([]),
+    section === "leave-types" ? listLeaveTypes(true) : Promise.resolve([]),
+  ]);
+
+  return (
+    <>
       {section === "users" ? (
         <section className="mt-6 space-y-4">
           <div className="flex items-center gap-3">
@@ -590,6 +602,6 @@ export default async function SettingsPage({
           </div>
         </section>
       ) : null}
-    </main>
+    </>
   );
 }

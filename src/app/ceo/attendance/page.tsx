@@ -7,9 +7,11 @@ import {
   Search,
 } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { WorkerAvatar } from "@/components/worker-avatar";
+import { AttendanceWorkspaceSkeleton } from "@/components/operations/loading-skeletons";
 import { PageHeader } from "@/components/operations/page-header";
 import { AttendanceWorkspace } from "@/components/phase4/attendance-workspace";
 import { malaysiaDateInputValue } from "@/lib/phase2/format";
@@ -23,6 +25,15 @@ import { cn } from "@/lib/utils";
 
 const MONTH_PAGE_SIZE = 50;
 
+type AttendanceSearchParams = {
+  date?: string;
+  month?: string;
+  page?: string;
+  project?: string;
+  query?: string;
+  view?: string;
+};
+
 function currentMonth() {
   return malaysiaDateInputValue().slice(0, 7);
 }
@@ -30,16 +41,31 @@ function currentMonth() {
 export default async function CeoAttendancePage({
   searchParams,
 }: {
-  searchParams: Promise<{
-    date?: string;
-    month?: string;
-    page?: string;
-    project?: string;
-    query?: string;
-    view?: string;
-  }>;
+  searchParams: Promise<AttendanceSearchParams>;
 }) {
   const params = await searchParams;
+
+  return (
+    <main>
+      <PageHeader
+        title="Attendance"
+        description="Review daily records, payable time, and exceptions."
+      />
+      <Suspense
+        key={JSON.stringify(params)}
+        fallback={<AttendanceWorkspaceSkeleton />}
+      >
+        <AttendanceContent params={params} />
+      </Suspense>
+    </main>
+  );
+}
+
+async function AttendanceContent({
+  params,
+}: {
+  params: AttendanceSearchParams;
+}) {
   const projects = await listAttendanceProjects();
   const projectId = projects.some((project) => project.id === params.project)
     ? (params.project as string)
@@ -89,13 +115,8 @@ export default async function CeoAttendancePage({
   ).length;
 
   return (
-    <main>
+    <>
       <div>
-        <PageHeader
-          title="Attendance"
-          description="Review daily records, payable time, and exceptions."
-        />
-
         <form className="mt-4 grid gap-3 rounded-lg border border-slate-200 bg-white p-3 md:grid-cols-[1.4fr_1fr_auto]">
           <input type="hidden" name="view" value={view} />
           <label className="text-xs font-semibold text-slate-600">
@@ -435,6 +456,6 @@ export default async function CeoAttendancePage({
           ) : null}
         </section>
       )}
-    </main>
+    </>
   );
 }

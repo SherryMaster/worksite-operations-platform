@@ -6,6 +6,7 @@ import {
   Users,
 } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { WorkerAvatar } from "@/components/worker-avatar";
@@ -14,12 +15,22 @@ import {
   CompactRecordList,
 } from "@/components/operations/compact-record-list";
 import { DataViewToolbar } from "@/components/operations/data-view-toolbar";
+import { DirectoryContentSkeleton } from "@/components/operations/loading-skeletons";
 import { PageHeader } from "@/components/operations/page-header";
 import { StatusChip } from "@/components/operations/status-chip";
 import { getWorkerOptions, listWorkersPage } from "@/lib/phase3/data";
 import { maskIdentifier } from "@/lib/phase3/format";
 
 const PAGE_SIZE = 25;
+
+type WorkerSearchParams = {
+  page?: string;
+  project?: string;
+  query?: string;
+  skill?: string;
+  status?: string;
+  trade?: string;
+};
 
 function statusLabel(status: string | undefined) {
   return status
@@ -34,16 +45,39 @@ function statusLabel(status: string | undefined) {
 export default async function WorkersPage({
   searchParams,
 }: {
-  searchParams: Promise<{
-    page?: string;
-    project?: string;
-    query?: string;
-    skill?: string;
-    status?: string;
-    trade?: string;
-  }>;
+  searchParams: Promise<WorkerSearchParams>;
 }) {
   const params = await searchParams;
+
+  return (
+    <main>
+      <PageHeader
+        title="Workers"
+        description="Search, review, and manage the company workforce."
+        action={
+          <Link
+            href="/ceo/workers/new"
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-violet-700 px-4 text-sm font-semibold text-white hover:bg-violet-800"
+          >
+            <UserPlus className="size-4" aria-hidden="true" />
+            Add worker
+          </Link>
+        }
+      />
+
+      <Suspense
+        key={JSON.stringify(params)}
+        fallback={
+          <DirectoryContentSkeleton columns={6} filters={4} showLeading />
+        }
+      >
+        <WorkerDirectory params={params} />
+      </Suspense>
+    </main>
+  );
+}
+
+async function WorkerDirectory({ params }: { params: WorkerSearchParams }) {
   const requestedPage = Number(params.page ?? "1");
   const page =
     Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
@@ -74,21 +108,7 @@ export default async function WorkersPage({
   ].filter(Boolean).length;
 
   return (
-    <main>
-      <PageHeader
-        title="Workers"
-        description={`${total} matching workers`}
-        action={
-          <Link
-            href="/ceo/workers/new"
-            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-violet-700 px-4 text-sm font-semibold text-white hover:bg-violet-800"
-          >
-            <UserPlus className="size-4" aria-hidden="true" />
-            Add worker
-          </Link>
-        }
-      />
-
+    <>
       <form action="/ceo/workers" className="mt-4">
         <DataViewToolbar
           action="/ceo/workers"
@@ -341,6 +361,6 @@ export default async function WorkersPage({
           ) : null}
         </nav>
       ) : null}
-    </main>
+    </>
   );
 }

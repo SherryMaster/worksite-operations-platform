@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { AppPageSkeleton } from "@/components/app-page-skeleton";
+import { AttendanceWorkspaceSkeleton } from "@/components/operations/loading-skeletons";
 import { WorkerAvatar } from "@/components/worker-avatar";
 import { AttendanceSyncIssues } from "@/components/phase4/attendance-sync-issues";
 import {
@@ -1541,7 +1541,7 @@ export function AttendanceWorkspace({
     : { exited: 0, issues: 0, notEntered: 0, onBreak: 0, onSite: 0 };
 
   if (!snapshot && hydratingDevice) {
-    return <AppPageSkeleton compact />;
+    return <AttendanceWorkspaceSkeleton compact />;
   }
 
   if (!snapshot) {

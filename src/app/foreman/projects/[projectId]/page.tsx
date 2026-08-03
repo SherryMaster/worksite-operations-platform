@@ -1,7 +1,9 @@
 import { ArrowUpRight, CalendarDays, ChevronLeft, Users } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
+import { ProjectSummarySkeleton } from "@/components/operations/loading-skeletons";
 import { StatusBadge } from "@/components/phase2/status-badge";
 import { getProject } from "@/lib/phase2/data";
 import { formatDate } from "@/lib/phase2/format";
@@ -13,11 +15,6 @@ export default async function ForemanProjectPage({
   params: Promise<{ projectId: string }>;
 }) {
   const { projectId } = await params;
-  const [project, workers] = await Promise.all([
-    getProject(projectId),
-    listWorkers({ project: projectId }),
-  ]);
-  if (!project) notFound();
 
   return (
     <main>
@@ -28,6 +25,23 @@ export default async function ForemanProjectPage({
         <ChevronLeft className="size-4" aria-hidden="true" />
         Back to Today
       </Link>
+
+      <Suspense fallback={<ProjectSummarySkeleton />}>
+        <ForemanProjectSummary projectId={projectId} />
+      </Suspense>
+    </main>
+  );
+}
+
+async function ForemanProjectSummary({ projectId }: { projectId: string }) {
+  const [project, workers] = await Promise.all([
+    getProject(projectId),
+    listWorkers({ project: projectId }),
+  ]);
+  if (!project) notFound();
+
+  return (
+    <>
       <div className="mt-4 flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold text-slate-500">
@@ -98,6 +112,6 @@ export default async function ForemanProjectPage({
           <ArrowUpRight className="size-4" aria-hidden="true" />
         </Link>
       </div>
-    </main>
+    </>
   );
 }

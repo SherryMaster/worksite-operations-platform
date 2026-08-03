@@ -1,9 +1,7 @@
 import { UserButton } from "@clerk/nextjs";
 
-import { AppPageSkeleton } from "@/components/app-page-skeleton";
 import { BrandMark } from "@/components/brand-mark";
 import { CeoNavigation } from "@/components/ceo-navigation";
-import { NavigationLoadingBoundary } from "@/components/navigation-loading-boundary";
 import { ConnectionIndicator } from "@/components/phase4/connection-indicator";
 
 export function CeoShell({ children }: { children: React.ReactNode }) {
@@ -51,11 +49,7 @@ export function CeoShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         </header>
-        <div id="main-content">
-          <NavigationLoadingBoundary fallback={<AppPageSkeleton />}>
-            {children}
-          </NavigationLoadingBoundary>
-        </div>
+        <div id="main-content">{children}</div>
       </div>
       <CeoNavigation mobile />
     </div>

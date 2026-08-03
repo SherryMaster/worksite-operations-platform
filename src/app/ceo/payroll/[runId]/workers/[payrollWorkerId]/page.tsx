@@ -9,8 +9,10 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import { removePayrollAdjustmentAction } from "@/app/ceo/payroll/actions";
+import { PayrollWorkerSkeleton } from "@/components/operations/loading-skeletons";
 import { ActionButton } from "@/components/phase2/action-button";
 import { PayrollAdjustmentForm } from "@/components/phase6/payroll-adjustment-form";
 import { PayrollPaymentForm } from "@/components/phase6/payroll-payment-form";
@@ -35,20 +37,37 @@ export default async function PayrollWorkerPage({
   params: Promise<{ payrollWorkerId: string; runId: string }>;
 }) {
   const { payrollWorkerId, runId } = await params;
+
+  return (
+    <main>
+      <Link
+        href={`/ceo/payroll/${runId}`}
+        className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-950"
+      >
+        <ArrowLeft className="size-4" aria-hidden="true" />
+        Back to payroll run
+      </Link>
+
+      <Suspense fallback={<PayrollWorkerSkeleton />}>
+        <PayrollWorkerContent payrollWorkerId={payrollWorkerId} runId={runId} />
+      </Suspense>
+    </main>
+  );
+}
+
+async function PayrollWorkerContent({
+  payrollWorkerId,
+  runId,
+}: {
+  payrollWorkerId: string;
+  runId: string;
+}) {
   const data = await getPayrollWorker(payrollWorkerId);
   if (!data || data.run.id !== runId) notFound();
   const { run, worker } = data;
 
   return (
-    <main>
-      <Link
-        href={`/ceo/payroll/${run.id}`}
-        className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-950"
-      >
-        <ArrowLeft className="size-4" aria-hidden="true" />
-        {payrollMonthLabel(run.payroll_month)} payroll
-      </Link>
-
+    <>
       <div className="mt-4 flex flex-col gap-4 border-b border-slate-200 pb-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="font-heading text-2xl font-semibold sm:text-3xl">
@@ -326,6 +345,6 @@ export default async function PayrollWorkerPage({
           </div>
         ) : null}
       </section>
-    </main>
+    </>
   );
 }

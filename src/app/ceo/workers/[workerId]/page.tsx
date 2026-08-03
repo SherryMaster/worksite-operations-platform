@@ -14,6 +14,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import {
   changeWorkerEmploymentAction,
@@ -21,6 +22,10 @@ import {
   transferWorkerAction,
 } from "@/app/ceo/workers/actions";
 import { FormSubmitButton } from "@/components/form-submit-button";
+import {
+  DetailPanelsSkeleton,
+  ProfileHeaderSkeleton,
+} from "@/components/operations/loading-skeletons";
 import { ManagedForm } from "@/components/phase2/managed-form";
 import { ConfirmSubmitButton } from "@/components/phase3/confirm-submit-button";
 import { LeaveRequestList } from "@/components/phase5/leave-request-list";
@@ -83,23 +88,7 @@ export default async function WorkerDetailPage({
   ].includes(requestedTab)
     ? requestedTab
     : "overview";
-  const [worker, options, leaveRequests, payrollHistory] = await Promise.all([
-    getWorker(workerId),
-    getWorkerOptions(),
-    listLeaveRequests({ workerId }),
-    getWorkerPayrollHistory(workerId),
-  ]);
-  if (!worker) notFound();
-
-  const today = malaysiaDateInputValue();
-  const currentStatus = worker.currentEmployment?.status;
-  const activeDocuments = worker.documents.filter(
-    (document) =>
-      document.status === "ACTIVE" && document.file_kind === "DOCUMENT",
-  );
-  const fileHistory = worker.documents.filter(
-    (document) => document.status !== "ACTIVE",
-  );
+  const workerPromise = getWorker(workerId);
 
   return (
     <main>
@@ -111,6 +100,37 @@ export default async function WorkerDetailPage({
         Back to workers
       </Link>
 
+      <Suspense fallback={<ProfileHeaderSkeleton />}>
+        <WorkerProfileHeaderAndTabs workerPromise={workerPromise} tab={tab} />
+      </Suspense>
+      <Suspense
+        key={tab}
+        fallback={<DetailPanelsSkeleton cards={tab === "overview" ? 2 : 1} />}
+      >
+        <WorkerProfileContent
+          workerId={workerId}
+          workerPromise={workerPromise}
+          query={query}
+          tab={tab}
+        />
+      </Suspense>
+    </main>
+  );
+}
+
+async function WorkerProfileHeaderAndTabs({
+  workerPromise,
+  tab,
+}: {
+  workerPromise: ReturnType<typeof getWorker>;
+  tab: string;
+}) {
+  const worker = await workerPromise;
+  if (!worker) notFound();
+  const currentStatus = worker.currentEmployment?.status;
+
+  return (
+    <>
       <div className="mt-4 flex flex-col gap-4 border-b border-slate-200 pb-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="flex items-start gap-5">
           <div className="relative grid size-14 shrink-0 place-items-center overflow-hidden rounded-lg border border-violet-100 bg-violet-50 font-heading text-lg font-semibold text-slate-500">
@@ -191,7 +211,49 @@ export default async function WorkerDetailPage({
           </Link>
         ))}
       </nav>
+    </>
+  );
+}
 
+async function WorkerProfileContent({
+  workerId,
+  workerPromise,
+  query,
+  tab,
+}: {
+  workerId: string;
+  workerPromise: ReturnType<typeof getWorker>;
+  query: { file?: string; tab?: string };
+  tab: string;
+}) {
+  const supportingDataPromise = Promise.all([
+    ["assignments", "documents"].includes(tab)
+      ? getWorkerOptions()
+      : Promise.resolve({
+          documentTypes: [],
+          projects: [],
+          skills: [],
+          trades: [],
+        }),
+    tab === "leave" ? listLeaveRequests({ workerId }) : Promise.resolve([]),
+    tab === "payroll" ? getWorkerPayrollHistory(workerId) : Promise.resolve([]),
+  ]);
+  const worker = await workerPromise;
+  if (!worker) notFound();
+  const [options, leaveRequests, payrollHistory] = await supportingDataPromise;
+
+  const today = malaysiaDateInputValue();
+  const currentStatus = worker.currentEmployment?.status;
+  const activeDocuments = worker.documents.filter(
+    (document) =>
+      document.status === "ACTIVE" && document.file_kind === "DOCUMENT",
+  );
+  const fileHistory = worker.documents.filter(
+    (document) => document.status !== "ACTIVE",
+  );
+
+  return (
+    <>
       {tab === "overview" ? (
         <section className="mt-5 grid gap-4 xl:grid-cols-[1.3fr_0.7fr]">
           <article className="border border-violet-100 bg-white">
@@ -894,6 +956,6 @@ export default async function WorkerDetailPage({
           </Link>
         </section>
       ) : null}
-    </main>
+    </>
   );
 }

@@ -1,7 +1,12 @@
 import { AlertTriangle, ArrowUpRight, ChevronLeft, Phone } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
+import {
+  DetailPanelsSkeleton,
+  ProfileHeaderSkeleton,
+} from "@/components/operations/loading-skeletons";
 import { StatusChip } from "@/components/operations/status-chip";
 import { WorkerAvatar } from "@/components/worker-avatar";
 import { formatDate } from "@/lib/phase2/format";
@@ -18,6 +23,39 @@ export default async function ForemanWorkerPage({
   const { workerId } = await params;
   const query = await searchParams;
   const tab = query.tab === "documents" ? "documents" : "overview";
+
+  return (
+    <main>
+      <Link
+        href="/foreman/workers"
+        className="inline-flex min-h-10 items-center gap-1 text-sm font-medium text-slate-600"
+      >
+        <ChevronLeft className="size-4" aria-hidden="true" />
+        Workers
+      </Link>
+
+      <Suspense
+        key={tab}
+        fallback={
+          <>
+            <ProfileHeaderSkeleton compact />
+            <DetailPanelsSkeleton cards={1} rows={3} />
+          </>
+        }
+      >
+        <ForemanWorkerProfile workerId={workerId} tab={tab} />
+      </Suspense>
+    </main>
+  );
+}
+
+async function ForemanWorkerProfile({
+  workerId,
+  tab,
+}: {
+  workerId: string;
+  tab: "documents" | "overview";
+}) {
   const worker = await getWorker(workerId);
   if (!worker) notFound();
 
@@ -34,15 +72,7 @@ export default async function ForemanWorkerPage({
   );
 
   return (
-    <main>
-      <Link
-        href="/foreman/workers"
-        className="inline-flex min-h-10 items-center gap-1 text-sm font-medium text-slate-600"
-      >
-        <ChevronLeft className="size-4" aria-hidden="true" />
-        Workers
-      </Link>
-
+    <>
       <div className="mt-2 flex items-start gap-3">
         <WorkerAvatar
           name={worker.legal_name}
@@ -217,6 +247,6 @@ export default async function ForemanWorkerPage({
         This is a read-only operational profile. Pay, deductions, transfers, and
         administrative controls are available only to the CEO.
       </p>
-    </main>
+    </>
   );
 }

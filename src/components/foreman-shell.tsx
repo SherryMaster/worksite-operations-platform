@@ -1,7 +1,5 @@
-import { AppPageSkeleton } from "@/components/app-page-skeleton";
 import { BrandMark } from "@/components/brand-mark";
 import { ForemanNavigation } from "@/components/foreman-navigation";
-import { NavigationLoadingBoundary } from "@/components/navigation-loading-boundary";
 import { ConnectionIndicator } from "@/components/phase4/connection-indicator";
 import { DeviceSignOutButton } from "@/components/phase4/device-sign-out-button";
 import { InstallAppButton } from "@/components/phase4/install-app-button";
@@ -68,11 +66,7 @@ export function ForemanShell({
             </span>
           </div>
         </header>
-        <div id="main-content">
-          <NavigationLoadingBoundary fallback={<AppPageSkeleton compact />}>
-            {children}
-          </NavigationLoadingBoundary>
-        </div>
+        <div id="main-content">{children}</div>
       </div>
       <ForemanNavigation mobile projectName={projectName} />
     </div>

@@ -1,8 +1,10 @@
 import { ArrowUpRight, ChevronRight, FolderPlus, MapPin } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { DataViewToolbar } from "@/components/operations/data-view-toolbar";
+import { ListResultsSkeleton } from "@/components/operations/loading-skeletons";
 import { PageHeader } from "@/components/operations/page-header";
 import { StatusBadge } from "@/components/phase2/status-badge";
 import { formatDate } from "@/lib/phase2/format";
@@ -28,33 +30,11 @@ export default async function ProjectsPage({
   const status = statuses.includes(params.status as ProjectStatus)
     ? (params.status as ProjectStatus)
     : null;
-  const [allProjects, workers] = await Promise.all([
-    listProjects(),
-    listWorkers(),
-  ]);
-  const workerCounts = workers.reduce(
-    (counts, worker) => {
-      const projectId = worker.currentAssignment?.project_id;
-      if (projectId) counts[projectId] = (counts[projectId] ?? 0) + 1;
-      return counts;
-    },
-    {} as Record<string, number>,
-  );
-  const projects = allProjects.filter((project) => {
-    const matchesQuery =
-      !query ||
-      [project.name, project.client_name, project.location]
-        .join(" ")
-        .toLowerCase()
-        .includes(query);
-    return matchesQuery && (!status || project.status === status);
-  });
-
   return (
     <main>
       <PageHeader
         title="Projects"
-        description={`${projects.length} of ${allProjects.length} projects`}
+        description="Review project status, assignments, dates, and workforce."
         action={
           <Link
             href="/ceo/projects/new"
@@ -99,6 +79,50 @@ export default async function ProjectsPage({
         </DataViewToolbar>
       </form>
 
+      <Suspense
+        key={`${query}:${status ?? "all"}`}
+        fallback={<ListResultsSkeleton columns={6} rows={7} />}
+      >
+        <ProjectResults query={query} status={status} />
+      </Suspense>
+    </main>
+  );
+}
+
+async function ProjectResults({
+  query,
+  status,
+}: {
+  query: string;
+  status: ProjectStatus | null;
+}) {
+  const [allProjects, workers] = await Promise.all([
+    listProjects(),
+    listWorkers(),
+  ]);
+  const workerCounts = workers.reduce(
+    (counts, worker) => {
+      const projectId = worker.currentAssignment?.project_id;
+      if (projectId) counts[projectId] = (counts[projectId] ?? 0) + 1;
+      return counts;
+    },
+    {} as Record<string, number>,
+  );
+  const projects = allProjects.filter((project) => {
+    const matchesQuery =
+      !query ||
+      [project.name, project.client_name, project.location]
+        .join(" ")
+        .toLowerCase()
+        .includes(query);
+    return matchesQuery && (!status || project.status === status);
+  });
+
+  return (
+    <>
+      <p className="mt-3 text-xs text-slate-500">
+        Showing {projects.length} of {allProjects.length} projects
+      </p>
       {projects.length === 0 ? (
         <section className="mt-6 border border-dashed border-violet-100 bg-white px-6 py-16 text-center">
           <FolderPlus
@@ -204,6 +228,6 @@ export default async function ProjectsPage({
           </div>
         </>
       )}
-    </main>
+    </>
   );
 }

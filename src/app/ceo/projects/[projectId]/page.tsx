@@ -10,11 +10,16 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import {
   assignForemanAction,
   changeProjectStatusAction,
 } from "@/app/ceo/actions";
+import {
+  DetailPanelsSkeleton,
+  ProjectHeaderSkeleton,
+} from "@/components/operations/loading-skeletons";
 import { ActionButton } from "@/components/phase2/action-button";
 import { ManagedForm } from "@/components/phase2/managed-form";
 import { WorkerAvatar } from "@/components/worker-avatar";
@@ -60,6 +65,38 @@ export default async function ProjectDetailPage({
   )
     ? requestedTab!
     : "overview";
+  return (
+    <main>
+      <Link
+        href="/ceo/projects"
+        className="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-slate-950"
+      >
+        <ChevronLeft className="size-4" aria-hidden="true" />
+        Back to projects
+      </Link>
+
+      <Suspense
+        key={tab}
+        fallback={
+          <>
+            <ProjectHeaderSkeleton />
+            <DetailPanelsSkeleton cards={tab === "overview" ? 2 : 1} />
+          </>
+        }
+      >
+        <ProjectDetailContent projectId={projectId} tab={tab} />
+      </Suspense>
+    </main>
+  );
+}
+
+async function ProjectDetailContent({
+  projectId,
+  tab,
+}: {
+  projectId: string;
+  tab: string;
+}) {
   const [project, foremen, workers, leaveRequests] = await Promise.all([
     getProject(projectId),
     tab === "overview" ? listForemen() : Promise.resolve([]),
@@ -78,15 +115,7 @@ export default async function ProjectDetailPage({
   );
 
   return (
-    <main>
-      <Link
-        href="/ceo/projects"
-        className="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-slate-950"
-      >
-        <ChevronLeft className="size-4" aria-hidden="true" />
-        Back to projects
-      </Link>
-
+    <>
       <div className="mt-4 flex flex-col gap-4 border-b border-slate-200 pb-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-3">
@@ -437,6 +466,6 @@ export default async function ProjectDetailPage({
           </div>
         </section>
       ) : null}
-    </main>
+    </>
   );
 }

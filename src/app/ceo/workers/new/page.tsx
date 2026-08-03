@@ -1,7 +1,9 @@
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { createWorkerAction } from "@/app/ceo/workers/actions";
+import { FormContentSkeleton } from "@/components/operations/loading-skeletons";
 import {
   WorkerForm,
   type WorkerFormValues,
@@ -9,8 +11,7 @@ import {
 import { malaysiaDateInputValue } from "@/lib/phase2/format";
 import { getWorkerOptions } from "@/lib/phase3/data";
 
-export default async function NewWorkerPage() {
-  const options = await getWorkerOptions();
+export default function NewWorkerPage() {
   const today = malaysiaDateInputValue();
   const values: WorkerFormValues = {
     address: "",
@@ -53,6 +54,18 @@ export default async function NewWorkerPage() {
         </p>
       </div>
 
+      <Suspense fallback={<FormContentSkeleton fields={10} />}>
+        <NewWorkerForm values={values} />
+      </Suspense>
+    </main>
+  );
+}
+
+async function NewWorkerForm({ values }: { values: WorkerFormValues }) {
+  const options = await getWorkerOptions();
+
+  return (
+    <>
       {options.trades.length === 0 || options.skills.length === 0 ? (
         <div className="mt-8 border border-amber-300 bg-amber-50 p-5 text-sm text-amber-950">
           Add at least one active trade and skill level in{" "}
@@ -76,6 +89,6 @@ export default async function NewWorkerPage() {
           />
         </div>
       )}
-    </main>
+    </>
   );
 }

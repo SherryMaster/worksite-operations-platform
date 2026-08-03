@@ -10,20 +10,67 @@ import {
   Users,
 } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 
+import {
+  DashboardActionsSkeleton,
+  DashboardMetricsSkeleton,
+} from "@/components/operations/loading-skeletons";
 import { PageHeader } from "@/components/operations/page-header";
 import { getDashboardData } from "@/lib/phase2/data";
 import { getWorkerDashboardSummary } from "@/lib/phase3/data";
 import { getPendingLeaveCount } from "@/lib/phase5/data";
 import { getPayrollDashboardSummary } from "@/lib/phase6/data";
 
-export default async function CeoDashboard() {
-  const [data, workforce, pendingLeave, payroll] = await Promise.all([
+export default function CeoDashboard() {
+  const dashboardPromise = Promise.all([
     getDashboardData(),
     getWorkerDashboardSummary(),
     getPendingLeaveCount(),
     getPayrollDashboardSummary(),
   ]);
+
+  return (
+    <main>
+      <PageHeader
+        title="Dashboard"
+        action={
+          <Link
+            href="/ceo/projects/new"
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-violet-700 px-4 text-sm font-semibold text-white hover:bg-violet-800"
+          >
+            New project
+            <ArrowUpRight className="size-4" aria-hidden="true" />
+          </Link>
+        }
+      />
+      <Suspense
+        fallback={
+          <>
+            <DashboardActionsSkeleton />
+            <DashboardMetricsSkeleton />
+          </>
+        }
+      >
+        <DashboardContent dashboardPromise={dashboardPromise} />
+      </Suspense>
+    </main>
+  );
+}
+
+async function DashboardContent({
+  dashboardPromise,
+}: {
+  dashboardPromise: Promise<
+    [
+      Awaited<ReturnType<typeof getDashboardData>>,
+      Awaited<ReturnType<typeof getWorkerDashboardSummary>>,
+      number,
+      Awaited<ReturnType<typeof getPayrollDashboardSummary>>,
+    ]
+  >;
+}) {
+  const [data, workforce, pendingLeave, payroll] = await dashboardPromise;
   const activeProjects = data.projects.filter(
     (project) => project.status === "ACTIVE",
   ).length;
@@ -73,20 +120,7 @@ export default async function CeoDashboard() {
   ];
 
   return (
-    <main>
-      <PageHeader
-        title="Dashboard"
-        action={
-          <Link
-            href="/ceo/projects/new"
-            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-violet-700 px-4 text-sm font-semibold text-white hover:bg-violet-800"
-          >
-            New project
-            <ArrowUpRight className="size-4" aria-hidden="true" />
-          </Link>
-        }
-      />
-
+    <>
       <section id="action-required" className="mt-4">
         <article className="border border-slate-200 bg-white">
           <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
@@ -281,6 +315,6 @@ export default async function CeoDashboard() {
           </Link>
         ))}
       </section>
-    </main>
+    </>
   );
 }

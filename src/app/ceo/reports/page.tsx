@@ -1,3 +1,7 @@
+import { Suspense } from "react";
+
+import { ReportContentSkeleton } from "@/components/operations/loading-skeletons";
+import { PageHeader } from "@/components/operations/page-header";
 import { ReportCenter } from "@/components/phase7/report-center";
 
 export default async function CeoReportsPage({
@@ -5,5 +9,20 @@ export default async function CeoReportsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  return <ReportCenter role="CEO" searchParams={await searchParams} />;
+  const params = await searchParams;
+
+  return (
+    <main>
+      <PageHeader
+        title="Reports"
+        description="Browse predefined operational reports and export the filtered results."
+      />
+      <Suspense
+        key={JSON.stringify(params)}
+        fallback={<ReportContentSkeleton />}
+      >
+        <ReportCenter role="CEO" searchParams={params} />
+      </Suspense>
+    </main>
+  );
 }

@@ -8,9 +8,11 @@ import {
   UserRound,
 } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { DataViewToolbar } from "@/components/operations/data-view-toolbar";
+import { ListResultsSkeleton } from "@/components/operations/loading-skeletons";
 import { PageHeader } from "@/components/operations/page-header";
 import { StatusChip } from "@/components/operations/status-chip";
 import { presentAuditEntry } from "@/lib/phase2/audit";
@@ -36,80 +38,12 @@ export default async function AuditPage({
   }>;
 }) {
   const params = await searchParams;
-  const query = params.query?.trim().toLowerCase();
-  const actor = params.actor?.trim().toLowerCase();
-  const requestedPage = Number(params.page ?? "1");
-  const page =
-    Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
-  const [actorIds, entityIds] = await Promise.all([
-    findAuditActorIds(params.actor),
-    findAuditEntityIds(params.query),
-  ]);
-  const databaseFilters = {
-    actorIds,
-    date: params.date,
-    entityIds,
-    module: params.area,
-    query: params.query,
-  };
-  const [auditEntries, total] = await Promise.all([
-    getAuditEntries(PAGE_SIZE, {
-      ...databaseFilters,
-      offset: (page - 1) * PAGE_SIZE,
-    }),
-    getAuditEntryCount(databaseFilters),
-  ]);
-  const allEntries = auditEntries.map((entry) => ({
-    ...entry,
-    presentation: presentAuditEntry({
-      action: entry.action,
-      actorName: entry.actorName,
-      afterData: entry.after_data,
-      beforeData: entry.before_data,
-      entityType: entry.entity_type,
-      foremanName: entry.foremanName,
-      module: entry.module,
-      projectName: entry.projectName,
-      source: entry.source,
-      workerName: entry.workerName,
-    }),
-  }));
-  const entries = allEntries.filter((entry) => {
-    const searchableText = [
-      entry.presentation.title,
-      entry.presentation.summary,
-      entry.presentation.area,
-      entry.actorName,
-      entry.workerName,
-      entry.entity_id,
-      entry.action,
-    ]
-      .join(" ")
-      .toLowerCase();
-
-    return (
-      (!params.area || entry.module === params.area) &&
-      (!actor || entry.actorName.toLowerCase().includes(actor)) &&
-      (!query || searchableText.includes(query))
-    );
-  });
-  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const currentPage = Math.min(page, pageCount);
   const filtersActive = Boolean(
     params.actor || params.area || params.date || params.query,
   );
   const activeFilterCount = [params.actor, params.area, params.date].filter(
     Boolean,
   ).length;
-  const pageHref = (target: number) => {
-    const next = new URLSearchParams(
-      Object.entries(params).filter((entry): entry is [string, string] =>
-        Boolean(entry[1]),
-      ),
-    );
-    next.set("page", String(target));
-    return `/ceo/audit?${next.toString()}`;
-  };
 
   return (
     <main>
@@ -202,6 +136,98 @@ export default async function AuditPage({
         </DataViewToolbar>
       </form>
 
+      <Suspense
+        key={JSON.stringify(params)}
+        fallback={<ListResultsSkeleton columns={4} rows={9} />}
+      >
+        <AuditResults params={params} />
+      </Suspense>
+    </main>
+  );
+}
+
+async function AuditResults({
+  params,
+}: {
+  params: {
+    actor?: string;
+    area?: string;
+    date?: string;
+    page?: string;
+    query?: string;
+  };
+}) {
+  const query = params.query?.trim().toLowerCase();
+  const actor = params.actor?.trim().toLowerCase();
+  const requestedPage = Number(params.page ?? "1");
+  const page =
+    Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const [actorIds, entityIds] = await Promise.all([
+    findAuditActorIds(params.actor),
+    findAuditEntityIds(params.query),
+  ]);
+  const databaseFilters = {
+    actorIds,
+    date: params.date,
+    entityIds,
+    module: params.area,
+    query: params.query,
+  };
+  const [auditEntries, total] = await Promise.all([
+    getAuditEntries(PAGE_SIZE, {
+      ...databaseFilters,
+      offset: (page - 1) * PAGE_SIZE,
+    }),
+    getAuditEntryCount(databaseFilters),
+  ]);
+  const allEntries = auditEntries.map((entry) => ({
+    ...entry,
+    presentation: presentAuditEntry({
+      action: entry.action,
+      actorName: entry.actorName,
+      afterData: entry.after_data,
+      beforeData: entry.before_data,
+      entityType: entry.entity_type,
+      foremanName: entry.foremanName,
+      module: entry.module,
+      projectName: entry.projectName,
+      source: entry.source,
+      workerName: entry.workerName,
+    }),
+  }));
+  const entries = allEntries.filter((entry) => {
+    const searchableText = [
+      entry.presentation.title,
+      entry.presentation.summary,
+      entry.presentation.area,
+      entry.actorName,
+      entry.workerName,
+      entry.entity_id,
+      entry.action,
+    ]
+      .join(" ")
+      .toLowerCase();
+
+    return (
+      (!params.area || entry.module === params.area) &&
+      (!actor || entry.actorName.toLowerCase().includes(actor)) &&
+      (!query || searchableText.includes(query))
+    );
+  });
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const pageHref = (target: number) => {
+    const next = new URLSearchParams(
+      Object.entries(params).filter((entry): entry is [string, string] =>
+        Boolean(entry[1]),
+      ),
+    );
+    next.set("page", String(target));
+    return `/ceo/audit?${next.toString()}`;
+  };
+
+  return (
+    <>
       <div className="mt-4 flex items-center justify-between gap-4">
         <p className="text-sm text-slate-600" aria-live="polite">
           Showing <strong className="text-slate-950">{entries.length}</strong>{" "}
@@ -401,6 +427,6 @@ export default async function AuditPage({
           </div>
         </nav>
       ) : null}
-    </main>
+    </>
   );
 }
