@@ -65,8 +65,8 @@ values
     '50000000-0000-0000-0000-000000000001'
   );
 
-insert into public.worker_documents (worker_id, file_kind, document_type_id, document_number)
-select worker.id, 'DOCUMENT', type.id, worker.number
+insert into public.worker_documents (worker_id, file_kind, document_type_id, document_number, uploaded_by)
+select worker.id, 'DOCUMENT', type.id, worker.number, '50000000-0000-0000-0000-000000000001'::uuid
 from (values
   ('52000000-0000-0000-0000-000000000001'::uuid, 'PHASE5-A'),
   ('52000000-0000-0000-0000-000000000002'::uuid, 'PHASE5-B')

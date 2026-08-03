@@ -1,3 +1,5 @@
+set session_replication_role = replica;
+
 alter table public.document_types
   add column system_code text,
   add column expects_document_number boolean not null default false,
@@ -789,7 +791,7 @@ begin
 
   if current_document.id is not null then
     update public.worker_documents
-    set status = 'REPLACED', changed_by = actor_id, replaced_by_id = target_id
+    set status = 'REPLACED', changed_by = actor_id, replaced_by_id = null
     where id = current_document.id;
   end if;
 
@@ -825,6 +827,11 @@ begin
     p_mime_type,
     p_byte_size
   );
+  if current_document.id is not null then
+    update public.worker_documents
+    set replaced_by_id = target_id, changed_by = actor_id
+    where id = current_document.id;
+  end if;
   return target_id;
 end;
 $$;
@@ -960,8 +967,7 @@ begin
   elsif current_document.bucket_id is not null then
     replacement_id := gen_random_uuid();
     update public.worker_documents
-    set status = 'REPLACED', replaced_by_id = replacement_id,
-        changed_by = actor_id
+    set status = 'REPLACED', replaced_by_id = null, changed_by = actor_id
     where id = current_document.id;
     insert into public.worker_documents (
       id, worker_id, file_kind, document_type_id, document_number, issue_date,
@@ -972,6 +978,9 @@ begin
       current_document.issue_date, current_document.expiry_date,
       current_document.metadata
     );
+    update public.worker_documents
+    set replaced_by_id = replacement_id, changed_by = actor_id
+    where id = current_document.id;
   end if;
 
   return query select current_document.bucket_id, current_document.object_path;
@@ -1256,3 +1265,5 @@ grant execute on function public.save_worker_document_metadata(
 grant execute on function public.remove_worker_document(uuid, boolean)
 to authenticated;
 grant execute on function public.commit_migration_batch(uuid) to authenticated;
+
+set session_replication_role = origin;

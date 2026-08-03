@@ -21,7 +21,7 @@ do $$
 declare
   passport_id uuid;
   worker_result jsonb;
-  worker_id uuid;
+  saved_worker_id uuid;
 begin
   select id into passport_id from public.document_types where system_code = 'PASSPORT';
   worker_result := public.save_worker_record(
@@ -35,11 +35,11 @@ begin
       'expiryDate', '2031-01-01', 'metadata', jsonb_build_object('issuingCountry', 'Pakistan')
     )), false
   );
-  worker_id := (worker_result->>'workerId')::uuid;
+  saved_worker_id := (worker_result->>'workerId')::uuid;
 
-  if not exists (select 1 from public.worker_employment_periods where worker_employment_periods.worker_id = worker_id and status = 'ACTIVE' and starts_on = (now() at time zone 'Asia/Kuala_Lumpur')::date) then raise exception 'Worker must default to active on the Malaysia business date'; end if;
-  if exists (select 1 from public.worker_project_assignments where worker_project_assignments.worker_id = worker_id and ends_on is null) then raise exception 'New worker must await assignment'; end if;
-  if not exists (select 1 from public.worker_documents where worker_documents.worker_id = worker_id and object_path is null and metadata->>'issuingCountry' = 'Pakistan') then raise exception 'Metadata-only identity document must be saved'; end if;
+  if not exists (select 1 from public.worker_employment_periods where worker_employment_periods.worker_id = saved_worker_id and status = 'ACTIVE' and starts_on = (now() at time zone 'Asia/Kuala_Lumpur')::date) then raise exception 'Worker must default to active on the Malaysia business date'; end if;
+  if exists (select 1 from public.worker_project_assignments where worker_project_assignments.worker_id = saved_worker_id and ends_on is null) then raise exception 'New worker must await assignment'; end if;
+  if not exists (select 1 from public.worker_documents where worker_documents.worker_id = saved_worker_id and object_path is null and metadata->>'issuingCountry' = 'Pakistan') then raise exception 'Metadata-only identity document must be saved'; end if;
 
   begin
     perform public.save_worker_record('', 'Missing identity', '+60120000000', '', 'Malaysia', '32000000-0000-0000-0000-000000000001', '33000000-0000-0000-0000-000000000001', 1000, 0, '', '[]'::jsonb, false);
@@ -58,22 +58,25 @@ end
 $$;
 
 do $$
-declare passport_id uuid; worker_id uuid; document_id uuid;
+declare passport_id uuid; saved_worker_id uuid; document_id uuid;
 begin
   select id into passport_id from public.document_types where system_code = 'PASSPORT';
-  select id into worker_id from public.workers where legal_name = 'Phase Three Worker';
-  select id into document_id from public.worker_documents where worker_documents.worker_id = worker_id and status = 'ACTIVE';
+  select id into saved_worker_id from public.workers where legal_name = 'Phase Three Worker';
+  select id into document_id from public.worker_documents where worker_documents.worker_id = saved_worker_id and status = 'ACTIVE';
 
   begin
-    update public.worker_documents set bucket_id = 'worker-documents' where id = document_id;
+    update public.worker_documents
+    set bucket_id = 'worker-documents',
+        changed_by = '30000000-0000-0000-0000-000000000001'
+    where id = document_id;
     raise exception 'Partial file metadata should fail';
   exception when check_violation then null; end;
 
-  perform public.attach_worker_file(document_id, worker_id, 'DOCUMENT', document_id::text, 'worker-documents', worker_id::text || '/one.pdf', 'one.pdf', 'application/pdf', 10);
-  perform public.attach_worker_file(gen_random_uuid(), worker_id, 'DOCUMENT', document_id::text, 'worker-documents', worker_id::text || '/two.pdf', 'two.pdf', 'application/pdf', 11);
-  if (select count(*) from public.worker_documents where worker_documents.worker_id = worker_id and status = 'REPLACED') <> 1 then raise exception 'Replacing a file must preserve history'; end if;
-  if (select count(*) from public.worker_documents where worker_documents.worker_id = worker_id and status = 'ACTIVE') <> 1 then raise exception 'Non-repeatable type must have one active version'; end if;
-  select id into document_id from public.worker_documents where worker_documents.worker_id = worker_id and status = 'ACTIVE';
+  perform public.attach_worker_file(document_id, saved_worker_id, 'DOCUMENT', document_id::text, 'worker-documents', saved_worker_id::text || '/one.pdf', 'one.pdf', 'application/pdf', 10);
+  perform public.attach_worker_file(gen_random_uuid(), saved_worker_id, 'DOCUMENT', document_id::text, 'worker-documents', saved_worker_id::text || '/two.pdf', 'two.pdf', 'application/pdf', 11);
+  if (select count(*) from public.worker_documents where worker_documents.worker_id = saved_worker_id and status = 'REPLACED') <> 1 then raise exception 'Replacing a file must preserve history'; end if;
+  if (select count(*) from public.worker_documents where worker_documents.worker_id = saved_worker_id and status = 'ACTIVE') <> 1 then raise exception 'Non-repeatable type must have one active version'; end if;
+  select id into document_id from public.worker_documents where worker_documents.worker_id = saved_worker_id and status = 'ACTIVE';
   perform public.remove_worker_document(document_id, false);
   if not exists (select 1 from public.worker_documents where worker_documents.worker_id = worker_id and status = 'ACTIVE' and object_path is null) then raise exception 'Removing a file must retain metadata'; end if;
 end
@@ -85,7 +88,7 @@ select set_config('request.jwt.claims', '{"sub":"user_phase3_foreman","role":"au
 do $$ begin
   begin
     update public.worker_documents set document_number = 'FORBIDDEN';
-    raise exception 'Foreman document write should fail';
+    if found then raise exception 'Foreman document write should fail'; end if;
   exception when insufficient_privilege then null; end;
 end $$;
 
