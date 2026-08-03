@@ -62,6 +62,7 @@ export type ImportPayload = {
 
 export type ImportLookup = {
   documentTypes: Array<{
+    expectsDocumentNumber: boolean;
     expectsExpiryDate: boolean;
     expectsIssueDate: boolean;
     name: string;
@@ -137,7 +138,7 @@ function normalized(value: string) {
 }
 
 function normalizedIdentifier(value: string) {
-  return value.replace(/\s+/g, "").toLocaleUpperCase();
+  return value.replace(/[^A-Z0-9]+/gi, "").toLocaleUpperCase();
 }
 
 function dateValue(value: Date) {
@@ -507,6 +508,8 @@ export async function parseImportWorkbook(
       add("Issue Date", "This document type requires an issue date.");
     if (documentType?.expectsExpiryDate && !expiryDate)
       add("Expiry Date", "This document type requires an expiry date.");
+    if (documentType?.expectsDocumentNumber && !documentNumber)
+      add("Document Number", "This document type requires a document number.");
     if (!fileName) add("File Name", "File name is required.");
     else if (documentFiles.has(normalized(fileName)))
       add("File Name", "Each document file name must be unique in one import.");

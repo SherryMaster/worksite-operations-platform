@@ -6,65 +6,81 @@ import {
   moneyToSen,
 } from "@/lib/phase3/validation";
 
+const passport = {
+  clientKey: "34000000-0000-4000-8000-000000000099",
+  documentNumber: "AB 1234567",
+  documentTypeId: "34000000-0000-4000-8000-000000000001",
+  expiryDate: null,
+  fileAction: "keep",
+  hasFile: false,
+  id: null,
+  issueDate: null,
+  metadata: { issuingCountry: "Pakistan" },
+  originalFilename: null,
+  systemCode: "PASSPORT",
+};
 const validWorker = {
-  legalName: "Ali Worker",
-  phoneNumber: "+60123456789",
-  alternatePhone: "",
   address: "",
-  nationality: "Pakistan",
-  cnicNumber: "",
-  passportNumber: "AB 1234567",
-  workPermitNumber: "",
-  workPermitIssueDate: "",
-  workPermitExpiryDate: "",
-  notes: "",
-  tradeId: "32000000-0000-4000-8000-000000000001",
-  skillLevelId: "33000000-0000-4000-8000-000000000001",
-  foodDeduction: "120.00",
-  employmentStatus: "ACTIVE",
-  employmentStartsOn: "2026-07-01",
-  hourlyRate: "15.75",
-  rateStartsOn: "2026-07-01",
-  projectId: "",
-  assignmentStartsOn: "2026-07-01",
   confirmDuplicate: undefined,
+  documents: [passport],
+  foodDeduction: "0.00",
+  hourlyRate: "15.75",
+  legalName: "Ali Worker",
+  nationality: "Pakistan",
+  phoneNumber: "+60123456789",
+  rateEffectiveOn: "",
+  skillLevelId: "33000000-0000-4000-8000-000000000001",
+  tradeId: "32000000-0000-4000-8000-000000000001",
 };
 
-describe("Phase 3 validation", () => {
-  it("converts MYR input to integer sen", () => {
-    expect(moneyToSen("15.75")).toBe(1575);
-    expect(moneyToSen("120")).toBe(12000);
+describe("worker record validation", () => {
+  it("requires Personal and Work & pay fields while keeping address optional", () => {
+    expect(createWorkerSchema.safeParse(validWorker).success).toBe(true);
+    expect(
+      createWorkerSchema.safeParse({
+        ...validWorker,
+        legalName: "",
+        phoneNumber: "",
+        nationality: "",
+        hourlyRate: "0",
+        tradeId: "",
+        skillLevelId: "",
+        foodDeduction: "-1",
+      }).success,
+    ).toBe(false);
   });
 
-  it("requires at least one practical identity number", () => {
-    const result = createWorkerSchema.safeParse({
-      ...validWorker,
-      passportNumber: "",
-    });
-
-    expect(result.success).toBe(false);
+  it("requires at least one CNIC or Passport", () => {
+    expect(
+      createWorkerSchema.safeParse({
+        ...validWorker,
+        documents: [{ ...passport, systemCode: "WORK_PERMIT" }],
+      }).success,
+    ).toBe(false);
   });
 
-  it("accepts an awaiting-assignment worker", () => {
-    const result = createWorkerSchema.safeParse(validWorker);
-
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.projectId).toBeNull();
-      expect(result.data.confirmDuplicate).toBe(false);
-    }
+  it("accepts metadata-only documents", () => {
+    const parsed = createWorkerSchema.safeParse(validWorker);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) expect(parsed.data.documents[0].hasFile).toBe(false);
   });
 
-  it("rejects document expiry before issue", () => {
+  it("rejects issue and expiry dates in the wrong order", () => {
     expect(
       documentMetadataSchema.safeParse({
         fileKind: "DOCUMENT",
-        documentTypeId: "34000000-0000-4000-8000-000000000001",
-        documentNumber: "",
-        issueDate: "2026-07-20",
-        expiryDate: "2026-07-19",
+        documentTypeId: passport.documentTypeId,
+        documentNumber: "X",
+        metadata: "{}",
+        issueDate: "2026-08-02",
+        expiryDate: "2026-08-01",
         replaceDocumentId: "",
       }).success,
     ).toBe(false);
+  });
+
+  it("converts MYR input to integer sen", () => {
+    expect(moneyToSen("15.75")).toBe(1575);
+    expect(moneyToSen("120")).toBe(12000);
   });
 });

@@ -4,7 +4,7 @@ import { ChevronLeft } from "lucide-react";
 import { Suspense } from "react";
 
 import { updateWorkerAction } from "@/app/ceo/workers/actions";
-import { FormContentSkeleton } from "@/components/operations/loading-skeletons";
+import { WorkerRecordFormSkeleton } from "@/components/operations/loading-skeletons";
 import {
   WorkerForm,
   type WorkerFormValues,
@@ -14,13 +14,23 @@ import {
   getWorkerIdentity,
   getWorkerOptions,
 } from "@/lib/phase3/data";
+import { malaysiaDateInputValue } from "@/lib/phase2/format";
 
 export default async function EditWorkerPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ workerId: string }>;
+  searchParams: Promise<{ stage?: string }>;
 }) {
   const { workerId } = await params;
+  const query = await searchParams;
+  const initialStage = Math.max(
+    0,
+    ["personal", "work-pay", "documents", "photo", "review"].indexOf(
+      query.stage ?? "personal",
+    ),
+  );
   if (!(await getWorkerIdentity(workerId))) notFound();
   const workerPromise = getWorkerEditDefaults(workerId);
   const optionsPromise = getWorkerOptions();
@@ -43,8 +53,9 @@ export default async function EditWorkerPage({
           effective history.
         </p>
       </div>
-      <Suspense fallback={<FormContentSkeleton fields={10} />}>
+      <Suspense fallback={<WorkerRecordFormSkeleton />}>
         <EditWorkerForm
+          initialStage={initialStage}
           workerPromise={workerPromise}
           optionsPromise={optionsPromise}
         />
@@ -54,49 +65,112 @@ export default async function EditWorkerPage({
 }
 
 async function EditWorkerForm({
+  initialStage,
   workerPromise,
   optionsPromise,
 }: {
+  initialStage: number;
   workerPromise: ReturnType<typeof getWorkerEditDefaults>;
   optionsPromise: ReturnType<typeof getWorkerOptions>;
 }) {
   const [worker, options] = await Promise.all([workerPromise, optionsPromise]);
   if (!worker) return null;
+  if (worker.currentEmployment?.status === "ARCHIVED") {
+    return (
+      <p className="mt-5 rounded-lg border border-slate-200 bg-white p-5 text-sm text-slate-600">
+        Archived workers are read-only.
+      </p>
+    );
+  }
+
+  const typeById = new Map(
+    options.documentTypes.map((type) => [type.id, type]),
+  );
+  const pinnedCodes = ["CNIC", "PASSPORT", "WORK_PERMIT"];
+  const activeDocuments = worker.documents.filter(
+    (document) => document.file_kind === "DOCUMENT",
+  );
+  const documentDrafts = activeDocuments.map((document) => {
+    const type = document.document_type_id
+      ? typeById.get(document.document_type_id)
+      : undefined;
+    const metadata =
+      document.metadata &&
+      typeof document.metadata === "object" &&
+      !Array.isArray(document.metadata)
+        ? Object.fromEntries(
+            Object.entries(document.metadata).map(([key, value]) => [
+              key,
+              typeof value === "string" ? value : "",
+            ]),
+          )
+        : {};
+    return {
+      clientKey: crypto.randomUUID(),
+      documentNumber: document.document_number ?? "",
+      documentTypeId: document.document_type_id ?? "",
+      expiryDate: document.expiry_date ?? "",
+      file: null,
+      fileAction: "keep" as const,
+      hasFile: Boolean(document.object_path),
+      id: document.id,
+      issueDate: document.issue_date ?? "",
+      metadata,
+      originalFilename: document.original_filename ?? "",
+      systemCode: type?.system_code ?? null,
+    };
+  });
+  for (const code of pinnedCodes) {
+    const type = options.documentTypes.find(
+      (option) => option.system_code === code,
+    );
+    if (
+      !type ||
+      documentDrafts.some((document) => document.documentTypeId === type.id)
+    )
+      continue;
+    documentDrafts.push({
+      clientKey: crypto.randomUUID(),
+      documentNumber: "",
+      documentTypeId: type.id,
+      expiryDate: "",
+      file: null,
+      fileAction: "keep",
+      hasFile: false,
+      id: null,
+      issueDate: "",
+      metadata: {},
+      originalFilename: "",
+      systemCode: type.system_code,
+    });
+  }
 
   const values: WorkerFormValues = {
     address: worker.address ?? "",
-    alternatePhone: worker.alternate_phone ?? "",
-    assignmentStartsOn: worker.currentAssignment?.starts_on ?? "",
-    cnicNumber: worker.cnic_number ?? "",
-    employmentStartsOn: worker.currentEmployment?.starts_on ?? "",
-    employmentStatus:
-      worker.currentEmployment?.status === "ARCHIVED"
-        ? "LEFT_COMPANY"
-        : (worker.currentEmployment?.status ?? "ACTIVE"),
+    documents: documentDrafts,
     foodDeduction: (
       (worker.currentDeduction?.monthly_amount_sen ?? 0) / 100
     ).toFixed(2),
     hourlyRate: ((worker.currentRate?.hourly_rate_sen ?? 0) / 100).toFixed(2),
     legalName: worker.legal_name,
     nationality: worker.nationality ?? "",
-    notes: worker.notes ?? "",
-    passportNumber: worker.passport_number ?? "",
     phoneNumber: worker.phone_number,
-    projectId: worker.currentAssignment?.project_id ?? "",
-    rateStartsOn: worker.currentRate?.starts_on ?? "",
+    photoAction: "keep",
+    photoFile: null,
+    photoId: worker.photoId,
+    rateEffectiveOn: malaysiaDateInputValue(),
     skillLevelId: worker.currentClassification?.skill_level_id ?? "",
     tradeId: worker.currentClassification?.trade_id ?? "",
-    workPermitExpiryDate: worker.work_permit_expiry_date ?? "",
-    workPermitIssueDate: worker.work_permit_issue_date ?? "",
-    workPermitNumber: worker.work_permit_number ?? "",
+    workerId: worker.id,
   };
 
   return (
-    <div className="mt-5 max-w-3xl">
+    <div className="mt-5 max-w-[80rem]">
       <WorkerForm
         action={updateWorkerAction.bind(null, worker.id)}
+        documentTypes={options.documentTypes}
+        initialStage={initialStage}
         mode="edit"
-        projects={options.projects}
         skills={options.skills}
         trades={options.trades}
         values={values}

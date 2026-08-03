@@ -11,6 +11,8 @@ import {
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 
+import { workerDocumentAccept } from "@/lib/phase3/files";
+
 type ImportIssue = {
   field?: string;
   message: string;
@@ -41,7 +43,7 @@ type SignedUpload = {
   path: string;
   size: number;
   token: string;
-  type: "application/pdf" | "image/jpeg" | "image/png";
+  type: string;
 };
 
 const summaryLabels: Array<[keyof ImportSummary, string]> = [
@@ -255,7 +257,7 @@ export function ImportWorkspace() {
           </h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
             Preview never changes company records. If the WorkerDocuments sheet
-            contains rows, attach the matching PDF, JPEG, or PNG files using the
+            contains rows, attach the matching allowed business files using the
             exact file names written in the sheet.
           </p>
         </div>
@@ -281,7 +283,7 @@ export function ImportWorkspace() {
           <input
             name="documents"
             type="file"
-            accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+            accept={workerDocumentAccept}
             multiple
             disabled={pending}
             className="mt-2 block min-h-11 w-full border border-violet-100 bg-slate-50 p-2 text-sm file:mr-3 file:border-0 file:bg-violet-700 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white"

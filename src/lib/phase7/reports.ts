@@ -10,7 +10,7 @@ import { getAuditEntries, listProjects } from "@/lib/phase2/data";
 import { malaysiaDateInputValue } from "@/lib/phase2/format";
 import { presentAuditEntry } from "@/lib/phase2/audit";
 import { listWorkers } from "@/lib/phase3/data";
-import { documentExpiryState } from "@/lib/phase3/format";
+import { documentExpiryState, maskIdentifier } from "@/lib/phase3/format";
 import { listLeaveRequests } from "@/lib/phase5/data";
 import { getPayrollRun, listPayrollRuns } from "@/lib/phase6/data";
 import { formatPayrollMinutes, formatSen } from "@/lib/phase6/calculations";
@@ -99,6 +99,9 @@ async function currentWorkforce(filters: ReportFilters) {
     [
       { key: "worker", label: "Worker" },
       { key: "phone", label: "Phone" },
+      { key: "cnic", label: "CNIC" },
+      { key: "passport", label: "Passport" },
+      { key: "workPermit", label: "Work Permit" },
       { key: "employmentStatus", label: "Employment status" },
       { key: "project", label: "Current project" },
       { key: "trade", label: "Trade" },
@@ -107,12 +110,15 @@ async function currentWorkforce(filters: ReportFilters) {
     ],
     workers.map((worker) => ({
       documentStatus: worker.documentWarning,
+      cnic: maskIdentifier(worker.identityDocuments.cnic),
       employmentStatus: worker.currentEmployment?.status ?? "NOT SET",
       phone: worker.phone_number,
+      passport: maskIdentifier(worker.identityDocuments.passport),
       project: worker.projectName ?? "Awaiting assignment",
       skill: worker.skillName ?? "Not set",
       trade: worker.tradeName ?? "Not set",
       worker: worker.legal_name,
+      workPermit: maskIdentifier(worker.identityDocuments.workPermit),
     })),
   );
 }

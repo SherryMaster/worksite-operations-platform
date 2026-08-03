@@ -29,73 +29,66 @@ const money = z
 const identityFields = {
   legalName: z.string().trim().min(2).max(160),
   phoneNumber: z.string().trim().min(5).max(40),
-  alternatePhone: optionalText(40),
   address: optionalText(500),
-  nationality: optionalText(80),
-  cnicNumber: optionalText(40),
-  passportNumber: optionalText(40),
-  workPermitNumber: optionalText(60),
-  workPermitIssueDate: optionalDate,
-  workPermitExpiryDate: optionalDate,
-  notes: optionalText(2000),
+  nationality: z.string().trim().min(2).max(80),
   tradeId: uuidSchema,
   skillLevelId: uuidSchema,
   foodDeduction: money,
 };
 
-function validateWorkerIdentity(
-  data: {
-    cnicNumber: string | null;
-    passportNumber: string | null;
-    workPermitExpiryDate: string | null;
-    workPermitIssueDate: string | null;
-  },
-  context: z.RefinementCtx,
-) {
-  if (!data.cnicNumber && !data.passportNumber) {
-    context.addIssue({
-      code: "custom",
-      message: "Enter a CNIC or passport number.",
-      path: ["cnicNumber"],
-    });
-  }
-  if (
-    data.workPermitIssueDate &&
-    data.workPermitExpiryDate &&
-    data.workPermitExpiryDate < data.workPermitIssueDate
-  ) {
-    context.addIssue({
-      code: "custom",
-      message: "Expiry cannot be earlier than the issue date.",
-      path: ["workPermitExpiryDate"],
-    });
-  }
-}
+const documentMetadataValue = z.string().trim().max(300);
 
-export const createWorkerSchema = z
+export const workerDocumentDraftSchema = z
+  .object({
+    clientKey: uuidSchema,
+    documentNumber: optionalText(100),
+    documentTypeId: uuidSchema,
+    expiryDate: optionalDate,
+    fileAction: z.enum(["keep", "remove", "replace"]),
+    hasFile: z.boolean(),
+    id: uuidSchema.nullable(),
+    issueDate: optionalDate,
+    metadata: z.record(z.string(), documentMetadataValue),
+    originalFilename: optionalText(255),
+    systemCode: z.string().trim().max(40).nullable(),
+  })
+  .refine(
+    ({ issueDate, expiryDate }) =>
+      !issueDate || !expiryDate || expiryDate >= issueDate,
+    {
+      path: ["expiryDate"],
+      message: "Expiry cannot be earlier than the issue date.",
+    },
+  );
+
+const workerRecordSchema = z
   .object({
     ...identityFields,
-    employmentStatus: z.enum(["ACTIVE", "SUSPENDED", "LEFT_COMPANY"]),
-    employmentStartsOn: requiredDate,
+    confirmDuplicate: z.preprocess((value) => value === "yes", z.boolean()),
+    documents: z.array(workerDocumentDraftSchema).min(1),
     hourlyRate: money.refine((value) => moneyToSen(value) > 0, {
       message: "Hourly rate must be greater than zero.",
     }),
-    rateStartsOn: requiredDate,
-    projectId: z.preprocess(
-      (value) => (value === "" ? null : value),
-      uuidSchema.nullable(),
-    ),
-    assignmentStartsOn: requiredDate,
-    confirmDuplicate: z.preprocess((value) => value === "yes", z.boolean()),
+    rateEffectiveOn: optionalDate,
   })
-  .superRefine(validateWorkerIdentity);
+  .superRefine((data, context) => {
+    if (
+      !data.documents.some(
+        (document) =>
+          ["CNIC", "PASSPORT"].includes(document.systemCode ?? "") &&
+          Boolean(document.documentNumber),
+      )
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Add a complete CNIC or Passport section.",
+        path: ["documents"],
+      });
+    }
+  });
 
-export const updateWorkerSchema = z
-  .object({
-    ...identityFields,
-    confirmDuplicate: z.preprocess((value) => value === "yes", z.boolean()),
-  })
-  .superRefine(validateWorkerIdentity);
+export const createWorkerSchema = workerRecordSchema;
+export const updateWorkerSchema = workerRecordSchema;
 
 export const employmentChangeSchema = z.object({
   status: z.enum(["ACTIVE", "SUSPENDED", "LEFT_COMPANY", "ARCHIVED"]),
@@ -120,8 +113,10 @@ export const rateChangeSchema = z.object({
 
 export const documentTypeSchema = z.object({
   name: z.string().trim().min(2).max(80),
+  expectsDocumentNumber: z.preprocess((value) => value === "on", z.boolean()),
   expectsIssueDate: z.preprocess((value) => value === "on", z.boolean()),
   expectsExpiryDate: z.preprocess((value) => value === "on", z.boolean()),
+  isRepeatable: z.preprocess((value) => value === "on", z.boolean()),
 });
 
 export const documentMetadataSchema = z
@@ -132,6 +127,17 @@ export const documentMetadataSchema = z
       uuidSchema.nullable(),
     ),
     documentNumber: optionalText(100),
+    metadata: z.preprocess(
+      (value) => {
+        if (typeof value !== "string" || value.trim() === "") return {};
+        try {
+          return JSON.parse(value) as unknown;
+        } catch {
+          return value;
+        }
+      },
+      z.record(z.string(), documentMetadataValue),
+    ),
     issueDate: optionalDate,
     expiryDate: optionalDate,
     replaceDocumentId: z.preprocess(
@@ -159,6 +165,8 @@ export const documentMetadataSchema = z
 export type Phase3ActionState = ActionState & {
   duplicateWorkerId?: string;
   duplicateWorkerName?: string;
+  partialUploadFailures?: Array<{ clientKey: string; message: string }>;
+  workerId?: string;
 };
 
 export function moneyToSen(value: string): number {

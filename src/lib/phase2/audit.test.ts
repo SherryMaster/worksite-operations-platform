@@ -233,4 +233,30 @@ describe("audit presentation", () => {
     expect(result.source).toBe("Imported");
     expect(result.summary).toContain("reconciliation totals");
   });
+
+  it("redacts canonical document identifiers and metadata", () => {
+    const result = presentAuditEntry({
+      action: "worker_documents.update",
+      actorName: "Sherry",
+      beforeData: null,
+      afterData: {
+        document_number: "SECRET-PASSPORT",
+        normalized_document_number: "secretpassport",
+        metadata: { issuingCountry: "SECRET COUNTRY" },
+        expiry_date: "2027-08-01",
+      },
+      entityType: "worker_documents",
+      foremanName: null,
+      module: "workers",
+      projectName: null,
+      source: "ONLINE",
+      workerName: "Ali Worker",
+    });
+    expect(JSON.stringify(result)).not.toContain("SECRET");
+    expect(result.changes).toContainEqual({
+      field: "Expiry date",
+      from: null,
+      to: "01 Aug 2027",
+    });
+  });
 });

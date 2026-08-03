@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { requireRole } from "@/lib/auth/access";
+import { safeWorkerFilename, validateWorkerFile } from "@/lib/phase3/files";
 import { logger } from "@/lib/server/logger";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -14,31 +15,26 @@ const fileSchema = z.object({
     .int()
     .min(1)
     .max(10 * 1024 * 1024),
-  type: z.enum(["application/pdf", "image/jpeg", "image/png"]),
+  type: z.string().trim().min(1).max(150),
 });
 
 const requestSchema = z.object({
   files: z.array(fileSchema).max(100),
 });
 
-function safeFilename(filename: string) {
-  const normalized = filename
-    .normalize("NFKD")
-    .replace(/[^A-Za-z0-9._-]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  return normalized.slice(-120) || "import-file";
-}
-
 export async function POST(request: Request) {
   await requireRole("CEO");
   const parsed = requestSchema.safeParse(
     await request.json().catch(() => null),
   );
-  if (!parsed.success) {
+  if (
+    !parsed.success ||
+    parsed.data.files.some((file) => !validateWorkerFile(file, "DOCUMENT").ok)
+  ) {
     return NextResponse.json(
       {
         message:
-          "Attach no more than 100 PDF, JPEG, or PNG files of up to 10 MB each.",
+          "Attach no more than 100 allowed business files of up to 10 MB each.",
       },
       { status: 400 },
     );
@@ -63,7 +59,7 @@ export async function POST(request: Request) {
   const uploads = [];
   for (const file of parsed.data.files) {
     const id = randomUUID();
-    const path = `imports/${batchId}/${id}-${safeFilename(file.name)}`;
+    const path = `imports/${batchId}/${id}-${safeWorkerFilename(file.name)}`;
     const signed = await supabase.storage
       .from("worker-documents")
       .createSignedUploadUrl(path);

@@ -34,7 +34,6 @@ insert into public.workers (
   id,
   legal_name,
   phone_number,
-  passport_number,
   created_by,
   updated_by
 )
@@ -43,7 +42,6 @@ values
     '62000000-0000-0000-0000-000000000001',
     'Phase Six Worker A',
     '+60111111111',
-    'PHASE6-A',
     '60000000-0000-0000-0000-000000000001',
     '60000000-0000-0000-0000-000000000001'
   ),
@@ -51,10 +49,18 @@ values
     '62000000-0000-0000-0000-000000000002',
     'Phase Six Worker B',
     '+60222222222',
-    'PHASE6-B',
     '60000000-0000-0000-0000-000000000001',
     '60000000-0000-0000-0000-000000000001'
   );
+
+insert into public.worker_documents (worker_id, file_kind, document_type_id, document_number)
+select worker.id, 'DOCUMENT', type.id, worker.number
+from (values
+  ('62000000-0000-0000-0000-000000000001'::uuid, 'PHASE6-A'),
+  ('62000000-0000-0000-0000-000000000002'::uuid, 'PHASE6-B')
+) as worker(id, number)
+cross join public.document_types type
+where type.system_code = 'PASSPORT';
 
 insert into public.foreman_project_assignments (
   project_id,

@@ -485,6 +485,14 @@ async function SettingsContent({ section }: { section: string }) {
                 <label className="flex min-h-11 items-center gap-2 text-sm">
                   <input
                     type="checkbox"
+                    name="expectsDocumentNumber"
+                    className="size-4 accent-stone-950"
+                  />
+                  Collect document number
+                </label>
+                <label className="flex min-h-11 items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
                     name="expectsIssueDate"
                     className="size-4 accent-stone-950"
                   />
@@ -498,6 +506,14 @@ async function SettingsContent({ section }: { section: string }) {
                   />
                   Collect expiry date
                 </label>
+                <label className="flex min-h-11 items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    name="isRepeatable"
+                    className="size-4 accent-stone-950"
+                  />
+                  Allow multiple active records
+                </label>
               </div>
             </ManagedForm>
             <div className="mt-5 divide-y divide-slate-200 border border-slate-200">
@@ -510,11 +526,14 @@ async function SettingsContent({ section }: { section: string }) {
                     <p className="text-sm font-semibold">{type.name}</p>
                     <p className="mt-1 text-xs text-slate-500">
                       {[
+                        type.expects_document_number ? "Document number" : null,
                         type.expects_issue_date ? "Issue date" : null,
                         type.expects_expiry_date ? "Expiry date" : null,
                       ]
                         .filter(Boolean)
-                        .join(" and ") || "No dates required"}{" "}
+                        .join(", ") || "No structured fields required"}{" "}
+                      ·{" "}
+                      {type.is_repeatable ? "Repeatable" : "One active record"}{" "}
                       · {type.is_active ? "Active" : "Inactive"}
                     </p>
                   </div>

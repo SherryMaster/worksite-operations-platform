@@ -148,7 +148,7 @@ async function ForemanWorkerResults({
                 <p className="mt-1 truncate text-xs text-slate-500">
                   {worker.tradeName ?? "No trade"} ·{" "}
                   {worker.skillName ?? "No skill level"} ·{" "}
-                  {maskIdentifier(worker.cnic_number ?? worker.passport_number)}
+                  {maskIdentifier(worker.primaryIdentifier?.number)}
                 </p>
               </Link>
             </CompactRecord>

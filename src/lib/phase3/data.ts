@@ -18,7 +18,18 @@ export type WorkerSummary = Tables<"workers"> & {
   currentEmployment: Employment | null;
   currentClassification: Classification | null;
   documentWarning: "EXPIRED" | "EXPIRING" | "VALID" | "NONE";
+  identityDocuments: {
+    cnic: string | null;
+    passport: string | null;
+    workPermit: string | null;
+  };
   photoId: string | null;
+  primaryIdentifier: {
+    documentId: string;
+    number: string;
+    systemCode: string;
+    typeName: string;
+  } | null;
   projectName: string | null;
   skillName: string | null;
   tradeName: string | null;
@@ -34,6 +45,7 @@ export type WorkerDetail = WorkerSummary & {
   documents: Array<
     Document & {
       documentTypeName: string | null;
+      documentTypeSystemCode: string | null;
       expiryState: "EXPIRED" | "EXPIRING" | "VALID" | "NONE";
     }
   >;
@@ -76,6 +88,7 @@ async function loadWorkerData() {
     trades,
     skills,
     documents,
+    documentTypes,
   ] = await Promise.all([
     supabase.from("workers").select("*").order("legal_name"),
     supabase
@@ -97,6 +110,7 @@ async function loadWorkerData() {
       .from("worker_documents")
       .select("*")
       .order("created_at", { ascending: false }),
+    supabase.from("document_types").select("id,name,system_code").order("name"),
   ]);
 
   for (const [operation, result] of [
@@ -108,6 +122,7 @@ async function loadWorkerData() {
     ["worker_trades", trades],
     ["worker_skills", skills],
     ["worker_documents", documents],
+    ["worker_document_types", documentTypes],
   ] as const) {
     if (result.error) throwQueryError(operation, result.error);
   }
@@ -116,6 +131,7 @@ async function loadWorkerData() {
     assignments: assignments.data ?? [],
     classifications: classifications.data ?? [],
     documents: documents.data ?? [],
+    documentTypes: documentTypes.data ?? [],
     employment: employment.data ?? [],
     projects: projects.data ?? [],
     skills: skills.data ?? [],
@@ -131,6 +147,7 @@ async function loadWorkerDataForIds(workerIds: string[]) {
       assignments: [],
       classifications: [],
       documents: [],
+      documentTypes: [],
       employment: [],
       projects: [],
       skills: [],
@@ -148,6 +165,7 @@ async function loadWorkerDataForIds(workerIds: string[]) {
     trades,
     skills,
     documents,
+    documentTypes,
   ] = await Promise.all([
     supabase.from("workers").select("*").in("id", workerIds),
     supabase
@@ -173,6 +191,7 @@ async function loadWorkerDataForIds(workerIds: string[]) {
       .select("*")
       .in("worker_id", workerIds)
       .order("created_at", { ascending: false }),
+    supabase.from("document_types").select("id,name,system_code").order("name"),
   ]);
 
   for (const [operation, result] of [
@@ -184,6 +203,7 @@ async function loadWorkerDataForIds(workerIds: string[]) {
     ["worker_page_trades", trades],
     ["worker_page_skills", skills],
     ["worker_page_documents", documents],
+    ["worker_page_document_types", documentTypes],
   ] as const) {
     if (result.error) throwQueryError(operation, result.error);
   }
@@ -195,6 +215,7 @@ async function loadWorkerDataForIds(workerIds: string[]) {
     assignments: assignments.data ?? [],
     classifications: classifications.data ?? [],
     documents: documents.data ?? [],
+    documentTypes: documentTypes.data ?? [],
     employment: employment.data ?? [],
     projects: projects.data ?? [],
     skills: skills.data ?? [],
@@ -278,6 +299,34 @@ export async function listWorkersPage({
     relatedFilters.push(result.data.map((row) => row.worker_id));
   }
 
+  const normalizedQuery = query?.trim().replace(/[%_,]/g, "");
+  if (normalizedQuery) {
+    const pattern = `%${normalizedQuery}%`;
+    const [profileMatches, documentMatches] = await Promise.all([
+      supabase
+        .from("workers")
+        .select("id")
+        .or(`legal_name.ilike.${pattern},phone_number.ilike.${pattern}`),
+      supabase
+        .from("worker_documents")
+        .select("worker_id")
+        .eq("status", "ACTIVE")
+        .ilike("document_number", pattern),
+    ]);
+    if (profileMatches.error) {
+      throwQueryError("worker_page_profile_search", profileMatches.error);
+    }
+    if (documentMatches.error) {
+      throwQueryError("worker_page_document_search", documentMatches.error);
+    }
+    relatedFilters.push([
+      ...new Set([
+        ...profileMatches.data.map((row) => row.id),
+        ...documentMatches.data.map((row) => row.worker_id),
+      ]),
+    ]);
+  }
+
   const matchingIds = intersectWorkerIds(relatedFilters);
   if (matchingIds?.length === 0) {
     return { items: [] as WorkerSummary[], page: 1, pageCount: 1, total: 0 };
@@ -291,14 +340,6 @@ export async function listWorkersPage({
     .order("legal_name");
 
   if (matchingIds) workersQuery = workersQuery.in("id", matchingIds);
-  const normalizedQuery = query?.trim().replace(/[%_,]/g, "");
-  if (normalizedQuery) {
-    const pattern = `%${normalizedQuery}%`;
-    workersQuery = workersQuery.or(
-      `legal_name.ilike.${pattern},phone_number.ilike.${pattern},cnic_number.ilike.${pattern},passport_number.ilike.${pattern}`,
-    );
-  }
-
   const from = (safePage - 1) * safePageSize;
   const result = await workersQuery.range(from, from + safePageSize - 1);
   if (result.error) throwQueryError("worker_page", result.error);
@@ -340,6 +381,9 @@ function summarizeWorkers(
   const skillNames = new Map(
     data.skills.map((skill) => [skill.id, skill.name]),
   );
+  const documentTypes = new Map(
+    data.documentTypes.map((type) => [type.id, type]),
+  );
 
   return data.workers.map((worker) => {
     const employment = data.employment.filter(
@@ -366,6 +410,27 @@ function summarizeWorkers(
         : warningStates.includes("VALID")
           ? "VALID"
           : "NONE";
+    const primaryDocument = documents.find((document) => {
+      const code = document.document_type_id
+        ? documentTypes.get(document.document_type_id)?.system_code
+        : null;
+      return (
+        document.file_kind === "DOCUMENT" &&
+        Boolean(document.document_number) &&
+        ["CNIC", "PASSPORT"].includes(code ?? "")
+      );
+    });
+    const primaryType = primaryDocument?.document_type_id
+      ? documentTypes.get(primaryDocument.document_type_id)
+      : null;
+    const identityNumber = (systemCode: string) =>
+      documents.find(
+        (document) =>
+          document.file_kind === "DOCUMENT" &&
+          document.document_type_id &&
+          documentTypes.get(document.document_type_id)?.system_code ===
+            systemCode,
+      )?.document_number ?? null;
 
     return {
       ...worker,
@@ -373,9 +438,23 @@ function summarizeWorkers(
       currentClassification,
       currentEmployment: effective(employment, today),
       documentWarning,
+      identityDocuments: {
+        cnic: identityNumber("CNIC"),
+        passport: identityNumber("PASSPORT"),
+        workPermit: identityNumber("WORK_PERMIT"),
+      },
       photoId:
         documents.find((document) => document.file_kind === "PHOTO")?.id ??
         null,
+      primaryIdentifier:
+        primaryDocument?.document_number && primaryType?.system_code
+          ? {
+              documentId: primaryDocument.id,
+              number: primaryDocument.document_number,
+              systemCode: primaryType.system_code,
+              typeName: primaryType.name,
+            }
+          : null,
       projectName: currentAssignment
         ? (projectNames.get(currentAssignment.project_id) ?? "Unknown project")
         : null,
@@ -404,8 +483,7 @@ export async function listWorkers(filters?: {
     const searchable = [
       worker.legal_name,
       worker.phone_number,
-      worker.cnic_number,
-      worker.passport_number,
+      worker.primaryIdentifier?.number,
       worker.projectName,
       worker.tradeName,
       worker.skillName,
@@ -447,7 +525,7 @@ export async function getWorker(
       .select("*")
       .eq("worker_id", workerId)
       .order("starts_on", { ascending: false }),
-    supabase.from("document_types").select("id,name").order("name"),
+    supabase.from("document_types").select("id,name,system_code").order("name"),
   ]);
   if (rates.error) throwQueryError("worker_rates", rates.error);
   if (deductions.error) throwQueryError("worker_deductions", deductions.error);
@@ -494,6 +572,11 @@ export async function getWorker(
         documentTypeName: document.document_type_id
           ? (documentTypeNames.get(document.document_type_id) ?? "Other")
           : null,
+        documentTypeSystemCode: document.document_type_id
+          ? (documentTypes.data.find(
+              (type) => type.id === document.document_type_id,
+            )?.system_code ?? null)
+          : null,
         expiryState: documentExpiryState(document.expiry_date, today),
       })),
     employment: data.employment.filter((row) => row.worker_id === workerId),
@@ -523,7 +606,7 @@ export async function getWorkerCore(workerId: string) {
 export async function getWorkerEditDefaults(workerId: string) {
   const corePromise = getWorkerCore(workerId);
   const supabase = await createServerSupabaseClient();
-  const [core, rates, deductions] = await Promise.all([
+  const [core, rates, deductions, documents] = await Promise.all([
     corePromise,
     supabase
       .from("worker_rate_periods")
@@ -535,23 +618,32 @@ export async function getWorkerEditDefaults(workerId: string) {
       .select("*")
       .eq("worker_id", workerId)
       .order("starts_on", { ascending: false }),
+    supabase
+      .from("worker_documents")
+      .select("*")
+      .eq("worker_id", workerId)
+      .eq("status", "ACTIVE")
+      .order("created_at"),
   ]);
   if (rates.error) throwQueryError("worker_edit_rates", rates.error);
   if (deductions.error) {
     throwQueryError("worker_edit_deductions", deductions.error);
   }
+  if (documents.error)
+    throwQueryError("worker_edit_documents", documents.error);
   if (!core) return null;
   const today = malaysiaDateInputValue();
   return {
     ...core,
     currentDeduction: effective(deductions.data ?? [], today),
     currentRate: effective(rates.data ?? [], today),
+    documents: documents.data ?? [],
   };
 }
 
-export async function getWorkerForTab(
+export async function getWorkerForSection(
   workerId: string,
-  tab: string,
+  section: string,
   corePromise: ReturnType<typeof getWorkerCore> = getWorkerCore(workerId),
 ): Promise<WorkerDetail | null> {
   const core = await corePromise;
@@ -563,43 +655,34 @@ export async function getWorkerForTab(
   let employment: Employment[] = [];
   let rates: Rate[] = [];
   let foodDeductions: Deduction[] = [];
+  let classifications: WorkerDetail["classifications"] = [];
 
-  if (tab === "employment") {
-    const result = await supabase
-      .from("worker_employment_periods")
-      .select("*")
-      .eq("worker_id", workerId)
-      .order("starts_on", { ascending: false });
-    if (result.error) throwQueryError("worker_tab_employment", result.error);
-    employment = result.data ?? [];
-  }
-
-  if (tab === "assignments") {
-    const [assignmentResult, projectResult] = await Promise.all([
+  if (section === "work-history") {
+    const [
+      employmentResult,
+      assignmentResult,
+      classificationResult,
+      rateResult,
+      deductionResult,
+      projectResult,
+      tradeResult,
+      skillResult,
+    ] = await Promise.all([
+      supabase
+        .from("worker_employment_periods")
+        .select("*")
+        .eq("worker_id", workerId)
+        .order("starts_on", { ascending: false }),
       supabase
         .from("worker_project_assignments")
         .select("*")
         .eq("worker_id", workerId)
         .order("starts_on", { ascending: false }),
-      supabase.from("projects").select("id,name"),
-    ]);
-    if (assignmentResult.error) {
-      throwQueryError("worker_tab_assignments", assignmentResult.error);
-    }
-    if (projectResult.error) {
-      throwQueryError("worker_tab_assignment_projects", projectResult.error);
-    }
-    const projectNames = new Map(
-      (projectResult.data ?? []).map((project) => [project.id, project.name]),
-    );
-    assignments = (assignmentResult.data ?? []).map((assignment) => ({
-      ...assignment,
-      projectName: projectNames.get(assignment.project_id) ?? "Unknown project",
-    }));
-  }
-
-  if (tab === "overview" || tab === "rates") {
-    const [rateResult, deductionResult] = await Promise.all([
+      supabase
+        .from("worker_classification_periods")
+        .select("*")
+        .eq("worker_id", workerId)
+        .order("starts_on", { ascending: false }),
       supabase
         .from("worker_rate_periods")
         .select("*")
@@ -610,29 +693,120 @@ export async function getWorkerForTab(
         .select("*")
         .eq("worker_id", workerId)
         .order("starts_on", { ascending: false }),
+      supabase.from("projects").select("id,name"),
+      supabase.from("trades").select("id,name"),
+      supabase.from("skill_levels").select("id,name"),
     ]);
-    if (rateResult.error) throwQueryError("worker_tab_rates", rateResult.error);
-    if (deductionResult.error) {
-      throwQueryError("worker_tab_deductions", deductionResult.error);
+    if (employmentResult.error) {
+      throwQueryError("worker_section_employment", employmentResult.error);
     }
-    rates = rateResult.data ?? [];
-    foodDeductions = deductionResult.data ?? [];
+    if (assignmentResult.error) {
+      throwQueryError("worker_section_assignments", assignmentResult.error);
+    }
+    if (classificationResult.error) {
+      throwQueryError(
+        "worker_section_classifications",
+        classificationResult.error,
+      );
+    }
+    if (rateResult.error)
+      throwQueryError("worker_section_rates", rateResult.error);
+    if (deductionResult.error) {
+      throwQueryError("worker_section_deductions", deductionResult.error);
+    }
+    if (projectResult.error) {
+      throwQueryError("worker_section_projects", projectResult.error);
+    }
+    if (tradeResult.error)
+      throwQueryError("worker_section_trades", tradeResult.error);
+    if (skillResult.error)
+      throwQueryError("worker_section_skills", skillResult.error);
+    const projectNames = new Map(
+      (projectResult.data ?? []).map((project) => [project.id, project.name]),
+    );
+    assignments = (assignmentResult.data ?? []).map((assignment) => ({
+      ...assignment,
+      projectName: projectNames.get(assignment.project_id) ?? "Unknown project",
+    }));
+    const tradeNames = new Map(
+      tradeResult.data.map((item) => [item.id, item.name]),
+    );
+    const skillNames = new Map(
+      skillResult.data.map((item) => [item.id, item.name]),
+    );
+    classifications = classificationResult.data.map((item) => ({
+      ...item,
+      skillName: skillNames.get(item.skill_level_id) ?? "Unavailable skill",
+      tradeName: tradeNames.get(item.trade_id) ?? "Unavailable trade",
+    }));
+    employment = employmentResult.data;
+    rates = rateResult.data;
+    foodDeductions = deductionResult.data;
   }
 
-  if (tab === "documents") {
+  if (section === "overview") {
+    const [rateResult, deductionResult, documentResult, typeResult] =
+      await Promise.all([
+        supabase
+          .from("worker_rate_periods")
+          .select("*")
+          .eq("worker_id", workerId)
+          .order("starts_on", { ascending: false }),
+        supabase
+          .from("worker_food_deduction_periods")
+          .select("*")
+          .eq("worker_id", workerId)
+          .order("starts_on", { ascending: false }),
+        supabase
+          .from("worker_documents")
+          .select("*")
+          .eq("worker_id", workerId)
+          .eq("file_kind", "DOCUMENT")
+          .eq("status", "ACTIVE")
+          .order("created_at", { ascending: false }),
+        supabase.from("document_types").select("id,name,system_code"),
+      ]);
+    if (rateResult.error)
+      throwQueryError("worker_section_rates", rateResult.error);
+    if (deductionResult.error) {
+      throwQueryError("worker_section_deductions", deductionResult.error);
+    }
+    if (documentResult.error)
+      throwQueryError("worker_overview_documents", documentResult.error);
+    if (typeResult.error)
+      throwQueryError("worker_overview_document_types", typeResult.error);
+    rates = rateResult.data ?? [];
+    foodDeductions = deductionResult.data ?? [];
+    documents = (documentResult.data ?? []).map((document) => {
+      const type = typeResult.data.find(
+        (item) => item.id === document.document_type_id,
+      );
+      return {
+        ...document,
+        documentTypeName: type?.name ?? "Document",
+        documentTypeSystemCode: type?.system_code ?? null,
+        expiryState: documentExpiryState(document.expiry_date, today),
+      };
+    });
+  }
+
+  if (section === "documents") {
     const [documentResult, typeResult] = await Promise.all([
       supabase
         .from("worker_documents")
         .select("*")
         .eq("worker_id", workerId)
         .order("created_at", { ascending: false }),
-      supabase.from("document_types").select("id,name").order("name"),
+      supabase
+        .from("document_types")
+        .select("id,name,system_code")
+        .order("name"),
     ]);
     if (documentResult.error) {
-      throwQueryError("worker_tab_documents", documentResult.error);
+      throwQueryError("worker_section_documents", documentResult.error);
     }
     if (typeResult.error) {
-      throwQueryError("worker_tab_document_types", typeResult.error);
+      throwQueryError("worker_section_document_types", typeResult.error);
     }
     const typeNames = new Map(
       (typeResult.data ?? []).map((type) => [type.id, type.name]),
@@ -642,6 +816,10 @@ export async function getWorkerForTab(
       documentTypeName: document.document_type_id
         ? (typeNames.get(document.document_type_id) ?? "Other")
         : null,
+      documentTypeSystemCode: document.document_type_id
+        ? (typeResult.data.find((type) => type.id === document.document_type_id)
+            ?.system_code ?? null)
+        : null,
       expiryState: documentExpiryState(document.expiry_date, today),
     }));
   }
@@ -649,7 +827,7 @@ export async function getWorkerForTab(
   return {
     ...core,
     assignments,
-    classifications: [],
+    classifications,
     currentDeduction: effective(foodDeductions, today),
     currentRate: effective(rates, today),
     documents,
@@ -659,9 +837,12 @@ export async function getWorkerForTab(
   };
 }
 
+export const getWorkerForTab = getWorkerForSection;
+
 export async function getWorkerOptions() {
   const supabase = await createServerSupabaseClient();
-  const [trades, skills, projects] = await Promise.all([
+  const [projects, trades, skills, documentTypes] = await Promise.all([
+    supabase.from("projects").select("id,name").order("name"),
     supabase
       .from("trades")
       .select("id,name")
@@ -673,16 +854,20 @@ export async function getWorkerOptions() {
       .eq("is_active", true)
       .order("name"),
     supabase
-      .from("projects")
-      .select("id,name")
-      .in("status", ["PLANNED", "ACTIVE"])
+      .from("document_types")
+      .select("*")
+      .eq("is_active", true)
       .order("name"),
   ]);
-  if (trades.error) throwQueryError("worker_options_trades", trades.error);
-  if (skills.error) throwQueryError("worker_options_skills", skills.error);
   if (projects.error)
     throwQueryError("worker_options_projects", projects.error);
+  if (trades.error) throwQueryError("worker_options_trades", trades.error);
+  if (skills.error) throwQueryError("worker_options_skills", skills.error);
+  if (documentTypes.error) {
+    throwQueryError("worker_options_document_types", documentTypes.error);
+  }
   return {
+    documentTypes: documentTypes.data,
     projects: projects.data,
     skills: skills.data,
     trades: trades.data,

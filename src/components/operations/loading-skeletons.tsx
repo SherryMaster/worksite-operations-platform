@@ -417,6 +417,100 @@ export function FormContentSkeleton({ fields = 6 }: { fields?: number }) {
   );
 }
 
+export function WorkerRecordFormSkeleton() {
+  return (
+    <LoadingRegion
+      label="Loading worker record form"
+      className="mt-5 max-w-[80rem]"
+    >
+      <div className="hidden grid-cols-5 overflow-hidden rounded-xl border border-slate-200 bg-white sm:grid">
+        {Array.from({ length: 5 }, (_, index) => (
+          <div
+            key={index}
+            className="flex min-h-16 items-center gap-3 border-r border-slate-100 px-4 last:border-r-0"
+          >
+            <Skeleton className="size-7 rounded-full" />
+            <Skeleton className="h-3 w-20" />
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center justify-center gap-2 py-4 sm:hidden">
+        {Array.from({ length: 5 }, (_, index) => (
+          <Skeleton key={index} className="size-2.5 rounded-full" />
+        ))}
+      </div>
+      <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6">
+        <Skeleton className="h-7 w-48" />
+        <Skeleton className="mt-2 h-3 w-72 max-w-full" />
+        <div className="mt-6 grid gap-5 sm:grid-cols-2">
+          {Array.from({ length: 4 }, (_, index) => (
+            <div key={index} className={index === 3 ? "sm:col-span-2" : ""}>
+              <Skeleton className="h-3 w-24" />
+              <Skeleton
+                className={cn(
+                  "mt-2 w-full rounded-lg",
+                  index === 3 ? "h-24" : "h-11",
+                )}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="mt-4 flex justify-end gap-3">
+        <Skeleton className="h-11 w-24 rounded-lg" />
+        <Skeleton className="h-11 w-28 rounded-lg" />
+      </div>
+    </LoadingRegion>
+  );
+}
+
+export function WorkerSectionSkeleton({ section }: { section: string }) {
+  if (section.includes("attendance")) {
+    return (
+      <LoadingRegion label="Loading worker attendance" className="mt-4">
+        <Skeleton className="h-20 w-full rounded-xl" />
+        <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-slate-200 sm:grid-cols-4 lg:grid-cols-8">
+          {Array.from({ length: 8 }, (_, index) => (
+            <div key={index} className="space-y-2 bg-white p-3">
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-6 w-12" />
+            </div>
+          ))}
+        </div>
+        <DetailPanelsSkeleton cards={2} rows={5} />
+      </LoadingRegion>
+    );
+  }
+  if (section === "documents") {
+    return (
+      <LoadingRegion
+        label="Loading worker documents"
+        className="mt-4 rounded-xl border border-slate-200 bg-white"
+      >
+        <div className="border-b border-slate-100 p-4">
+          <Skeleton className="h-5 w-28" />
+        </div>
+        {Array.from({ length: 4 }, (_, index) => (
+          <div
+            key={index}
+            className="flex min-h-20 items-center gap-3 border-b border-slate-100 p-4 last:border-0"
+          >
+            <Skeleton className="size-8 rounded-lg" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-3 w-64 max-w-full" />
+            </div>
+            <Skeleton className="h-10 w-20 rounded-lg" />
+          </div>
+        ))}
+      </LoadingRegion>
+    );
+  }
+  return (
+    <DetailPanelsSkeleton cards={section === "overview" ? 3 : 2} rows={4} />
+  );
+}
+
 export function ReportContentSkeleton() {
   return (
     <LoadingRegion label="Loading report" className="mt-4">

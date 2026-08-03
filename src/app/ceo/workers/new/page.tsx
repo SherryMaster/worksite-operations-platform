@@ -3,39 +3,14 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { createWorkerAction } from "@/app/ceo/workers/actions";
-import { FormContentSkeleton } from "@/components/operations/loading-skeletons";
+import { WorkerRecordFormSkeleton } from "@/components/operations/loading-skeletons";
 import {
   WorkerForm,
   type WorkerFormValues,
 } from "@/components/phase3/worker-form";
-import { malaysiaDateInputValue } from "@/lib/phase2/format";
 import { getWorkerOptions } from "@/lib/phase3/data";
 
 export default function NewWorkerPage() {
-  const today = malaysiaDateInputValue();
-  const values: WorkerFormValues = {
-    address: "",
-    alternatePhone: "",
-    assignmentStartsOn: today,
-    cnicNumber: "",
-    employmentStartsOn: today,
-    employmentStatus: "ACTIVE",
-    foodDeduction: "0.00",
-    hourlyRate: "",
-    legalName: "",
-    nationality: "",
-    notes: "",
-    passportNumber: "",
-    phoneNumber: "",
-    projectId: "",
-    rateStartsOn: today,
-    skillLevelId: "",
-    tradeId: "",
-    workPermitExpiryDate: "",
-    workPermitIssueDate: "",
-    workPermitNumber: "",
-  };
-
   return (
     <main>
       <Link
@@ -45,24 +20,61 @@ export default function NewWorkerPage() {
         <ChevronLeft className="size-4" aria-hidden="true" />
         Back to workers
       </Link>
-      <div className="mt-4 max-w-3xl">
+      <div className="mt-4 max-w-5xl">
         <h1 className="font-heading text-2xl font-semibold sm:text-3xl">
           Create worker
         </h1>
         <p className="mt-2 text-sm text-slate-600">
-          Complete the permanent worker record in four guided steps.
+          Add a permanent worker record. Nothing is saved until the final
+          review.
         </p>
       </div>
 
-      <Suspense fallback={<FormContentSkeleton fields={10} />}>
-        <NewWorkerForm values={values} />
+      <Suspense fallback={<WorkerRecordFormSkeleton />}>
+        <NewWorkerForm />
       </Suspense>
     </main>
   );
 }
 
-async function NewWorkerForm({ values }: { values: WorkerFormValues }) {
+async function NewWorkerForm() {
   const options = await getWorkerOptions();
+  const pinnedTypes = ["CNIC", "PASSPORT", "WORK_PERMIT"]
+    .map((code) =>
+      options.documentTypes.find((type) => type.system_code === code),
+    )
+    .filter((type): type is (typeof options.documentTypes)[number] =>
+      Boolean(type),
+    );
+  const values: WorkerFormValues = {
+    address: "",
+    documents: pinnedTypes.map((type) => ({
+      clientKey: crypto.randomUUID(),
+      documentNumber: "",
+      documentTypeId: type.id,
+      expiryDate: "",
+      file: null,
+      fileAction: "keep",
+      hasFile: false,
+      id: null,
+      issueDate: "",
+      metadata: {},
+      originalFilename: "",
+      systemCode: type.system_code,
+    })),
+    foodDeduction: "0.00",
+    hourlyRate: "",
+    legalName: "",
+    nationality: "",
+    phoneNumber: "",
+    photoAction: "keep",
+    photoFile: null,
+    photoId: null,
+    rateEffectiveOn: "",
+    skillLevelId: "",
+    tradeId: "",
+    workerId: null,
+  };
 
   return (
     <>
@@ -78,11 +90,11 @@ async function NewWorkerForm({ values }: { values: WorkerFormValues }) {
           before creating workers.
         </div>
       ) : (
-        <div className="mt-5 max-w-3xl">
+        <div className="mt-5 max-w-[80rem]">
           <WorkerForm
             action={createWorkerAction}
+            documentTypes={options.documentTypes}
             mode="create"
-            projects={options.projects}
             skills={options.skills}
             trades={options.trades}
             values={values}

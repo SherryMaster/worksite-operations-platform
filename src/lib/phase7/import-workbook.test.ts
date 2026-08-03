@@ -9,6 +9,7 @@ import { parseImportWorkbook } from "@/lib/phase7/import-workbook";
 const lookup = {
   documentTypes: [
     {
+      expectsDocumentNumber: true,
       expectsExpiryDate: true,
       expectsIssueDate: false,
       name: "Passport",

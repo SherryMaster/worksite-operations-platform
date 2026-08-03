@@ -1,35 +1,25 @@
-import { randomUUID } from "node:crypto";
-
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { requireRole } from "@/lib/auth/access";
+import {
+  bestEffortStorageCleanup,
+  uploadWorkerFile,
+} from "@/lib/phase3/file-storage";
+import { documentMetadataSchema } from "@/lib/phase3/validation";
+import { validateWorkerFile } from "@/lib/phase3/files";
+import { uuidSchema } from "@/lib/phase2/validation";
 import { logger } from "@/lib/server/logger";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { documentMetadataSchema } from "@/lib/phase3/validation";
-import { uuidSchema } from "@/lib/phase2/validation";
-
-const allowedDocumentTypes = new Set([
-  "application/pdf",
-  "image/jpeg",
-  "image/png",
-]);
-const allowedPhotoTypes = new Set(["image/jpeg", "image/png"]);
-const maximumBytes = 10 * 1024 * 1024;
 
 function resultRedirect(request: Request, workerId: string, result: string) {
   return NextResponse.redirect(
-    new URL(`/ceo/workers/${workerId}?file=${result}#documents`, request.url),
+    new URL(
+      `/ceo/workers/${workerId}?section=documents&file=${result}`,
+      request.url,
+    ),
     303,
   );
-}
-
-function safeFilename(filename: string) {
-  const normalized = filename
-    .normalize("NFKD")
-    .replace(/[^A-Za-z0-9._-]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  return normalized.slice(-120) || "worker-file";
 }
 
 export async function POST(
@@ -45,141 +35,152 @@ export async function POST(
 
   const formData = await request.formData();
   const supabase = await createServerSupabaseClient();
-  const intent = formData.get("intent");
+  const intent = String(formData.get("intent") ?? "save");
 
-  if (intent === "remove") {
+  if (["remove", "remove-document", "remove-file"].includes(intent)) {
     const documentId = uuidSchema.safeParse(formData.get("documentId"));
-    if (!documentId.success) {
+    if (!documentId.success)
       return resultRedirect(request, workerId, "invalid");
-    }
-    const { data: document, error: lookupError } = await supabase
+    const document = await supabase
       .from("worker_documents")
       .select("id,worker_id")
       .eq("id", documentId.data)
       .eq("worker_id", parsedWorkerId.data)
       .eq("status", "ACTIVE")
       .maybeSingle();
-    if (lookupError || !document) {
+    if (document.error || !document.data) {
       return resultRedirect(request, workerId, "invalid");
     }
 
-    const { data, error } = await supabase.rpc("remove_worker_file", {
-      p_document_id: document.id,
+    const removal = await supabase.rpc("remove_worker_document", {
+      p_document_id: document.data.id,
+      p_remove_document: intent !== "remove-file",
     });
-    if (error || !data[0]) {
-      logger.error("worker_file_remove_failed", { code: error?.code });
+    if (removal.error || !removal.data[0]) {
+      logger.error("worker_document_remove_failed", {
+        code: removal.error?.code,
+      });
       return resultRedirect(request, workerId, "failed");
     }
-
-    const cleanup = await supabase.storage
-      .from(data[0].bucket_id)
-      .remove([data[0].object_path]);
-    if (cleanup.error) {
-      logger.error("worker_file_storage_cleanup_failed", {
-        code: cleanup.error.name,
-      });
-    }
-    revalidatePath(`/ceo/workers/${workerId}`);
+    const cleaned = await bestEffortStorageCleanup({
+      bucketId: removal.data[0].bucket_id,
+      objectPath: removal.data[0].object_path,
+      supabase,
+    });
+    revalidateWorker(workerId);
     return resultRedirect(
       request,
       workerId,
-      cleanup.error ? "removed-cleanup-warning" : "removed",
+      cleaned
+        ? intent === "remove-file"
+          ? "file-removed"
+          : "removed"
+        : "removed-cleanup-warning",
     );
   }
 
   const metadata = documentMetadataSchema.safeParse({
-    fileKind: formData.get("fileKind"),
-    documentTypeId: formData.get("documentTypeId"),
     documentNumber: formData.get("documentNumber"),
-    issueDate: formData.get("issueDate"),
+    documentTypeId: formData.get("documentTypeId"),
     expiryDate: formData.get("expiryDate"),
+    fileKind: formData.get("fileKind"),
+    issueDate: formData.get("issueDate"),
+    metadata: formData.get("metadata"),
     replaceDocumentId: formData.get("replaceDocumentId"),
   });
-  const file = formData.get("file");
-  if (!metadata.success || !(file instanceof File)) {
-    return resultRedirect(request, workerId, "invalid");
-  }
+  if (!metadata.success) return resultRedirect(request, workerId, "invalid");
 
-  const allowedTypes =
-    metadata.data.fileKind === "PHOTO"
-      ? allowedPhotoTypes
-      : allowedDocumentTypes;
-  if (
-    file.size < 1 ||
-    file.size > maximumBytes ||
-    !allowedTypes.has(file.type)
-  ) {
-    return resultRedirect(request, workerId, "invalid");
-  }
-
-  const { data: worker, error: workerError } = await supabase
+  const worker = await supabase
     .from("workers")
     .select("id")
     .eq("id", parsedWorkerId.data)
     .maybeSingle();
-  if (workerError || !worker) {
+  if (worker.error || !worker.data)
+    return resultRedirect(request, workerId, "invalid");
+
+  const file = formData.get("file");
+  const hasFile = file instanceof File && file.size > 0;
+  const fileValidation = hasFile
+    ? validateWorkerFile(file, metadata.data.fileKind)
+    : null;
+  if (metadata.data.fileKind === "PHOTO") {
+    if (!hasFile || !fileValidation?.ok)
+      return resultRedirect(request, workerId, "invalid");
+    const upload = await uploadWorkerFile({
+      file,
+      kind: "PHOTO",
+      supabase,
+      workerId: worker.data.id,
+    });
+    if (!upload.ok) return resultRedirect(request, workerId, "failed");
+    revalidateWorker(workerId);
+    return resultRedirect(request, workerId, "photo-saved");
+  }
+
+  const type = await supabase
+    .from("document_types")
+    .select(
+      "expects_document_number,expects_issue_date,expects_expiry_date,is_active",
+    )
+    .eq("id", metadata.data.documentTypeId!)
+    .maybeSingle();
+  if (
+    type.error ||
+    !type.data?.is_active ||
+    (type.data.expects_document_number && !metadata.data.documentNumber) ||
+    (type.data.expects_issue_date && !metadata.data.issueDate) ||
+    (type.data.expects_expiry_date && !metadata.data.expiryDate)
+  ) {
     return resultRedirect(request, workerId, "invalid");
   }
 
-  if (metadata.data.documentTypeId) {
-    const { data: documentType, error: typeError } = await supabase
-      .from("document_types")
-      .select("expects_issue_date,expects_expiry_date")
-      .eq("id", metadata.data.documentTypeId)
-      .eq("is_active", true)
-      .maybeSingle();
-    if (
-      typeError ||
-      !documentType ||
-      (documentType.expects_issue_date && !metadata.data.issueDate) ||
-      (documentType.expects_expiry_date && !metadata.data.expiryDate)
-    ) {
-      return resultRedirect(request, workerId, "invalid");
+  const saved = await supabase.rpc("save_worker_document_metadata", {
+    p_confirm_duplicate: formData.get("confirmDuplicate") === "yes",
+    p_document_id: metadata.data.replaceDocumentId ?? "",
+    p_document_number: metadata.data.documentNumber ?? "",
+    p_document_type_id: metadata.data.documentTypeId!,
+    p_expiry_date: metadata.data.expiryDate ?? "",
+    p_issue_date: metadata.data.issueDate ?? "",
+    p_metadata: metadata.data.metadata,
+    p_worker_id: worker.data.id,
+  });
+  if (saved.error) {
+    logger.error("worker_document_metadata_save_failed", {
+      code: saved.error.code,
+    });
+    return resultRedirect(request, workerId, "invalid");
+  }
+
+  if (hasFile) {
+    if (!fileValidation?.ok) {
+      revalidateWorker(workerId);
+      return resultRedirect(request, workerId, "metadata-saved-upload-failed");
+    }
+    const upload = await uploadWorkerFile({
+      documentId: saved.data,
+      file,
+      kind: "DOCUMENT",
+      supabase,
+      workerId: worker.data.id,
+    });
+    if (!upload.ok) {
+      revalidateWorker(workerId);
+      return resultRedirect(request, workerId, "metadata-saved-upload-failed");
     }
   }
 
-  const fileId = randomUUID();
-  const bucketId =
-    metadata.data.fileKind === "PHOTO" ? "worker-photos" : "worker-documents";
-  const objectPath = `${worker.id}/${fileId}-${safeFilename(file.name)}`;
-  const upload = await supabase.storage
-    .from(bucketId)
-    .upload(objectPath, await file.arrayBuffer(), {
-      contentType: file.type,
-      upsert: false,
-    });
-  if (upload.error) {
-    logger.error("worker_file_upload_failed", { code: upload.error.name });
-    return resultRedirect(request, workerId, "failed");
-  }
-
-  const { error } = await supabase.rpc("register_worker_file", {
-    p_bucket_id: bucketId,
-    p_byte_size: file.size,
-    p_document_number: metadata.data.documentNumber ?? "",
-    p_document_type_id: metadata.data.documentTypeId ?? "",
-    p_expiry_date: metadata.data.expiryDate ?? "",
-    p_file_kind: metadata.data.fileKind,
-    p_id: fileId,
-    p_issue_date: metadata.data.issueDate ?? "",
-    p_mime_type: file.type,
-    p_object_path: objectPath,
-    p_original_filename: file.name,
-    p_replace_document_id: metadata.data.replaceDocumentId ?? "",
-    p_worker_id: worker.id,
-  });
-  if (error) {
-    await supabase.storage.from(bucketId).remove([objectPath]);
-    logger.error("worker_file_metadata_failed", { code: error.code });
-    return resultRedirect(request, workerId, "failed");
-  }
-
-  revalidatePath(`/ceo/workers/${workerId}`);
-  revalidatePath("/ceo/workers");
-  revalidatePath("/ceo");
+  revalidateWorker(workerId);
   return resultRedirect(
     request,
     workerId,
-    metadata.data.replaceDocumentId ? "replaced" : "uploaded",
+    hasFile ? "document-saved" : "metadata-saved",
   );
+}
+
+function revalidateWorker(workerId: string) {
+  revalidatePath(`/ceo/workers/${workerId}`);
+  revalidatePath(`/foreman/workers/${workerId}`);
+  revalidatePath("/ceo/workers");
+  revalidatePath("/foreman/workers");
+  revalidatePath("/ceo");
 }
