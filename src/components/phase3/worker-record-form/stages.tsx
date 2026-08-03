@@ -227,28 +227,22 @@ export function PhotoStage({
   values: WorkerFormValues;
   workerId?: string;
 }) {
-  const [preview, setPreview] = useState<string | null>(null);
-  useEffect(() => {
-    if (!values.photoFile) {
-      setPreview(null);
-      return;
-    }
-    const objectUrl = URL.createObjectURL(values.photoFile);
-    setPreview(objectUrl);
-    return () => URL.revokeObjectURL(objectUrl);
-  }, [values.photoFile]);
   const currentPhoto =
     values.photoId && values.photoAction !== "remove" && workerId
       ? `/api/workers/${workerId}/documents/${values.photoId}`
       : null;
-  const image = preview ?? currentPhoto;
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6">
       <div className="mx-auto max-w-xl">
         <div className="relative grid min-h-72 place-items-center overflow-hidden rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center">
-          {image ? (
+          {values.photoFile ? (
+            <SelectedPhotoPreview
+              key={`${values.photoFile.name}-${values.photoFile.size}-${values.photoFile.lastModified}`}
+              file={values.photoFile}
+            />
+          ) : currentPhoto ? (
             <Image
-              src={image}
+              src={currentPhoto}
               alt="Worker photo preview"
               fill
               unoptimized
@@ -336,5 +330,20 @@ export function PhotoStage({
         </p>
       </div>
     </div>
+  );
+}
+
+function SelectedPhotoPreview({ file }: { file: File }) {
+  const [objectUrl] = useState(() => URL.createObjectURL(file));
+  useEffect(() => () => URL.revokeObjectURL(objectUrl), [objectUrl]);
+
+  return (
+    <Image
+      src={objectUrl}
+      alt="Selected worker photo preview"
+      fill
+      unoptimized
+      className="object-contain"
+    />
   );
 }

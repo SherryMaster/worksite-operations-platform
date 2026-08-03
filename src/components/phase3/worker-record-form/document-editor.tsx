@@ -54,11 +54,6 @@ export function DocumentEditor({
   const [activeKey, setActiveKey] = useState(documents[0]?.clientKey ?? "");
   const [typeToAdd, setTypeToAdd] = useState("");
   useEffect(() => {
-    if (!documents.some((document) => document.clientKey === activeKey)) {
-      setActiveKey(documents[0]?.clientKey ?? "");
-    }
-  }, [activeKey, documents]);
-  useEffect(() => {
     const firstDocumentError = Object.keys(errors).find((key) =>
       key.startsWith("document-"),
     );
@@ -67,12 +62,26 @@ export function DocumentEditor({
       firstDocumentError.startsWith(`document-${item.clientKey}-`),
     );
     if (!document) return;
-    setActiveKey(document.clientKey);
-    requestAnimationFrame(() =>
-      window.document.getElementById(firstDocumentError)?.focus(),
-    );
+    let focusFrame = 0;
+    const sectionFrame = requestAnimationFrame(() => {
+      setActiveKey(document.clientKey);
+      focusFrame = requestAnimationFrame(() =>
+        window.document.getElementById(firstDocumentError)?.focus(),
+      );
+    });
+    return () => {
+      cancelAnimationFrame(sectionFrame);
+      cancelAnimationFrame(focusFrame);
+    };
   }, [documents, errors]);
-  const active = documents.find((document) => document.clientKey === activeKey);
+  const resolvedActiveKey = documents.some(
+    (document) => document.clientKey === activeKey,
+  )
+    ? activeKey
+    : (documents[0]?.clientKey ?? "");
+  const active = documents.find(
+    (document) => document.clientKey === resolvedActiveKey,
+  );
   const activeType = active
     ? documentTypes.find((type) => type.id === active.documentTypeId)
     : null;
@@ -112,7 +121,7 @@ export function DocumentEditor({
                 key={document.clientKey}
                 type="button"
                 onClick={() => setActiveKey(document.clientKey)}
-                className={`flex min-h-14 w-full items-center gap-3 rounded-lg border px-3 py-2 text-left ${document.clientKey === activeKey ? "border-violet-200 bg-violet-50" : "border-transparent hover:bg-slate-50"}`}
+                className={`flex min-h-14 w-full items-center gap-3 rounded-lg border px-3 py-2 text-left ${document.clientKey === resolvedActiveKey ? "border-violet-200 bg-violet-50" : "border-transparent hover:bg-slate-50"}`}
               >
                 <FileText
                   className="size-4 shrink-0 text-violet-700"

@@ -45,9 +45,10 @@ export function documentHasData(document: WorkerDocumentDraft) {
 }
 
 export function documentsForSave(documents: WorkerDocumentDraft[]) {
-  return documents
-    .filter(documentHasData)
-    .map(({ file: _file, ...document }) => document);
+  return documents.filter(documentHasData).map(({ file, ...document }) => {
+    void file;
+    return document;
+  });
 }
 
 export function serializeDraft(values: WorkerFormValues) {
