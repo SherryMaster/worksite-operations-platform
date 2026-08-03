@@ -477,7 +477,7 @@ async function Section({
               ["Address", worker.address ?? "Not recorded"],
               [
                 "Primary identifier",
-                maskIdentifier(worker.primaryIdentifier?.number),
+                maskIdentifier(worker.primaryIdentifier?.number ?? null),
               ],
               ["Joined", formatDate(worker.created_at.slice(0, 10))],
             ]}

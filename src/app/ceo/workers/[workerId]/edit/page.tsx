@@ -90,8 +90,8 @@ async function EditWorkerForm({
   const activeDocuments = worker.documents.filter(
     (document) => document.file_kind === "DOCUMENT",
   );
-  const documentDrafts: WorkerFormValues["documents"] =
-    activeDocuments.map((document) => {
+  const documentDrafts: WorkerFormValues["documents"] = activeDocuments.map(
+    (document) => {
       const type = document.document_type_id
         ? typeById.get(document.document_type_id)
         : undefined;
@@ -120,7 +120,8 @@ async function EditWorkerForm({
         originalFilename: document.original_filename ?? "",
         systemCode: type?.system_code ?? null,
       };
-    });
+    },
+  );
   for (const code of pinnedCodes) {
     const type = options.documentTypes.find(
       (option) => option.system_code === code,
