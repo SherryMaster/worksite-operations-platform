@@ -90,36 +90,37 @@ async function EditWorkerForm({
   const activeDocuments = worker.documents.filter(
     (document) => document.file_kind === "DOCUMENT",
   );
-  const documentDrafts = activeDocuments.map((document) => {
-    const type = document.document_type_id
-      ? typeById.get(document.document_type_id)
-      : undefined;
-    const metadata =
-      document.metadata &&
-      typeof document.metadata === "object" &&
-      !Array.isArray(document.metadata)
-        ? Object.fromEntries(
-            Object.entries(document.metadata).map(([key, value]) => [
-              key,
-              typeof value === "string" ? value : "",
-            ]),
-          )
-        : {};
-    return {
-      clientKey: crypto.randomUUID(),
-      documentNumber: document.document_number ?? "",
-      documentTypeId: document.document_type_id ?? "",
-      expiryDate: document.expiry_date ?? "",
-      file: null,
-      fileAction: "keep" as const,
-      hasFile: Boolean(document.object_path),
-      id: document.id,
-      issueDate: document.issue_date ?? "",
-      metadata,
-      originalFilename: document.original_filename ?? "",
-      systemCode: type?.system_code ?? null,
-    };
-  });
+  const documentDrafts: WorkerFormValues["documents"] =
+    activeDocuments.map((document) => {
+      const type = document.document_type_id
+        ? typeById.get(document.document_type_id)
+        : undefined;
+      const metadata =
+        document.metadata &&
+        typeof document.metadata === "object" &&
+        !Array.isArray(document.metadata)
+          ? Object.fromEntries(
+              Object.entries(document.metadata).map(([key, value]) => [
+                key,
+                typeof value === "string" ? value : "",
+              ]),
+            )
+          : {};
+      return {
+        clientKey: crypto.randomUUID(),
+        documentNumber: document.document_number ?? "",
+        documentTypeId: document.document_type_id ?? "",
+        expiryDate: document.expiry_date ?? "",
+        file: null,
+        fileAction: "keep" as const,
+        hasFile: Boolean(document.object_path),
+        id: document.id,
+        issueDate: document.issue_date ?? "",
+        metadata,
+        originalFilename: document.original_filename ?? "",
+        systemCode: type?.system_code ?? null,
+      };
+    });
   for (const code of pinnedCodes) {
     const type = options.documentTypes.find(
       (option) => option.system_code === code,
