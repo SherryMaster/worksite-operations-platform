@@ -34,6 +34,7 @@ import type {
 } from "@/components/phase3/worker-record-form/types";
 import { Button } from "@/components/ui/button";
 import { initialActionState } from "@/lib/phase2/validation";
+import type { Phase3ActionState } from "@/lib/phase3/validation";
 
 function FinalSubmitButton({
   disabled,
@@ -74,10 +75,7 @@ export function WorkerRecordForm({
   const [errors, setErrors] = useState<DraftErrors>({});
   const [confirmDuplicate, setConfirmDuplicate] = useState(false);
   const submitAction = useCallback(
-    (
-      previousState: import("@/lib/phase3/validation").Phase3ActionState,
-      formData: FormData,
-    ) => {
+    (previousState: Phase3ActionState, formData: FormData) => {
       for (const document of values.documents) {
         if (document.file) {
           formData.set(`documentFile-${document.clientKey}`, document.file);
@@ -88,7 +86,10 @@ export function WorkerRecordForm({
     },
     [action, values.documents, values.photoFile],
   );
-  const [state, formAction] = useActionState(submitAction, initialActionState);
+  const [state, formAction] = useActionState<Phase3ActionState, FormData>(
+    submitAction,
+    initialActionState,
+  );
   const dirty = useMemo(
     () => hasDraftChanges(values, suppliedValues),
     [suppliedValues, values],

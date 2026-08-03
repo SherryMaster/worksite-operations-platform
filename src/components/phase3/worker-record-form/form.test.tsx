@@ -4,6 +4,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -14,6 +15,8 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 afterEach(cleanup);
 
 const passport = {
+  created_at: "2026-08-03T00:00:00.000Z",
+  created_by: "34000000-0000-4000-8000-000000000010",
   id: "34000000-0000-4000-8000-000000000001",
   name: "Passport",
   system_code: "PASSPORT",
@@ -23,7 +26,9 @@ const passport = {
   is_repeatable: false,
   metadata_fields: [],
   is_active: true,
-} as WorkerDocumentType;
+  updated_at: "2026-08-03T00:00:00.000Z",
+  updated_by: "34000000-0000-4000-8000-000000000010",
+} satisfies WorkerDocumentType;
 const values: WorkerFormValues = {
   address: "",
   documents: [
@@ -85,7 +90,13 @@ describe("WorkerRecordForm review submission", () => {
     expect(
       screen.getByRole("heading", { name: "Review worker details" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Kuala Lumpur")).toBeInTheDocument();
+    const personalReview = screen
+      .getByRole("heading", { name: "Personal" })
+      .closest("section");
+    expect(personalReview).not.toBeNull();
+    expect(
+      within(personalReview!).getByText("Kuala Lumpur"),
+    ).toBeInTheDocument();
     expect(action).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Create worker" }));
     await waitFor(() => expect(action).toHaveBeenCalledTimes(1));

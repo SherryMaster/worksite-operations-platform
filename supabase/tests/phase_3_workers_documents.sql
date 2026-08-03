@@ -7,8 +7,8 @@ insert into public.application_users (id, clerk_user_id, role, is_active)
 values
   ('30000000-0000-0000-0000-000000000001', 'user_phase3_ceo', 'CEO', true),
   ('30000000-0000-0000-0000-000000000002', 'user_phase3_foreman', 'FOREMAN', true);
-insert into public.trades (id, name, created_by, updated_by) values ('32000000-0000-0000-0000-000000000001', 'Electrician', '30000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001');
-insert into public.skill_levels (id, name, created_by, updated_by) values ('33000000-0000-0000-0000-000000000001', 'Skilled', '30000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001');
+insert into public.trades (id, name, created_by, updated_by) values ('32000000-0000-0000-0000-000000000001', 'Phase 3 Electrician', '30000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001');
+insert into public.skill_levels (id, name, created_by, updated_by) values ('33000000-0000-0000-0000-000000000001', 'Phase 3 Skilled', '30000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001');
 insert into public.document_types (id, name, system_code, expects_document_number, created_by, updated_by)
 values ('34000000-0000-0000-0000-000000000001', 'Passport', 'PASSPORT', true, '30000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001')
 on conflict (system_code) where system_code is not null do update set expects_document_number = true;

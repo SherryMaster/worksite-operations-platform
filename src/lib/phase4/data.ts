@@ -492,29 +492,27 @@ export async function getWorkerAttendanceMonth(
   ] as const) {
     if (result.error) throwQueryError(operation, result.error);
   }
-  const breakRows = await loadBreaks(
-    sessionsResult.data.map((session) => session.id),
-  );
-  const sessions = mapSessions(sessionsResult.data, breakRows);
+  const projects = projectsResult.data ?? [];
+  const sessionRows = sessionsResult.data ?? [];
+  const days = daysResult.data ?? [];
+  const leaveRows = leaveResult.data ?? [];
+  const leaveTypes = leaveTypesResult.data ?? [];
+  const breakRows = await loadBreaks(sessionRows.map((session) => session.id));
+  const sessions = mapSessions(sessionRows, breakRows);
   const projectNames = new Map(
-    (projectsResult.data ?? []).map((project) => [project.id, project.name]),
+    projects.map((project) => [project.id, project.name]),
   );
   const dayTypes = new Map(
-    daysResult.data.map((day) => [
-      `${day.project_id}:${day.work_date}`,
-      day.day_type,
-    ]),
+    days.map((day) => [`${day.project_id}:${day.work_date}`, day.day_type]),
   );
   const leaveTypeNames = new Map(
-    leaveTypesResult.data.map((type) => [type.id, type.name]),
+    leaveTypes.map((type) => [type.id, type.name]),
   );
   const keys = new Set([
-    ...sessionsResult.data.map(
+    ...sessionRows.map(
       (session) => `${session.project_id}:${session.work_date}`,
     ),
-    ...leaveResult.data.map(
-      (leave) => `${leave.project_id}:${leave.leave_date}`,
-    ),
+    ...leaveRows.map((leave) => `${leave.project_id}:${leave.leave_date}`),
   ]);
   const rows = [...keys]
     .map((key) => {
@@ -522,7 +520,7 @@ export async function getWorkerAttendanceMonth(
       const projectId = key.slice(0, separator);
       const date = key.slice(separator + 1);
       const sessionIds = new Set(
-        sessionsResult.data
+        sessionRows
           .filter(
             (item) => item.project_id === projectId && item.work_date === date,
           )
@@ -533,7 +531,7 @@ export async function getWorkerAttendanceMonth(
         dayTypes.get(key) ?? defaultDayType(date),
         date,
       );
-      const leave = leaveResult.data.find(
+      const leave = leaveRows.find(
         (item) => item.project_id === projectId && item.leave_date === date,
       );
       const leaveTypeName = leave

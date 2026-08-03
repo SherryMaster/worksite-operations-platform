@@ -49,7 +49,10 @@ export function WorkerSectionPicker({
         ))}
       </nav>
       <Sheet>
-        <SheetTrigger className="mt-4 flex min-h-12 w-full items-center justify-between rounded-lg border border-slate-300 bg-white px-4 text-left text-sm font-semibold md:hidden">
+        <SheetTrigger
+          aria-label={`Section ${selected.label}`}
+          className="mt-4 flex min-h-12 w-full items-center justify-between rounded-lg border border-slate-300 bg-white px-4 text-left text-sm font-semibold md:hidden"
+        >
           <span>
             <span className="block text-[11px] font-medium uppercase tracking-wide text-slate-500">
               Section
