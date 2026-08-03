@@ -74,9 +74,11 @@ async function DashboardActions({
   leavePromise: ReturnType<typeof getPendingLeaveCount>;
   payrollPromise: ReturnType<typeof getPayrollDashboardSummary>;
 }) {
-  const [data, workforce] = await Promise.all([
+  const [data, workforce, pendingLeave, payroll] = await Promise.all([
     structurePromise,
     workforcePromise,
+    leavePromise,
+    payrollPromise,
   ]);
   const actionCount =
     data.projectsWithoutForemen.length +
@@ -273,11 +275,9 @@ async function DashboardMetrics({
   structurePromise: ReturnType<typeof getDashboardData>;
   workforcePromise: ReturnType<typeof getWorkerDashboardSummary>;
 }) {
-  const [data, workforce, pendingLeave, payroll] = await Promise.all([
+  const [data, workforce] = await Promise.all([
     structurePromise,
     workforcePromise,
-    leavePromise,
-    payrollPromise,
   ]);
   const metrics = [
     {
