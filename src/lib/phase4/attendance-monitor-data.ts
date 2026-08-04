@@ -37,7 +37,11 @@ type ProjectDayRow = Pick<
 >;
 type LeaveDayRow = Pick<
   Tables<"approved_leave_days">,
-  "worker_id" | "project_id" | "leave_date" | "leave_type_id"
+  | "worker_id"
+  | "project_id"
+  | "leave_date"
+  | "leave_type_id"
+  | "leave_request_id"
 >;
 type EmploymentRow = Pick<
   Tables<"worker_employment_periods">,
@@ -222,11 +226,14 @@ async function loadWorkerDays({
       loadAllRows<LeaveDayRow>("attendance_monitor_leave_days", (from, to) =>
         supabase
           .from("approved_leave_days")
-          .select("worker_id,project_id,leave_date,leave_type_id")
+          .select(
+            "worker_id,project_id,leave_date,leave_type_id,leave_request_id",
+          )
           .in("project_id", projectIds)
           .gte("leave_date", startDate)
           .lte("leave_date", endDate)
-          .order("id")
+          .order("leave_date")
+          .order("leave_request_id")
           .range(from, to),
       ),
     ]);

@@ -52,4 +52,13 @@ describe("attendance workflow separation", () => {
     expect(dashboard).toContain("DashboardAttendanceMetric");
     expect(dashboard).toContain("Today’s attendance");
   });
+
+  it("paginates approved leave using columns exposed by the leave-day view", () => {
+    const data = source("src/lib/phase4/attendance-monitor-data.ts");
+    const start = data.indexOf('.from("approved_leave_days")');
+    const leaveQuery = data.slice(start, data.indexOf("    ]);", start));
+    expect(leaveQuery).toContain('.order("leave_date")');
+    expect(leaveQuery).toContain('.order("leave_request_id")');
+    expect(leaveQuery).not.toContain('.order("id")');
+  });
 });
