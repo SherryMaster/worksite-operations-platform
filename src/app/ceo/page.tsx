@@ -2,6 +2,7 @@ import {
   ArrowUpRight,
   Building2,
   CalendarCheck2,
+  CircleCheck,
   ClipboardList,
   FileWarning,
   HardHat,
@@ -23,6 +24,7 @@ import { getDashboardData } from "@/lib/phase2/data";
 import { getWorkerDashboardSummary } from "@/lib/phase3/data";
 import { getPendingLeaveCount } from "@/lib/phase5/data";
 import { getPayrollDashboardSummary } from "@/lib/phase6/data";
+import { cn } from "@/lib/utils";
 
 export default function CeoDashboard() {
   const structurePromise = getDashboardData();
@@ -306,27 +308,37 @@ async function DashboardMetrics({
   return (
     <section
       aria-label="Company summary"
-      className="mt-4 grid grid-cols-2 overflow-hidden rounded-lg border border-slate-200 bg-white xl:grid-cols-4"
+      className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,3fr)_minmax(34rem,2fr)]"
     >
-      {metrics.map(({ label, value, detail, icon: Icon, href }) => (
-        <Link
-          key={label}
-          href={href}
-          className="group flex min-h-20 items-center gap-3 border-b border-r border-slate-200 p-3 hover:bg-violet-50/40 [&:nth-child(2n)]:border-r-0 xl:border-b-0 xl:[&:nth-child(2n)]:border-r"
-        >
-          <Icon
-            className="size-4 shrink-0 text-violet-700"
-            aria-hidden="true"
-          />
-          <div className="min-w-0">
-            <p className="text-xl font-semibold tabular-nums">{value}</p>
-            <h2 className="truncate text-xs font-semibold">{label}</h2>
-            <p className="mt-0.5 hidden truncate text-[0.6875rem] text-slate-500 sm:block">
-              {detail}
-            </p>
-          </div>
-        </Link>
-      ))}
+      <div className="grid grid-cols-2 overflow-hidden rounded-lg border border-slate-200 bg-white sm:grid-cols-3">
+        {metrics.map(({ label, value, detail, icon: Icon, href }, index) => (
+          <Link
+            key={label}
+            href={href}
+            className={cn(
+              "group flex min-h-24 items-center gap-3 p-3 hover:bg-violet-50/40 focus-visible:z-10 sm:min-h-28 sm:p-4",
+              index === 0 && "border-b border-r border-slate-200 sm:border-b-0",
+              index === 1 &&
+                "border-b border-slate-200 sm:border-b-0 sm:border-r",
+              index === 2 && "col-span-2 sm:col-span-1",
+            )}
+          >
+            <Icon
+              className="size-5 shrink-0 text-violet-700"
+              aria-hidden="true"
+            />
+            <div className="min-w-0">
+              <p className="text-2xl font-semibold tabular-nums">{value}</p>
+              <h2 className="truncate text-xs font-semibold sm:text-sm">
+                {label}
+              </h2>
+              <p className="mt-0.5 truncate text-[0.6875rem] text-slate-500">
+                {detail}
+              </p>
+            </div>
+          </Link>
+        ))}
+      </div>
       <Suspense fallback={<DashboardAttendanceMetricSkeleton />}>
         <DashboardAttendanceMetric attendancePromise={attendancePromise} />
       </Suspense>
@@ -342,33 +354,120 @@ async function DashboardAttendanceMetric({
   const attendance = await attendancePromise;
   const allOffDay = attendance.allProjectsOffDay;
   const missing = attendance.noEntryYet || attendance.absent;
-  const missingLabel = attendance.noEntryYet > 0 ? "no entry" : "absent";
-  const offDayDetail = attendance.offDayWorking
-    ? ` · ${attendance.offDayWorking} off-day working`
-    : "";
+  const missingLabel = attendance.noEntryYet > 0 ? "No entry yet" : "Absent";
+  const percentage = attendance.attendancePercent;
+  const coverageTone =
+    percentage === null
+      ? "text-slate-500"
+      : percentage >= 90
+        ? "text-emerald-700"
+        : percentage >= 75
+          ? "text-amber-700"
+          : "text-red-700";
   return (
     <Link
       href="/ceo/attendance?view=day"
-      className="group flex min-h-20 items-center gap-3 border-b border-slate-200 p-3 hover:bg-violet-50/40 xl:border-b-0"
+      className="group min-w-0 rounded-lg border border-slate-200 bg-white p-3 transition-colors hover:border-violet-200 hover:bg-violet-50/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 sm:p-4"
     >
-      <CalendarCheck2
-        className="size-4 shrink-0 text-violet-700"
-        aria-hidden="true"
-      />
-      <div className="min-w-0">
-        <p className="text-xl font-semibold tabular-nums">
-          {allOffDay ? attendance.offDayWorking : attendance.present}{" "}
-          <span className="text-sm">{allOffDay ? "working" : "present"}</span>
-        </p>
-        <h2 className="truncate text-xs font-semibold">
-          {allOffDay ? "Off-day attendance" : "Today’s attendance"}
-        </h2>
-        <p className="mt-0.5 hidden truncate text-[0.6875rem] text-slate-500 sm:block">
-          {allOffDay
-            ? `${attendance.onSite} on site · absence not applicable`
-            : `${missing} ${missingLabel} · ${attendance.approvedLeave} leave${offDayDetail} · ${attendance.attendancePercent?.toFixed(1) ?? "N/A"}%`}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <CalendarCheck2
+            className="size-5 shrink-0 text-violet-700"
+            aria-hidden="true"
+          />
+          <h2 className="truncate text-sm font-semibold sm:text-base">
+            {allOffDay ? "Off-day attendance" : "Today’s attendance"}
+          </h2>
+        </div>
+        <p className="shrink-0 text-xs font-medium text-slate-500">
+          Expected {allOffDay ? "N/A" : attendance.expected}
         </p>
       </div>
+
+      <div className="mt-3 grid grid-cols-3 gap-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,.8fr)_auto]">
+        <DashboardAttendanceCount
+          label={allOffDay ? "Working" : "Present"}
+          value={allOffDay ? attendance.offDayWorking : attendance.present}
+          detail={allOffDay ? "Off-day" : "Present"}
+          tone="present"
+        />
+        <DashboardAttendanceCount
+          label={allOffDay ? "Absent" : missingLabel}
+          value={allOffDay ? "N/A" : missing}
+          detail={allOffDay ? "Not applicable" : missingLabel}
+          tone={
+            allOffDay
+              ? "neutral"
+              : attendance.noEntryYet > 0
+                ? "pending"
+                : "absent"
+          }
+        />
+        <DashboardAttendanceCount
+          label="Leave"
+          value={attendance.approvedLeave}
+          detail="Approved"
+          tone="leave"
+        />
+        <div className="col-span-3 flex items-center justify-between gap-3 border-t border-slate-200 px-1 pt-3 xl:col-span-1 xl:border-l xl:border-t-0 xl:pl-4 xl:pt-0">
+          <CircleCheck
+            className={cn("size-9 shrink-0", coverageTone)}
+            aria-hidden="true"
+          />
+          <div className="min-w-0 xl:min-w-24">
+            <p
+              className={cn(
+                "text-2xl font-semibold tabular-nums",
+                coverageTone,
+              )}
+            >
+              {percentage === null ? "N/A" : `${percentage.toFixed(1)}%`}
+            </p>
+            <p className="text-xs font-medium text-slate-600">Coverage</p>
+          </div>
+          <span className="text-xs font-semibold text-violet-700 xl:hidden">
+            View attendance →
+          </span>
+        </div>
+      </div>
+      {attendance.offDayWorking > 0 && !allOffDay ? (
+        <p className="mt-2 text-xs text-slate-500">
+          Plus {attendance.offDayWorking}{" "}
+          {attendance.offDayWorking === 1 ? "worker" : "workers"} recorded on an
+          off-day.
+        </p>
+      ) : null}
     </Link>
+  );
+}
+
+function DashboardAttendanceCount({
+  detail,
+  label,
+  tone,
+  value,
+}: {
+  detail: string;
+  label: string;
+  tone: "absent" | "leave" | "neutral" | "pending" | "present";
+  value: number | string;
+}) {
+  const tones = {
+    absent: "border-red-100 bg-red-50/80 text-red-700",
+    leave: "border-blue-100 bg-blue-50/80 text-blue-700",
+    neutral: "border-slate-200 bg-slate-50 text-slate-600",
+    pending: "border-amber-100 bg-amber-50/80 text-amber-800",
+    present: "border-emerald-100 bg-emerald-50/80 text-emerald-700",
+  };
+  return (
+    <div className={cn("min-w-0 rounded-lg border p-2.5", tones[tone])}>
+      <p className="truncate text-[0.625rem] font-bold uppercase tracking-wide">
+        {label}
+      </p>
+      <p className="mt-0.5 text-2xl font-semibold tabular-nums">{value}</p>
+      <p className="truncate text-[0.6875rem] font-medium opacity-90">
+        {detail}
+      </p>
+    </div>
   );
 }

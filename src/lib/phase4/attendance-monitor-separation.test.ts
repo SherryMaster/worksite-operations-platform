@@ -51,6 +51,10 @@ describe("attendance workflow separation", () => {
     expect(dashboard).not.toContain("DashboardActionMetric");
     expect(dashboard).toContain("DashboardAttendanceMetric");
     expect(dashboard).toContain("Today’s attendance");
+    expect(dashboard).toContain('label={allOffDay ? "Working" : "Present"}');
+    expect(dashboard).toContain('label={allOffDay ? "Absent" : missingLabel}');
+    expect(dashboard).toContain('label="Leave"');
+    expect(dashboard).toContain("Coverage");
   });
 
   it("paginates approved leave using columns exposed by the leave-day view", () => {
