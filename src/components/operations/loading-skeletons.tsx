@@ -50,21 +50,30 @@ export function DashboardMetricsSkeleton() {
   return (
     <LoadingRegion
       label="Loading company summary"
-      className="mt-4 grid grid-cols-2 overflow-hidden rounded-lg border border-slate-200 bg-white xl:grid-cols-4"
+      className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,3fr)_minmax(34rem,2fr)]"
     >
-      {Array.from({ length: 4 }, (_, index) => (
-        <div
-          key={index}
-          className="flex min-h-20 items-center gap-3 border-b border-r border-slate-200 p-3 [&:nth-child(2n)]:border-r-0 xl:border-b-0 xl:[&:nth-child(2n)]:border-r"
-        >
-          <Skeleton className="size-4 shrink-0 rounded-full" />
-          <div className="min-w-0 flex-1 space-y-2">
-            <Skeleton className="h-5 w-12" />
-            <Skeleton className="h-3 w-24" />
-            <Skeleton className="hidden h-2.5 w-full sm:block" />
+      <div className="grid grid-cols-2 overflow-hidden rounded-lg border border-slate-200 bg-white sm:grid-cols-3">
+        {Array.from({ length: 3 }, (_, index) => (
+          <div
+            key={index}
+            className={cn(
+              "flex min-h-24 items-center gap-3 p-3 sm:min-h-28 sm:p-4",
+              index === 0 && "border-b border-r border-slate-200 sm:border-b-0",
+              index === 1 &&
+                "border-b border-slate-200 sm:border-b-0 sm:border-r",
+              index === 2 && "col-span-2 sm:col-span-1",
+            )}
+          >
+            <Skeleton className="size-5 shrink-0 rounded-full" />
+            <div className="min-w-0 flex-1 space-y-2">
+              <Skeleton className="h-6 w-12" />
+              <Skeleton className="h-3.5 w-24" />
+              <Skeleton className="h-2.5 w-full" />
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
+      <DashboardAttendanceMetricSkeleton />
     </LoadingRegion>
   );
 }
@@ -391,6 +400,167 @@ export function AttendanceSummarySkeleton({ cards = 3 }: { cards?: number }) {
         ))}
       </div>
     </LoadingRegion>
+  );
+}
+
+export function AttendanceMonitorSummarySkeleton() {
+  return (
+    <LoadingRegion
+      label="Loading attendance monitor summary"
+      className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-12"
+    >
+      <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-4 lg:col-span-5">
+        <div className="flex justify-between">
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-8 w-20" />
+        </div>
+        <div className="grid grid-cols-4 gap-3">
+          {Array.from({ length: 4 }, (_, index) => (
+            <Skeleton key={index} className="h-12" />
+          ))}
+        </div>
+        <Skeleton className="h-2 w-full rounded-full" />
+      </div>
+      {Array.from({ length: 3 }, (_, index) => (
+        <div
+          key={index}
+          className={cn(
+            "space-y-3 rounded-lg border border-slate-200 bg-white p-3",
+            index === 1 ? "lg:col-span-3" : "lg:col-span-2",
+          )}
+        >
+          <Skeleton className="size-4" />
+          <Skeleton className="h-7 w-20" />
+          <Skeleton className="h-3 w-28" />
+          <Skeleton className="h-3 w-full" />
+        </div>
+      ))}
+    </LoadingRegion>
+  );
+}
+
+export function AttendanceProjectComparisonSkeleton() {
+  return (
+    <LoadingRegion label="Loading project attendance" className="mt-4">
+      <Skeleton className="h-5 w-40" />
+      <div className="mt-2 overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <Skeleton className="h-10 w-full rounded-none" />
+        {Array.from({ length: 4 }, (_, index) => (
+          <div
+            key={index}
+            className="grid grid-cols-6 gap-4 border-t border-slate-100 p-3"
+          >
+            {Array.from({ length: 6 }, (_, cell) => (
+              <Skeleton key={cell} className="h-3" />
+            ))}
+          </div>
+        ))}
+      </div>
+    </LoadingRegion>
+  );
+}
+
+export function AttendanceWorkerLedgerSkeleton() {
+  return (
+    <LoadingRegion label="Loading worker attendance records" className="mt-4">
+      <Skeleton className="h-5 w-36" />
+      <div className="mt-3 rounded-lg border border-slate-200 bg-white p-2">
+        <Skeleton className="h-11 w-full" />
+        <div className="mt-2 flex gap-2">
+          {Array.from({ length: 5 }, (_, index) => (
+            <Skeleton key={index} className="h-10 w-24" />
+          ))}
+        </div>
+      </div>
+      <ListResultsSkeleton
+        announced={false}
+        columns={9}
+        rows={7}
+        showLeading
+        className="mt-3"
+      />
+    </LoadingRegion>
+  );
+}
+
+export function AttendanceRecordsSummarySkeleton() {
+  return (
+    <LoadingRegion
+      label="Loading monthly attendance summary"
+      className="mt-4 grid grid-cols-2 overflow-hidden rounded-lg border border-slate-200 bg-white sm:grid-cols-4 xl:grid-cols-8"
+    >
+      {Array.from({ length: 8 }, (_, index) => (
+        <div
+          key={index}
+          className="space-y-2 border-b border-r border-slate-200 p-3"
+        >
+          <Skeleton className="h-6 w-16" />
+          <Skeleton className="h-3 w-full" />
+        </div>
+      ))}
+    </LoadingRegion>
+  );
+}
+
+export function AttendanceRecordsTableSkeleton() {
+  return (
+    <LoadingRegion label="Loading monthly attendance records" className="mt-4">
+      <div className="rounded-lg border border-slate-200 bg-white p-2">
+        <Skeleton className="h-11 w-full" />
+        <div className="mt-2 flex gap-2">
+          {Array.from({ length: 5 }, (_, index) => (
+            <Skeleton key={index} className="h-10 w-24" />
+          ))}
+        </div>
+      </div>
+      <ListResultsSkeleton
+        announced={false}
+        columns={9}
+        rows={8}
+        showLeading
+        className="mt-4"
+      />
+      <ListResultsSkeleton
+        announced={false}
+        columns={9}
+        rows={8}
+        showLeading
+        className="mt-5"
+      />
+    </LoadingRegion>
+  );
+}
+
+export function DashboardAttendanceMetricSkeleton() {
+  return (
+    <div
+      aria-busy="true"
+      className="rounded-lg border border-slate-200 bg-white p-3 sm:p-4"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Skeleton className="size-5 rounded-full" />
+          <Skeleton className="h-4 w-32" />
+        </div>
+        <Skeleton className="h-3 w-16" />
+      </div>
+      <div className="mt-3 grid grid-cols-3 gap-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,.8fr)_auto]">
+        {Array.from({ length: 3 }, (_, index) => (
+          <div key={index} className="space-y-2 rounded-lg bg-slate-50 p-2.5">
+            <Skeleton className="h-2.5 w-12" />
+            <Skeleton className="h-6 w-8" />
+            <Skeleton className="h-2.5 w-14" />
+          </div>
+        ))}
+        <div className="col-span-3 flex items-center gap-3 border-t border-slate-200 px-1 pt-3 xl:col-span-1 xl:border-l xl:border-t-0 xl:pl-4 xl:pt-0">
+          <Skeleton className="size-9 rounded-full" />
+          <div className="space-y-2">
+            <Skeleton className="h-6 w-16" />
+            <Skeleton className="h-2.5 w-14" />
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
