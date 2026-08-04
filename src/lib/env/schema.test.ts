@@ -33,7 +33,11 @@ describe("server environment validation", () => {
 
   it.each([
     [undefined, "pk_test_example", "sk_test_example"],
+    ["development", "pk_test_example", "sk_test_example"],
     ["preview", "pk_test_example", "sk_test_example"],
+    ["production", "pk_test_example", "sk_test_example"],
+    [undefined, "pk_live_example", "sk_live_example"],
+    ["preview", "pk_live_example", "sk_live_example"],
     ["production", "pk_live_example", "sk_live_example"],
   ])(
     "accepts a matched Clerk key pair for VERCEL_ENV=%s",
@@ -50,13 +54,16 @@ describe("server environment validation", () => {
   );
 
   it.each([
-    ["production", "pk_test_example", "sk_test_example"],
+    [undefined, "pk_live_example", "sk_test_example"],
+    [undefined, "pk_test_example", "sk_live_example"],
+    ["development", "pk_live_example", "sk_test_example"],
+    ["development", "pk_test_example", "sk_live_example"],
     ["production", "pk_live_example", "sk_test_example"],
     ["production", "pk_test_example", "sk_live_example"],
     ["preview", "pk_live_example", "sk_test_example"],
-    ["preview", "pk_live_example", "sk_live_example"],
+    ["preview", "pk_test_example", "sk_live_example"],
   ])(
-    "rejects an unsafe Clerk key pair for VERCEL_ENV=%s without exposing values",
+    "rejects a mixed Clerk key pair for VERCEL_ENV=%s without exposing values",
     (vercelEnvironment, publishableKey, secretKey) => {
       let message = "";
       try {

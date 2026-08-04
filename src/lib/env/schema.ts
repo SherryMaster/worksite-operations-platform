@@ -33,29 +33,6 @@ export const serverEnvironmentSchema = z
         path: ["NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY", "CLERK_SECRET_KEY"],
       });
     }
-    if (environment.VERCEL_ENV === "production" && publishableKind !== "live") {
-      context.addIssue({
-        code: "custom",
-        message: "Vercel Production requires a matching Clerk live key pair.",
-        path: [
-          "VERCEL_ENV",
-          "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
-          "CLERK_SECRET_KEY",
-        ],
-      });
-    }
-    if (environment.VERCEL_ENV === "preview" && publishableKind !== "test") {
-      context.addIssue({
-        code: "custom",
-        message:
-          "Vercel Preview requires a matching Clerk development key pair.",
-        path: [
-          "VERCEL_ENV",
-          "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
-          "CLERK_SECRET_KEY",
-        ],
-      });
-    }
   });
 
 export type ServerEnvironment = z.infer<typeof serverEnvironmentSchema>;

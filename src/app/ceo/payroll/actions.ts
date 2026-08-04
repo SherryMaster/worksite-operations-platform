@@ -20,13 +20,23 @@ import {
   payrollPaymentSchema,
 } from "@/lib/phase6/validation";
 
-async function getCeoPayrollClient() {
+type CeoPayrollClientContext =
+  | {
+      ok: true;
+      supabase: Awaited<ReturnType<typeof getAuthorizedActor>>["supabase"];
+    }
+  | { ok: false; failure: ActionState };
+
+async function getCeoPayrollClient(): Promise<CeoPayrollClientContext> {
   try {
     const context = await getAuthorizedActor("CEO");
-    return { supabase: context.supabase } as const;
+    return { ok: true, supabase: context.supabase };
   } catch (error) {
     if (isDependencyError(error)) {
-      return { failure: actionError(dependencyActionMessage(error)) } as const;
+      return {
+        ok: false,
+        failure: actionError(dependencyActionMessage(error)),
+      };
     }
     throw error;
   }
@@ -73,7 +83,7 @@ export async function generatePayrollAction(
   }
 
   const context = await getCeoPayrollClient();
-  if ("failure" in context) return context.failure;
+  if (!context.ok) return context.failure;
   const { supabase } = context;
   const result = await supabase.rpc("generate_payroll", {
     p_payroll_month: parsed.data.payrollMonth,
@@ -106,7 +116,7 @@ export async function addPayrollAdjustmentAction(
   }
 
   const context = await getCeoPayrollClient();
-  if ("failure" in context) return context.failure;
+  if (!context.ok) return context.failure;
   const { supabase } = context;
   const result = await supabase.rpc("add_payroll_adjustment", {
     p_amount_sen: moneyToSen(parsed.data.amount),
@@ -135,7 +145,7 @@ export async function removePayrollAdjustmentAction(
   if (!parsed.success) return actionError("Invalid payroll adjustment.");
 
   const context = await getCeoPayrollClient();
-  if ("failure" in context) return context.failure;
+  if (!context.ok) return context.failure;
   const { supabase } = context;
   const result = await supabase.rpc("remove_payroll_adjustment", {
     p_adjustment_id: parsed.data.adjustmentId,
@@ -156,7 +166,7 @@ export async function approvePayrollAction(
   if (!parsed.success) return actionError("Invalid payroll run.");
 
   const context = await getCeoPayrollClient();
-  if ("failure" in context) return context.failure;
+  if (!context.ok) return context.failure;
   const { supabase } = context;
   const result = await supabase.rpc("approve_payroll", {
     p_payroll_run_id: parsed.data.payrollRunId,
@@ -187,7 +197,7 @@ export async function recordPayrollPaymentAction(
   }
 
   const context = await getCeoPayrollClient();
-  if ("failure" in context) return context.failure;
+  if (!context.ok) return context.failure;
   const { supabase } = context;
   const result = await supabase.rpc("record_payroll_payment", {
     p_method: parsed.data.method,
