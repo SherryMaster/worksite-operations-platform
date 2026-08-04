@@ -1,6 +1,6 @@
 import "server-only";
 
-import { logger } from "@/lib/server/logger";
+import { throwDependencyError } from "@/lib/server/dependency-error";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export async function listMigrationBatches() {
@@ -13,10 +13,13 @@ export async function listMigrationBatches() {
     .order("created_at", { ascending: false })
     .limit(20);
   if (response.error) {
-    logger.error("migration_batches_query_failed", {
-      code: response.error.code,
+    throwDependencyError(response.error, {
+      dependency: "SUPABASE_DATA",
+      operation: "migration_batches",
+      operationKind: "read",
+      routeFamily: "/ceo/imports",
+      surface: "server_component",
     });
-    throw new Error("Import history could not be loaded.");
   }
   return response.data;
 }

@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 
-import { getCurrentAccess } from "@/lib/auth/access";
+import { getCurrentAccessForRouteHandler } from "@/lib/auth/access";
 import { recordPhase7AuditEvent } from "@/lib/phase7/audit";
 import type { ReportRole } from "@/lib/phase7/report-definitions";
 import { loadReport } from "@/lib/phase7/reports";
 import { parseReportRequest } from "@/lib/phase7/validation";
 import { buildReportWorkbook } from "@/lib/phase7/workbook";
+import { withDependencyRouteHandler } from "@/lib/server/route-handler";
 
 function safeFilename(value: string) {
   return value
@@ -14,11 +15,11 @@ function safeFilename(value: string) {
     .replace(/^-|-$/g, "");
 }
 
-export async function GET(
+async function exportReport(
   request: Request,
   { params }: { params: Promise<{ reportId: string }> },
 ) {
-  const access = await getCurrentAccess();
+  const access = await getCurrentAccessForRouteHandler();
   if (access.status !== "AUTHORIZED" || !access.role) {
     return NextResponse.json({ message: "Access denied." }, { status: 403 });
   }
@@ -61,3 +62,9 @@ export async function GET(
     },
   });
 }
+
+export const GET = withDependencyRouteHandler(exportReport, {
+  operation: "report_export",
+  routeFamily: "/api/reports/[reportId]/export",
+  surface: "route_handler",
+});

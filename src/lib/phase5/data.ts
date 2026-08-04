@@ -1,7 +1,7 @@
 import "server-only";
 
 import { malaysiaDateInputValue } from "@/lib/phase2/format";
-import { logger } from "@/lib/server/logger";
+import { throwDependencyError } from "@/lib/server/dependency-error";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { Tables } from "@/types/database";
 
@@ -20,8 +20,13 @@ function throwQueryError(
   operation: string,
   error: { code?: string; message: string } | null,
 ): never {
-  logger.error("phase_5_query_failed", { code: error?.code, operation });
-  throw new Error("Leave information could not be loaded.");
+  throwDependencyError(error, {
+    dependency: "SUPABASE_DATA",
+    operation,
+    operationKind: "read",
+    routeFamily: "/ceo|foreman/leave",
+    surface: "server_component",
+  });
 }
 
 export async function listLeaveTypes(includeInactive = false) {

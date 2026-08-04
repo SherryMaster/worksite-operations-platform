@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { applyLocalAttendanceAction } from "@/lib/phase4/local-actions";
+import {
+  applyLocalAttendanceAction,
+  pauseAttendanceActions,
+} from "@/lib/phase4/local-actions";
 import type {
   AttendanceQueueAction,
   AttendanceSnapshot,
@@ -89,5 +92,23 @@ describe("applyLocalAttendanceAction", () => {
     expect(result.sessions).toHaveLength(1);
     expect(result.sessions[0]?.id).toBe("new");
     expect(result.sessions[0]?.workerId).toBe(snapshot.workers[0].id);
+  });
+
+  it("preserves immutable action IDs and payloads after a transport failure", () => {
+    const queued = action("ENTER", {
+      occurredAt: "2026-07-20T08:00:00+08:00",
+      workerId: snapshot.workers[0].id,
+    });
+    const paused = pauseAttendanceActions(
+      [{ ...queued, state: "SYNCING" }],
+      "2026-07-20T08:01:00+08:00",
+    );
+
+    expect(paused).toHaveLength(1);
+    expect(paused[0]).toMatchObject({
+      clientActionId: queued.clientActionId,
+      payload: queued.payload,
+      state: "PENDING",
+    });
   });
 });

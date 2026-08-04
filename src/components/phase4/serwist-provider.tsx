@@ -2,6 +2,8 @@
 
 import { SerwistProvider as Provider } from "@serwist/turbopack/react";
 
+import { ServiceWorkerUpdate } from "@/components/phase4/service-worker-update";
+
 export function WorksiteSerwistProvider({
   children,
 }: {
@@ -13,6 +15,7 @@ export function WorksiteSerwistProvider({
       cacheOnNavigation={false}
       reloadOnOnline={false}
     >
+      <ServiceWorkerUpdate />
       {children}
     </Provider>
   );

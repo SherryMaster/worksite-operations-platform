@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
-import { requireRole } from "@/lib/auth/access";
+import { requireRoleForRouteHandler } from "@/lib/auth/access";
 import {
   bestEffortStorageCleanup,
   uploadWorkerFile,
@@ -9,24 +9,32 @@ import {
 import { documentMetadataSchema } from "@/lib/phase3/validation";
 import { validateWorkerFile } from "@/lib/phase3/files";
 import { uuidSchema } from "@/lib/phase2/validation";
-import { logger } from "@/lib/server/logger";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import {
+  isRecoverableDependencyFailure,
+  recordDependencyFailure,
+} from "@/lib/server/dependency-error";
+import { withDependencyRouteHandler } from "@/lib/server/route-handler";
 
-function resultRedirect(request: Request, workerId: string, result: string) {
-  return NextResponse.redirect(
-    new URL(
-      `/ceo/workers/${workerId}?section=documents&file=${result}`,
-      request.url,
-    ),
-    303,
+function resultRedirect(
+  request: Request,
+  workerId: string,
+  result: string,
+  reference?: string,
+) {
+  const destination = new URL(
+    `/ceo/workers/${workerId}?section=documents&file=${result}`,
+    request.url,
   );
+  if (reference) destination.searchParams.set("reference", reference);
+  return NextResponse.redirect(destination, 303);
 }
 
-export async function POST(
+async function updateWorkerDocuments(
   request: Request,
   { params }: { params: Promise<{ workerId: string }> },
 ) {
-  await requireRole("CEO");
+  await requireRoleForRouteHandler("CEO");
   const { workerId } = await params;
   const parsedWorkerId = uuidSchema.safeParse(workerId);
   if (!parsedWorkerId.success) {
@@ -48,6 +56,18 @@ export async function POST(
       .eq("worker_id", parsedWorkerId.data)
       .eq("status", "ACTIVE")
       .maybeSingle();
+    if (document.error) {
+      const failure = recordDependencyFailure(document.error, {
+        dependency: "SUPABASE_DATA",
+        operation: "worker_document_remove_lookup",
+        operationKind: "write",
+        routeFamily: "/api/workers/[workerId]/documents",
+        surface: "route_handler",
+      });
+      if (isRecoverableDependencyFailure(failure)) {
+        return resultRedirect(request, workerId, "recovery", failure.digest);
+      }
+    }
     if (document.error || !document.data) {
       return resultRedirect(request, workerId, "invalid");
     }
@@ -57,9 +77,18 @@ export async function POST(
       p_remove_document: intent !== "remove-file",
     });
     if (removal.error || !removal.data[0]) {
-      logger.error("worker_document_remove_failed", {
-        code: removal.error?.code,
-      });
+      if (removal.error) {
+        const failure = recordDependencyFailure(removal.error, {
+          dependency: "SUPABASE_DATA",
+          operation: "worker_document_remove",
+          operationKind: "write",
+          routeFamily: "/api/workers/[workerId]/documents",
+          surface: "route_handler",
+        });
+        if (isRecoverableDependencyFailure(failure)) {
+          return resultRedirect(request, workerId, "recovery", failure.digest);
+        }
+      }
       return resultRedirect(request, workerId, "failed");
     }
     const cleaned = await bestEffortStorageCleanup({
@@ -95,6 +124,18 @@ export async function POST(
     .select("id")
     .eq("id", parsedWorkerId.data)
     .maybeSingle();
+  if (worker.error) {
+    const failure = recordDependencyFailure(worker.error, {
+      dependency: "SUPABASE_DATA",
+      operation: "worker_document_worker_lookup",
+      operationKind: "read",
+      routeFamily: "/api/workers/[workerId]/documents",
+      surface: "route_handler",
+    });
+    if (isRecoverableDependencyFailure(failure)) {
+      return resultRedirect(request, workerId, "recovery", failure.digest);
+    }
+  }
   if (worker.error || !worker.data)
     return resultRedirect(request, workerId, "invalid");
 
@@ -131,6 +172,18 @@ export async function POST(
     (type.data.expects_issue_date && !metadata.data.issueDate) ||
     (type.data.expects_expiry_date && !metadata.data.expiryDate)
   ) {
+    if (type.error) {
+      const failure = recordDependencyFailure(type.error, {
+        dependency: "SUPABASE_DATA",
+        operation: "worker_document_type_lookup",
+        operationKind: "read",
+        routeFamily: "/api/workers/[workerId]/documents",
+        surface: "route_handler",
+      });
+      if (isRecoverableDependencyFailure(failure)) {
+        return resultRedirect(request, workerId, "recovery", failure.digest);
+      }
+    }
     return resultRedirect(request, workerId, "invalid");
   }
 
@@ -145,9 +198,16 @@ export async function POST(
     p_worker_id: worker.data.id,
   });
   if (saved.error) {
-    logger.error("worker_document_metadata_save_failed", {
-      code: saved.error.code,
+    const failure = recordDependencyFailure(saved.error, {
+      dependency: "SUPABASE_DATA",
+      operation: "worker_document_metadata_save",
+      operationKind: "write",
+      routeFamily: "/api/workers/[workerId]/documents",
+      surface: "route_handler",
     });
+    if (isRecoverableDependencyFailure(failure)) {
+      return resultRedirect(request, workerId, "recovery", failure.digest);
+    }
     return resultRedirect(request, workerId, "invalid");
   }
 
@@ -176,6 +236,13 @@ export async function POST(
     hasFile ? "document-saved" : "metadata-saved",
   );
 }
+
+export const POST = withDependencyRouteHandler(updateWorkerDocuments, {
+  operation: "worker_documents_update",
+  operationKind: "write",
+  routeFamily: "/api/workers/[workerId]/documents",
+  surface: "route_handler",
+});
 
 function revalidateWorker(workerId: string) {
   revalidatePath(`/ceo/workers/${workerId}`);

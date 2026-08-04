@@ -3,10 +3,11 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { requireRole } from "@/lib/auth/access";
+import { requireRoleForRouteHandler } from "@/lib/auth/access";
 import { safeWorkerFilename, validateWorkerFile } from "@/lib/phase3/files";
-import { logger } from "@/lib/server/logger";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { throwDependencyError } from "@/lib/server/dependency-error";
+import { withDependencyRouteHandler } from "@/lib/server/route-handler";
 
 const fileSchema = z.object({
   name: z.string().trim().min(1).max(255),
@@ -22,8 +23,8 @@ const requestSchema = z.object({
   files: z.array(fileSchema).max(100),
 });
 
-export async function POST(request: Request) {
-  await requireRole("CEO");
+async function prepareImportUploads(request: Request) {
+  await requireRoleForRouteHandler("CEO");
   const parsed = requestSchema.safeParse(
     await request.json().catch(() => null),
   );
@@ -64,13 +65,13 @@ export async function POST(request: Request) {
       .from("worker-documents")
       .createSignedUploadUrl(path);
     if (signed.error) {
-      logger.error("import_signed_upload_create_failed", {
-        code: signed.error.name,
+      throwDependencyError(signed.error, {
+        dependency: "SUPABASE_STORAGE",
+        operation: "import_signed_upload_create",
+        operationKind: "write",
+        routeFamily: "/api/imports/uploads",
+        surface: "storage",
       });
-      return NextResponse.json(
-        { message: "A secure document upload could not be prepared." },
-        { status: 500 },
-      );
     }
     uploads.push({
       id,
@@ -84,3 +85,10 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ batchId, uploads });
 }
+
+export const POST = withDependencyRouteHandler(prepareImportUploads, {
+  operation: "import_uploads",
+  operationKind: "write",
+  routeFamily: "/api/imports/uploads",
+  surface: "route_handler",
+});

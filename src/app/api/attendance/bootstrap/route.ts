@@ -1,19 +1,20 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { getCurrentAccess } from "@/lib/auth/access";
+import { getCurrentAccessForRouteHandler } from "@/lib/auth/access";
 import {
   getAttendanceSnapshot,
   getForemanAttendanceSnapshot,
 } from "@/lib/phase4/data";
+import { withDependencyRouteHandler } from "@/lib/server/route-handler";
 
 const querySchema = z.object({
   date: z.iso.date(),
   project: z.uuid().optional(),
 });
 
-export async function GET(request: Request) {
-  const access = await getCurrentAccess();
+async function getAttendanceBootstrap(request: Request) {
+  const access = await getCurrentAccessForRouteHandler();
   if (access.status !== "AUTHORIZED") {
     return NextResponse.json(
       { message: "Attendance access is not available." },
@@ -57,3 +58,9 @@ export async function GET(request: Request) {
     },
   );
 }
+
+export const GET = withDependencyRouteHandler(getAttendanceBootstrap, {
+  operation: "attendance_bootstrap",
+  routeFamily: "/api/attendance/bootstrap",
+  surface: "route_handler",
+});

@@ -1,15 +1,19 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
-import { requireRole } from "@/lib/auth/access";
+import { getAuthorizedActor } from "@/lib/auth/access";
 import {
   bestEffortStorageCleanup,
   uploadWorkerFile,
 } from "@/lib/phase3/file-storage";
-import { logger } from "@/lib/server/logger";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import {
+  dependencyActionMessage,
+  isDependencyError,
+  recordDependencyFailure,
+  throwDependencyError,
+} from "@/lib/server/dependency-error";
 import {
   actionError,
   actionSuccess,
@@ -29,20 +33,14 @@ import {
 } from "@/lib/phase3/files";
 
 async function getCeoContext() {
-  await requireRole("CEO");
-  const { userId } = await auth();
-  const supabase = await createServerSupabaseClient();
-  const { data, error } = await supabase
-    .from("application_users")
-    .select("id")
-    .eq("clerk_user_id", userId!)
-    .single();
-
-  if (error) {
-    logger.error("phase_3_ceo_lookup_failed", { code: error.code });
-    throw new Error("The CEO account could not be verified.");
+  try {
+    return await getAuthorizedActor("CEO");
+  } catch (error) {
+    if (isDependencyError(error)) {
+      return { failure: actionError(dependencyActionMessage(error)) } as const;
+    }
+    throw error;
   }
-  return { actorId: data.id, supabase };
 }
 
 function optionalFormValue(formData: FormData, name: string) {
@@ -84,15 +82,31 @@ async function findDuplicate(
     p_exclude_worker_id: excludeWorkerId ?? null,
   });
   if (result.error) {
-    logger.error("worker_duplicate_lookup_failed", {
-      code: result.error.code,
+    throwDependencyError(result.error, {
+      dependency: "SUPABASE_DATA",
+      operation: "worker_duplicate_lookup",
+      operationKind: "read",
+      routeFamily: "/ceo/workers",
+      surface: "server_action",
     });
-    throw new Error("Worker identity could not be checked.");
   }
   return result.data[0] ?? null;
 }
 
-function databaseMessage(error: { code?: string; message: string }) {
+function databaseMessage(
+  error: { code?: string; message: string },
+  operation: string,
+) {
+  const failure = recordDependencyFailure(error, {
+    dependency: "SUPABASE_DATA",
+    operation,
+    operationKind: "write",
+    routeFamily: "/ceo/workers",
+    surface: "server_action",
+  });
+  if (failure.category.startsWith("AUTH_") || failure.retryable) {
+    return dependencyActionMessage(failure);
+  }
   if (error.code === "23P01") {
     return "That effective period overlaps existing worker history.";
   }
@@ -147,12 +161,22 @@ async function saveWorkerRecord(
     if (!validation.ok) preflightFailures.set("photo", validation.message);
   }
 
-  const { supabase } = await getCeoContext();
-  const duplicate = await findDuplicate(
-    supabase,
-    result.data.documents,
-    id?.success ? id.data : undefined,
-  );
+  const context = await getCeoContext();
+  if ("failure" in context) return context.failure;
+  const { supabase } = context;
+  let duplicate;
+  try {
+    duplicate = await findDuplicate(
+      supabase,
+      result.data.documents,
+      id?.success ? id.data : undefined,
+    );
+  } catch (error) {
+    if (isDependencyError(error)) {
+      return actionError(dependencyActionMessage(error));
+    }
+    throw error;
+  }
   if (duplicate && !result.data.confirmDuplicate) {
     return {
       status: "error",
@@ -178,8 +202,7 @@ async function saveWorkerRecord(
     p_worker_id: id?.success ? id.data : "",
   });
   if (save.error) {
-    logger.error("worker_record_save_failed", { code: save.error.code });
-    return actionError(databaseMessage(save.error));
+    return actionError(databaseMessage(save.error, "worker_record_save"));
   }
 
   const saved = save.data as {
@@ -200,6 +223,13 @@ async function saveWorkerRecord(
         p_remove_document: false,
       });
       if (removal.error) {
+        recordDependencyFailure(removal.error, {
+          dependency: "SUPABASE_DATA",
+          operation: "worker_file_remove",
+          operationKind: "write",
+          routeFamily: "/ceo/workers",
+          surface: "server_action",
+        });
         failures.push({
           clientKey: document.clientKey,
           message:
@@ -253,6 +283,15 @@ async function saveWorkerRecord(
       .select("bucket_id,object_path")
       .in("id", removedDocumentIds)
       .eq("status", "REMOVED");
+    if (removedDocuments.error) {
+      recordDependencyFailure(removedDocuments.error, {
+        dependency: "SUPABASE_DATA",
+        operation: "removed_worker_documents_lookup",
+        operationKind: "read",
+        routeFamily: "/ceo/workers",
+        surface: "server_action",
+      });
+    }
     for (const document of removedDocuments.data ?? []) {
       await bestEffortStorageCleanup({
         bucketId: document.bucket_id,
@@ -276,6 +315,13 @@ async function saveWorkerRecord(
         supabase,
       });
     } else {
+      recordDependencyFailure(removal.error, {
+        dependency: "SUPABASE_DATA",
+        operation: "worker_photo_remove",
+        operationKind: "write",
+        routeFamily: "/ceo/workers",
+        surface: "server_action",
+      });
       failures.push({
         clientKey: "photo",
         message:
@@ -339,14 +385,17 @@ export async function changeWorkerEmploymentAction(
       result.success ? undefined : result.error.flatten().fieldErrors,
     );
   }
-  const { supabase } = await getCeoContext();
+  const context = await getCeoContext();
+  if ("failure" in context) return context.failure;
+  const { supabase } = context;
   const { error } = await supabase.rpc("set_worker_employment_status", {
     p_reason: result.data.reason ?? "",
     p_starts_on: result.data.startsOn,
     p_status: result.data.status,
     p_worker_id: id.data,
   });
-  if (error) return actionError(databaseMessage(error));
+  if (error)
+    return actionError(databaseMessage(error, "worker_employment_change"));
 
   revalidatePath("/ceo");
   revalidatePath("/ceo/workers");
@@ -373,13 +422,15 @@ export async function transferWorkerAction(
       result.success ? undefined : result.error.flatten().fieldErrors,
     );
   }
-  const { supabase } = await getCeoContext();
+  const context = await getCeoContext();
+  if ("failure" in context) return context.failure;
+  const { supabase } = context;
   const { error } = await supabase.rpc("move_worker", {
     p_project_id: result.data.projectId ?? "",
     p_starts_on: result.data.startsOn,
     p_worker_id: id.data,
   });
-  if (error) return actionError(databaseMessage(error));
+  if (error) return actionError(databaseMessage(error, "worker_transfer"));
 
   revalidatePath("/ceo");
   revalidatePath("/ceo/projects");
@@ -410,13 +461,15 @@ export async function changeWorkerRateAction(
       result.success ? undefined : result.error.flatten().fieldErrors,
     );
   }
-  const { supabase } = await getCeoContext();
+  const context = await getCeoContext();
+  if ("failure" in context) return context.failure;
+  const { supabase } = context;
   const { error } = await supabase.rpc("set_worker_rate", {
     p_hourly_rate_sen: moneyToSen(result.data.hourlyRate),
     p_starts_on: result.data.startsOn,
     p_worker_id: id.data,
   });
-  if (error) return actionError(databaseMessage(error));
+  if (error) return actionError(databaseMessage(error, "worker_rate_change"));
 
   revalidatePath(`/ceo/workers/${id.data}`);
   return actionSuccess("Hourly rate saved with its effective date.");
@@ -439,7 +492,9 @@ export async function createDocumentTypeAction(
       result.error.flatten().fieldErrors,
     );
   }
-  const { actorId, supabase } = await getCeoContext();
+  const context = await getCeoContext();
+  if ("failure" in context) return context.failure;
+  const { actorId, supabase } = context;
   const { error } = await supabase.from("document_types").insert({
     created_by: actorId,
     expects_document_number: result.data.expectsDocumentNumber,
@@ -449,7 +504,7 @@ export async function createDocumentTypeAction(
     name: result.data.name,
     updated_by: actorId,
   });
-  if (error) return actionError(databaseMessage(error));
+  if (error) return actionError(databaseMessage(error, "document_type_create"));
   revalidatePath("/ceo/settings");
   revalidatePath("/ceo/workers");
   return actionSuccess("Document type added.");
@@ -465,12 +520,14 @@ export async function setDocumentTypeActiveAction(
   void _formData;
   const id = uuidSchema.safeParse(documentTypeId);
   if (!id.success) return actionError("Invalid document type.");
-  const { actorId, supabase } = await getCeoContext();
+  const context = await getCeoContext();
+  if ("failure" in context) return context.failure;
+  const { actorId, supabase } = context;
   const { error } = await supabase
     .from("document_types")
     .update({ is_active: isActive, updated_by: actorId })
     .eq("id", id.data);
-  if (error) return actionError(databaseMessage(error));
+  if (error) return actionError(databaseMessage(error, "document_type_status"));
   revalidatePath("/ceo/settings");
   revalidatePath("/ceo/workers");
   return actionSuccess(

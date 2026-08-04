@@ -2,11 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requireRole } from "@/lib/auth/access";
+import { getAuthorizedActor } from "@/lib/auth/access";
 import type { ActionState } from "@/lib/phase2/validation";
 import { moneyToSen } from "@/lib/phase3/validation";
-import { logger } from "@/lib/server/logger";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import {
+  dependencyActionMessage,
+  isDependencyError,
+  recordDependencyFailure,
+} from "@/lib/server/dependency-error";
 import {
   actionError,
   actionSuccess,
@@ -17,16 +20,42 @@ import {
   payrollPaymentSchema,
 } from "@/lib/phase6/validation";
 
-async function getCeoPayrollClient() {
-  await requireRole("CEO");
-  return createServerSupabaseClient();
+type CeoPayrollClientContext =
+  | {
+      ok: true;
+      supabase: Awaited<ReturnType<typeof getAuthorizedActor>>["supabase"];
+    }
+  | { ok: false; failure: ActionState };
+
+async function getCeoPayrollClient(): Promise<CeoPayrollClientContext> {
+  try {
+    const context = await getAuthorizedActor("CEO");
+    return { ok: true, supabase: context.supabase };
+  } catch (error) {
+    if (isDependencyError(error)) {
+      return {
+        ok: false,
+        failure: actionError(dependencyActionMessage(error)),
+      };
+    }
+    throw error;
+  }
 }
 
 function payrollError(
   operation: string,
   error: { code?: string; message: string },
 ) {
-  logger.error("phase_6_mutation_failed", { code: error.code, operation });
+  const failure = recordDependencyFailure(error, {
+    dependency: "SUPABASE_DATA",
+    operation,
+    operationKind: "write",
+    routeFamily: "/ceo/payroll",
+    surface: "server_action",
+  });
+  if (failure.category.startsWith("AUTH_") || failure.retryable) {
+    return actionError(dependencyActionMessage(failure));
+  }
   return error.code === "P0001"
     ? actionError(error.message)
     : actionError("The payroll change could not be saved. Please try again.");
@@ -53,7 +82,9 @@ export async function generatePayrollAction(
     return actionError("Select a valid calendar month.");
   }
 
-  const supabase = await getCeoPayrollClient();
+  const context = await getCeoPayrollClient();
+  if (!context.ok) return context.failure;
+  const { supabase } = context;
   const result = await supabase.rpc("generate_payroll", {
     p_payroll_month: parsed.data.payrollMonth,
   });
@@ -84,7 +115,9 @@ export async function addPayrollAdjustmentAction(
     );
   }
 
-  const supabase = await getCeoPayrollClient();
+  const context = await getCeoPayrollClient();
+  if (!context.ok) return context.failure;
+  const { supabase } = context;
   const result = await supabase.rpc("add_payroll_adjustment", {
     p_amount_sen: moneyToSen(parsed.data.amount),
     p_kind: parsed.data.kind,
@@ -111,7 +144,9 @@ export async function removePayrollAdjustmentAction(
   });
   if (!parsed.success) return actionError("Invalid payroll adjustment.");
 
-  const supabase = await getCeoPayrollClient();
+  const context = await getCeoPayrollClient();
+  if (!context.ok) return context.failure;
+  const { supabase } = context;
   const result = await supabase.rpc("remove_payroll_adjustment", {
     p_adjustment_id: parsed.data.adjustmentId,
   });
@@ -130,7 +165,9 @@ export async function approvePayrollAction(
   const parsed = payrollApprovalSchema.safeParse({ payrollRunId });
   if (!parsed.success) return actionError("Invalid payroll run.");
 
-  const supabase = await getCeoPayrollClient();
+  const context = await getCeoPayrollClient();
+  if (!context.ok) return context.failure;
+  const { supabase } = context;
   const result = await supabase.rpc("approve_payroll", {
     p_payroll_run_id: parsed.data.payrollRunId,
   });
@@ -159,7 +196,9 @@ export async function recordPayrollPaymentAction(
     return actionError("Check the payment date, method, reference, and notes.");
   }
 
-  const supabase = await getCeoPayrollClient();
+  const context = await getCeoPayrollClient();
+  if (!context.ok) return context.failure;
+  const { supabase } = context;
   const result = await supabase.rpc("record_payroll_payment", {
     p_method: parsed.data.method,
     p_notes: parsed.data.notes ?? "",

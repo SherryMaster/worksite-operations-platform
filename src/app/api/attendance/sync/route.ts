@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 
-import { getCurrentAccess } from "@/lib/auth/access";
+import { getCurrentAccessForRouteHandler } from "@/lib/auth/access";
 import { attendanceSyncRequestSchema } from "@/lib/phase4/validation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { AttendanceSyncResult } from "@/lib/phase4/types";
+import { recordDependencyFailure } from "@/lib/server/dependency-error";
+import { withDependencyRouteHandler } from "@/lib/server/route-handler";
 
-export async function POST(request: Request) {
-  const access = await getCurrentAccess();
+async function synchronizeAttendance(request: Request) {
+  const access = await getCurrentAccessForRouteHandler();
   if (access.status !== "AUTHORIZED") {
     return NextResponse.json(
       { message: "Attendance access is not available." },
@@ -40,6 +42,20 @@ export async function POST(request: Request) {
     });
 
     if (response.error) {
+      const failure = recordDependencyFailure(response.error, {
+        dependency: "SUPABASE_DATA",
+        idempotent: true,
+        operation: "apply_attendance_action",
+        operationKind: "write",
+        routeFamily: "/api/attendance/sync",
+        surface: "route_handler",
+      });
+      if (
+        failure.category.startsWith("AUTH_") ||
+        failure.category === "SUPABASE_TRANSIENT"
+      ) {
+        throw failure;
+      }
       results.push({
         clientActionId: action.clientActionId,
         result: {
@@ -81,3 +97,10 @@ export async function POST(request: Request) {
     },
   );
 }
+
+export const POST = withDependencyRouteHandler(synchronizeAttendance, {
+  operation: "attendance_sync",
+  operationKind: "write",
+  routeFamily: "/api/attendance/sync",
+  surface: "route_handler",
+});

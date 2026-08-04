@@ -7,7 +7,7 @@ import type {
   AttendanceSnapshot,
   AttendanceWorker,
 } from "@/lib/phase4/types";
-import { logger } from "@/lib/server/logger";
+import { throwDependencyError } from "@/lib/server/dependency-error";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { Tables } from "@/types/database";
 
@@ -18,8 +18,13 @@ function throwQueryError(
   operation: string,
   error: { code?: string; message: string } | null,
 ): never {
-  logger.error("phase_4_query_failed", { code: error?.code, operation });
-  throw new Error("Attendance information could not be loaded.");
+  throwDependencyError(error, {
+    dependency: "SUPABASE_DATA",
+    operation,
+    operationKind: "read",
+    routeFamily: "/ceo|foreman/attendance",
+    surface: "server_component",
+  });
 }
 
 function effective(

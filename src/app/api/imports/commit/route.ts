@@ -2,14 +2,19 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { requireRole } from "@/lib/auth/access";
-import { logger } from "@/lib/server/logger";
+import { requireRoleForRouteHandler } from "@/lib/auth/access";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import {
+  isRecoverableDependencyFailure,
+  recordDependencyFailure,
+  throwDependencyError,
+} from "@/lib/server/dependency-error";
+import { withDependencyRouteHandler } from "@/lib/server/route-handler";
 
 const requestSchema = z.object({ batchId: z.string().uuid() });
 
-export async function POST(request: Request) {
-  await requireRole("CEO");
+async function commitImport(request: Request) {
+  await requireRoleForRouteHandler("CEO");
   const parsed = requestSchema.safeParse(
     await request.json().catch(() => null),
   );
@@ -26,7 +31,16 @@ export async function POST(request: Request) {
     .select("id,status,issues,summary")
     .eq("id", parsed.data.batchId)
     .maybeSingle();
-  if (batch.error || !batch.data) {
+  if (batch.error) {
+    throwDependencyError(batch.error, {
+      dependency: "SUPABASE_DATA",
+      operation: "import_batch_lookup",
+      operationKind: "read",
+      routeFamily: "/api/imports/commit",
+      surface: "route_handler",
+    });
+  }
+  if (!batch.data) {
     return NextResponse.json(
       { message: "The import preview could not be found." },
       { status: 404 },
@@ -50,9 +64,14 @@ export async function POST(request: Request) {
     p_batch_id: parsed.data.batchId,
   });
   if (committed.error) {
-    logger.error("import_batch_commit_failed", {
-      code: committed.error.code,
+    const failure = recordDependencyFailure(committed.error, {
+      dependency: "SUPABASE_DATA",
+      operation: "import_batch_commit",
+      operationKind: "write",
+      routeFamily: "/api/imports/commit",
+      surface: "route_handler",
     });
+    if (isRecoverableDependencyFailure(failure)) throw failure;
     const message =
       committed.error.code === "23505"
         ? "A matching record was created after preview. Preview the workbook again before importing."
@@ -80,3 +99,10 @@ export async function POST(request: Request) {
     summary: committed.data,
   });
 }
+
+export const POST = withDependencyRouteHandler(commitImport, {
+  operation: "import_commit",
+  operationKind: "write",
+  routeFamily: "/api/imports/commit",
+  surface: "route_handler",
+});
