@@ -1,7 +1,7 @@
 import {
   ArrowUpRight,
   Building2,
-  CircleAlert,
+  CalendarCheck2,
   ClipboardList,
   FileWarning,
   HardHat,
@@ -13,11 +13,12 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import {
+  DashboardAttendanceMetricSkeleton,
   DashboardActionsSkeleton,
   DashboardMetricsSkeleton,
 } from "@/components/operations/loading-skeletons";
 import { PageHeader } from "@/components/operations/page-header";
-import { Skeleton } from "@/components/ui/skeleton";
+import { getTodayAttendanceDashboardSummary } from "@/lib/phase4/attendance-monitor-data";
 import { getDashboardData } from "@/lib/phase2/data";
 import { getWorkerDashboardSummary } from "@/lib/phase3/data";
 import { getPendingLeaveCount } from "@/lib/phase5/data";
@@ -28,6 +29,7 @@ export default function CeoDashboard() {
   const workforcePromise = getWorkerDashboardSummary();
   const leavePromise = getPendingLeaveCount();
   const payrollPromise = getPayrollDashboardSummary();
+  const attendancePromise = getTodayAttendanceDashboardSummary();
 
   return (
     <main>
@@ -53,8 +55,7 @@ export default function CeoDashboard() {
       </Suspense>
       <Suspense fallback={<DashboardMetricsSkeleton />}>
         <DashboardMetrics
-          leavePromise={leavePromise}
-          payrollPromise={payrollPromise}
+          attendancePromise={attendancePromise}
           structurePromise={structurePromise}
           workforcePromise={workforcePromise}
         />
@@ -265,13 +266,11 @@ async function DashboardActions({
 }
 
 async function DashboardMetrics({
-  leavePromise,
-  payrollPromise,
+  attendancePromise,
   structurePromise,
   workforcePromise,
 }: {
-  leavePromise: ReturnType<typeof getPendingLeaveCount>;
-  payrollPromise: ReturnType<typeof getPayrollDashboardSummary>;
+  attendancePromise: ReturnType<typeof getTodayAttendanceDashboardSummary>;
   structurePromise: ReturnType<typeof getDashboardData>;
   workforcePromise: ReturnType<typeof getWorkerDashboardSummary>;
 }) {
@@ -328,69 +327,46 @@ async function DashboardMetrics({
           </div>
         </Link>
       ))}
-      <Suspense
-        fallback={
-          <div
-            aria-busy="true"
-            className="flex min-h-20 items-center gap-3 border-b border-slate-200 p-3 xl:border-b-0"
-          >
-            <Skeleton className="size-4 shrink-0 rounded-full" />
-            <div className="min-w-0 flex-1 space-y-2">
-              <Skeleton className="h-5 w-12" />
-              <span className="text-xs font-semibold">Action required</span>
-            </div>
-          </div>
-        }
-      >
-        <DashboardActionMetric
-          baseCount={
-            data.projectsWithoutForemen.length +
-            data.unassignedActiveForemen.length +
-            workforce.awaitingAssignment +
-            workforce.documentAlerts +
-            (data.companyConfigured ? 0 : 1)
-          }
-          leavePromise={leavePromise}
-          payrollPromise={payrollPromise}
-        />
+      <Suspense fallback={<DashboardAttendanceMetricSkeleton />}>
+        <DashboardAttendanceMetric attendancePromise={attendancePromise} />
       </Suspense>
     </section>
   );
 }
 
-async function DashboardActionMetric({
-  baseCount,
-  leavePromise,
-  payrollPromise,
+async function DashboardAttendanceMetric({
+  attendancePromise,
 }: {
-  baseCount: number;
-  leavePromise: ReturnType<typeof getPendingLeaveCount>;
-  payrollPromise: ReturnType<typeof getPayrollDashboardSummary>;
+  attendancePromise: ReturnType<typeof getTodayAttendanceDashboardSummary>;
 }) {
-  const [pendingLeave, payroll] = await Promise.all([
-    leavePromise,
-    payrollPromise,
-  ]);
-  const value =
-    baseCount +
-    pendingLeave +
-    payroll.openRuns +
-    payroll.blockingExceptions +
-    payroll.unpaidWorkers;
+  const attendance = await attendancePromise;
+  const allOffDay = attendance.allProjectsOffDay;
+  const missing = attendance.noEntryYet || attendance.absent;
+  const missingLabel = attendance.noEntryYet > 0 ? "no entry" : "absent";
+  const offDayDetail = attendance.offDayWorking
+    ? ` · ${attendance.offDayWorking} off-day working`
+    : "";
   return (
     <Link
-      href="#action-required"
+      href="/ceo/attendance?view=day"
       className="group flex min-h-20 items-center gap-3 border-b border-slate-200 p-3 hover:bg-violet-50/40 xl:border-b-0"
     >
-      <CircleAlert
+      <CalendarCheck2
         className="size-4 shrink-0 text-violet-700"
         aria-hidden="true"
       />
       <div className="min-w-0">
-        <p className="text-xl font-semibold tabular-nums">{value}</p>
-        <h2 className="truncate text-xs font-semibold">Action required</h2>
+        <p className="text-xl font-semibold tabular-nums">
+          {allOffDay ? attendance.offDayWorking : attendance.present}{" "}
+          <span className="text-sm">{allOffDay ? "working" : "present"}</span>
+        </p>
+        <h2 className="truncate text-xs font-semibold">
+          {allOffDay ? "Off-day attendance" : "Today’s attendance"}
+        </h2>
         <p className="mt-0.5 hidden truncate text-[0.6875rem] text-slate-500 sm:block">
-          Operating-structure checks
+          {allOffDay
+            ? `${attendance.onSite} on site · absence not applicable`
+            : `${missing} ${missingLabel} · ${attendance.approvedLeave} leave${offDayDetail} · ${attendance.attendancePercent?.toFixed(1) ?? "N/A"}%`}
         </p>
       </div>
     </Link>

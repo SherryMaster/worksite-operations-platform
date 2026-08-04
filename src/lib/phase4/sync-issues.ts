@@ -621,6 +621,15 @@ export function malaysiaInputFromIso(iso: string | null) {
   return `${values.year}-${values.month}-${values.day}T${values.hour}:${values.minute}:${values.second}`;
 }
 
+export function malaysiaIsoFromInput(value: string) {
+  const separator = value.indexOf("T");
+  const timePart = separator >= 0 ? value.slice(separator + 1) : "";
+  const segments = timePart.split(":");
+  if (segments.length === 2) segments.push("00");
+  const normalized = `${value.slice(0, separator + 1)}${segments.join(":")}`;
+  return new Date(`${normalized}+08:00`).toISOString();
+}
+
 /**
  * Single source of truth for what the worker row and the issue drawer
  * show about a failed or pending action. Both the row and the drawer
