@@ -2,7 +2,7 @@ import "server-only";
 
 import { malaysiaDateInputValue } from "@/lib/phase2/format";
 import { documentExpiryState } from "@/lib/phase3/format";
-import { logger } from "@/lib/server/logger";
+import { throwDependencyError } from "@/lib/server/dependency-error";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { Tables } from "@/types/database";
 
@@ -58,8 +58,13 @@ function throwQueryError(
   operation: string,
   error: { code?: string; message: string } | null,
 ): never {
-  logger.error("phase_3_query_failed", { operation, code: error?.code });
-  throw new Error("Worker information could not be loaded.");
+  throwDependencyError(error, {
+    dependency: "SUPABASE_DATA",
+    operation,
+    operationKind: "read",
+    routeFamily: "/ceo|foreman/workers",
+    surface: "server_component",
+  });
 }
 
 function effective<T extends { ends_on: string | null; starts_on: string }>(

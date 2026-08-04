@@ -3,7 +3,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { requireRole } from "@/lib/auth/access";
+import { requireRoleForRouteHandler } from "@/lib/auth/access";
 import { validateWorkerFile } from "@/lib/phase3/files";
 import {
   parseImportWorkbook,
@@ -13,7 +13,13 @@ import {
 import { recordPhase7AuditEvent } from "@/lib/phase7/audit";
 import { logger } from "@/lib/server/logger";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import {
+  isRecoverableDependencyFailure,
+  recordDependencyFailure,
+  throwDependencyError,
+} from "@/lib/server/dependency-error";
 import type { Json } from "@/types/database";
+import { withDependencyRouteHandler } from "@/lib/server/route-handler";
 
 const workbookMime =
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -34,8 +40,8 @@ const stagedFilesSchema = z
   )
   .max(100);
 
-export async function POST(request: Request) {
-  await requireRole("CEO");
+async function previewImport(request: Request) {
+  await requireRoleForRouteHandler("CEO");
   const formData = await request.formData();
   const parsedBatchId = z.string().uuid().safeParse(formData.get("batchId"));
   let stagedInput: unknown = [];
@@ -64,7 +70,19 @@ export async function POST(request: Request) {
   const supabase = await createServerSupabaseClient();
   const cleanupUploads = async () => {
     if (uploadedPaths.length > 0) {
-      await supabase.storage.from("worker-documents").remove(uploadedPaths);
+      const cleanup = await supabase.storage
+        .from("worker-documents")
+        .remove(uploadedPaths);
+      if (cleanup.error) {
+        recordDependencyFailure(cleanup.error, {
+          dependency: "SUPABASE_STORAGE",
+          idempotent: true,
+          operation: "import_upload_cleanup",
+          operationKind: "write",
+          routeFamily: "/api/imports/preview",
+          surface: "storage",
+        });
+      }
     }
   };
   if (
@@ -103,13 +121,13 @@ export async function POST(request: Request) {
     .maybeSingle();
   if (committed.error) {
     await cleanupUploads();
-    logger.error("import_checksum_lookup_failed", {
-      code: committed.error.code,
+    throwDependencyError(committed.error, {
+      dependency: "SUPABASE_DATA",
+      operation: "import_checksum_lookup",
+      operationKind: "read",
+      routeFamily: "/api/imports/preview",
+      surface: "route_handler",
     });
-    return NextResponse.json(
-      { message: "The workbook could not be checked for prior imports." },
-      { status: 500 },
-    );
   }
   if (committed.data) {
     await cleanupUploads();
@@ -150,14 +168,13 @@ export async function POST(request: Request) {
   ] as const) {
     if (response.error) {
       await cleanupUploads();
-      logger.error("import_lookup_failed", {
-        code: response.error.code,
+      throwDependencyError(response.error, {
+        dependency: "SUPABASE_DATA",
         operation,
+        operationKind: "read",
+        routeFamily: "/api/imports/preview",
+        surface: "route_handler",
       });
-      return NextResponse.json(
-        { message: "Import reference data could not be loaded." },
-        { status: 500 },
-      );
     }
   }
 
@@ -286,7 +303,14 @@ export async function POST(request: Request) {
     .single();
   if (insert.error) {
     await cleanupUploads();
-    logger.error("import_batch_stage_failed", { code: insert.error.code });
+    const failure = recordDependencyFailure(insert.error, {
+      dependency: "SUPABASE_DATA",
+      operation: "import_batch_stage",
+      operationKind: "write",
+      routeFamily: "/api/imports/preview",
+      surface: "route_handler",
+    });
+    if (isRecoverableDependencyFailure(failure)) throw failure;
     return NextResponse.json(
       { message: "The import preview could not be staged." },
       { status: 500 },
@@ -317,3 +341,10 @@ export async function POST(request: Request) {
     summary: parsed.summary,
   });
 }
+
+export const POST = withDependencyRouteHandler(previewImport, {
+  operation: "import_preview",
+  operationKind: "write",
+  routeFamily: "/api/imports/preview",
+  surface: "route_handler",
+});

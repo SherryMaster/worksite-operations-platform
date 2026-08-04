@@ -38,6 +38,30 @@ Provide values for these names in `.env.local`. Secrets are never committed.
 - `SUPABASE_DB_URL`
 - `SUPABASE_DB_PASSWORD`
 
+Clerk and Supabase must be paired by environment:
+
+- local development and Vercel Preview should use a matching Clerk development
+  key pair with the development Supabase project;
+- Vercel Production rejects Clerk test keys and mixed test/live pairs during
+  startup or build, without printing key values;
+- Production requires matching `pk_live_...` and `sk_live_...` values and a
+  Supabase Production Clerk third-party-auth integration that trusts the same
+  production issuer/JWKS and required `role: authenticated` claim.
+
+Repository code cannot configure the Clerk, Supabase, or Vercel dashboards.
+Before treating Production recovery as complete, the owner must activate the
+Clerk Production instance, configure its production domain, configure Supabase
+Production third-party auth for that issuer/JWKS, set the matching live pair in
+Vercel Production, redeploy through the existing Git integration, and complete
+the desktop and installed-PWA recovery UAT. Preview/local may continue using
+development credentials.
+
+Dependency failures are logged as `external_dependency_failed`. The safe
+reference shown in a workspace boundary or API response matches both the
+`digest` and `correlationId` fields in that event. Monitor these events in
+addition to HTTP status: a rejected React Server Component render can still be
+carried by an HTTP 200 response.
+
 ## Useful scripts
 
 ```bash

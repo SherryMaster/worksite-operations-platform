@@ -22,7 +22,7 @@ import type {
   ReportRow,
 } from "@/lib/phase7/report-definitions";
 import { reportDefinitions } from "@/lib/phase7/report-definitions";
-import { logger } from "@/lib/server/logger";
+import { throwDependencyError } from "@/lib/server/dependency-error";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 const rowLimit = 5000;
@@ -471,11 +471,13 @@ async function workerHistory(filters: ReportFilters) {
     ["rates", rates],
   ] as const) {
     if (response.error) {
-      logger.error("phase_7_report_query_failed", {
-        code: response.error.code,
+      throwDependencyError(response.error, {
+        dependency: "SUPABASE_DATA",
         operation,
+        operationKind: "read",
+        routeFamily: "/ceo|foreman/reports",
+        surface: "server_component",
       });
-      throw new Error("Worker history could not be loaded.");
     }
   }
   const workerNames = new Map(
@@ -545,11 +547,13 @@ async function documentExpiry(filters: ReportFilters) {
     ["document_types", types],
   ] as const) {
     if (response.error) {
-      logger.error("phase_7_report_query_failed", {
-        code: response.error.code,
+      throwDependencyError(response.error, {
+        dependency: "SUPABASE_DATA",
         operation,
+        operationKind: "read",
+        routeFamily: "/ceo|foreman/reports",
+        surface: "server_component",
       });
-      throw new Error("Document expiry information could not be loaded.");
     }
   }
   const workerNames = new Map(

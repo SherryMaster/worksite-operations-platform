@@ -1,13 +1,19 @@
 import { randomUUID } from "node:crypto";
 
-import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
-import { getCurrentAccess } from "@/lib/auth/access";
+import {
+  getCurrentAccessForRouteHandler,
+  getAuthorizedActor,
+} from "@/lib/auth/access";
 import { leaveSubmissionSchema } from "@/lib/phase5/validation";
-import { logger } from "@/lib/server/logger";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import {
+  isRecoverableDependencyFailure,
+  recordDependencyFailure,
+} from "@/lib/server/dependency-error";
+import { withDependencyRouteHandler } from "@/lib/server/route-handler";
 
 const allowedTypes = new Set(["application/pdf", "image/jpeg", "image/png"]);
 const maximumBytes = 10 * 1024 * 1024;
@@ -16,16 +22,16 @@ function redirectResult(
   request: Request,
   role: "CEO" | "FOREMAN",
   result: string,
+  reference?: string,
 ) {
   const destination = role === "CEO" ? "/ceo/leave" : "/foreman/leave";
-  return NextResponse.redirect(
-    new URL(`${destination}?result=${result}`, request.url),
-    303,
-  );
+  const url = new URL(`${destination}?result=${result}`, request.url);
+  if (reference) url.searchParams.set("reference", reference);
+  return NextResponse.redirect(url, 303);
 }
 
-export async function POST(request: Request) {
-  const access = await getCurrentAccess();
+async function submitLeaveRequest(request: Request) {
+  const access = await getCurrentAccessForRouteHandler();
   if (access.status !== "AUTHORIZED" || !access.role) {
     return new Response("Active application access is required.", {
       status: 403,
@@ -66,7 +72,16 @@ export async function POST(request: Request) {
     p_worker_id: parsed.data.workerId,
   });
   if (submission.error) {
-    logger.error("leave_submit_failed", { code: submission.error.code });
+    const failure = recordDependencyFailure(submission.error, {
+      dependency: "SUPABASE_DATA",
+      operation: "leave_request_submit",
+      operationKind: "write",
+      routeFamily: "/api/leave-requests",
+      surface: "route_handler",
+    });
+    if (isRecoverableDependencyFailure(failure)) {
+      return redirectResult(request, role, "recovery", failure.digest);
+    }
     return redirectResult(
       request,
       role,
@@ -86,19 +101,18 @@ export async function POST(request: Request) {
         upsert: false,
       });
     if (upload.error) {
-      logger.error("leave_document_upload_failed", {
-        code: upload.error.name,
+      recordDependencyFailure(upload.error, {
+        dependency: "SUPABASE_STORAGE",
+        operation: "leave_document_upload",
+        operationKind: "write",
+        routeFamily: "/api/leave-requests",
+        surface: "storage",
       });
       return redirectResult(request, role, "submitted-file-failed");
     }
 
-    const { userId } = await auth();
-    const actor = await supabase
-      .from("application_users")
-      .select("id")
-      .eq("clerk_user_id", userId!)
-      .maybeSingle();
-    const metadata = actor.data
+    const actor = await getAuthorizedActor(role);
+    const metadata = actor.actorId
       ? await supabase.from("leave_request_documents").insert({
           id: documentId,
           leave_request_id: submission.data,
@@ -106,13 +120,29 @@ export async function POST(request: Request) {
           object_path: objectPath,
           original_filename: file.name,
           size_bytes: file.size,
-          uploaded_by: actor.data.id,
+          uploaded_by: actor.actorId,
         })
       : { error: new Error("Actor not found") };
     if (metadata.error) {
-      await supabase.storage.from("leave-documents").remove([objectPath]);
-      logger.error("leave_document_metadata_failed", {
-        code: "code" in metadata.error ? metadata.error.code : undefined,
+      const cleanup = await supabase.storage
+        .from("leave-documents")
+        .remove([objectPath]);
+      if (cleanup.error) {
+        recordDependencyFailure(cleanup.error, {
+          dependency: "SUPABASE_STORAGE",
+          idempotent: true,
+          operation: "leave_document_cleanup",
+          operationKind: "write",
+          routeFamily: "/api/leave-requests",
+          surface: "storage",
+        });
+      }
+      recordDependencyFailure(metadata.error, {
+        dependency: "SUPABASE_DATA",
+        operation: "leave_document_metadata",
+        operationKind: "write",
+        routeFamily: "/api/leave-requests",
+        surface: "route_handler",
       });
       return redirectResult(request, role, "submitted-file-failed");
     }
@@ -125,3 +155,10 @@ export async function POST(request: Request) {
   revalidatePath("/foreman/leave");
   return redirectResult(request, role, "submitted");
 }
+
+export const POST = withDependencyRouteHandler(submitLeaveRequest, {
+  operation: "leave_request_submit",
+  operationKind: "write",
+  routeFamily: "/api/leave-requests",
+  surface: "route_handler",
+});

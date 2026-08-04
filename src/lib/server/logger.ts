@@ -1,10 +1,14 @@
 import "server-only";
 
-type LogContext = Record<string, boolean | number | string | null | undefined>;
+export type LogContext = Record<
+  string,
+  boolean | number | string | null | undefined
+>;
 
-const sensitiveKey = /email|password|secret|token|document|identity/i;
+const sensitiveKey =
+  /authorization|body|claim|cookie|email|file(name)?|identity|key$|objectPath|password|payload|phone|secret|token|userId/i;
 
-function sanitize(context: LogContext): LogContext {
+export function sanitizeLogContext(context: LogContext): LogContext {
   return Object.fromEntries(
     Object.entries(context).map(([key, value]) => [
       key,
@@ -19,10 +23,13 @@ function write(
   context: LogContext = {},
 ) {
   const entry = JSON.stringify({
+    ...sanitizeLogContext(context),
     timestamp: new Date().toISOString(),
     level,
     event,
-    ...sanitize(context),
+    vercelEnv: process.env.VERCEL_ENV,
+    deploymentId: process.env.VERCEL_DEPLOYMENT_ID,
+    gitSha: process.env.VERCEL_GIT_COMMIT_SHA,
   });
 
   if (level === "error") {

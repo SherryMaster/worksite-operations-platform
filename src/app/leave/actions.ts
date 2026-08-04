@@ -1,11 +1,13 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
-import { requireRole } from "@/lib/auth/access";
-import { logger } from "@/lib/server/logger";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getAuthorizedActor } from "@/lib/auth/access";
+import {
+  dependencyActionMessage,
+  isDependencyError,
+  recordDependencyFailure,
+} from "@/lib/server/dependency-error";
 import type { ActionState } from "@/lib/phase2/validation";
 import {
   actionError,
@@ -15,21 +17,30 @@ import {
 } from "@/lib/phase5/validation";
 
 async function getCeoContext() {
-  await requireRole("CEO");
-  const { userId } = await auth();
-  const supabase = await createServerSupabaseClient();
-  const actor = await supabase
-    .from("application_users")
-    .select("id")
-    .eq("clerk_user_id", userId!)
-    .single();
-  if (actor.error) {
-    throw new Error("The CEO account could not be verified.");
+  try {
+    return await getAuthorizedActor("CEO");
+  } catch (error) {
+    if (isDependencyError(error)) {
+      return { failure: actionError(dependencyActionMessage(error)) } as const;
+    }
+    throw error;
   }
-  return { actorId: actor.data.id, supabase };
 }
 
-function errorMessage(error: { code?: string; message: string }) {
+function errorMessage(
+  error: { code?: string; message: string },
+  operation: string,
+) {
+  const failure = recordDependencyFailure(error, {
+    dependency: "SUPABASE_DATA",
+    operation,
+    operationKind: "write",
+    routeFamily: "/ceo/leave|settings",
+    surface: "server_action",
+  });
+  if (failure.category.startsWith("AUTH_") || failure.retryable) {
+    return dependencyActionMessage(failure);
+  }
   if (error.code === "23505") return "That leave type already exists.";
   if (error.code === "P0001") return error.message;
   return "The leave change could not be saved. Please try again.";
@@ -43,15 +54,16 @@ export async function createLeaveTypeAction(
   if (!parsed.success) {
     return actionError("Enter a leave type name between 2 and 80 characters.");
   }
-  const { actorId, supabase } = await getCeoContext();
+  const context = await getCeoContext();
+  if ("failure" in context) return context.failure;
+  const { actorId, supabase } = context;
   const result = await supabase.from("leave_types").insert({
     created_by: actorId,
     name: parsed.data.name,
     updated_by: actorId,
   });
   if (result.error) {
-    logger.error("leave_type_create_failed", { code: result.error.code });
-    return actionError(errorMessage(result.error));
+    return actionError(errorMessage(result.error, "leave_type_create"));
   }
   revalidatePath("/ceo/settings");
   revalidatePath("/ceo/leave");
@@ -70,14 +82,15 @@ export async function setLeaveTypeActiveAction(
   const parsed =
     leaveDecisionSchema.shape.leaveRequestId.safeParse(leaveTypeId);
   if (!parsed.success) return actionError("Invalid leave type.");
-  const { actorId, supabase } = await getCeoContext();
+  const context = await getCeoContext();
+  if ("failure" in context) return context.failure;
+  const { actorId, supabase } = context;
   const result = await supabase
     .from("leave_types")
     .update({ is_active: isActive, updated_by: actorId })
     .eq("id", parsed.data);
   if (result.error) {
-    logger.error("leave_type_status_failed", { code: result.error.code });
-    return actionError(errorMessage(result.error));
+    return actionError(errorMessage(result.error, "leave_type_status"));
   }
   revalidatePath("/ceo/settings");
   revalidatePath("/ceo/leave");
@@ -101,15 +114,16 @@ export async function decideLeaveRequestAction(
   if (!parsed.success) {
     return actionError("Check the decision and optional note.");
   }
-  const { supabase } = await getCeoContext();
+  const context = await getCeoContext();
+  if ("failure" in context) return context.failure;
+  const { supabase } = context;
   const result = await supabase.rpc("decide_leave_request", {
     p_decision: parsed.data.decision,
     p_decision_note: parsed.data.decisionNote ?? "",
     p_leave_request_id: parsed.data.leaveRequestId,
   });
   if (result.error) {
-    logger.error("leave_decision_failed", { code: result.error.code });
-    return actionError(errorMessage(result.error));
+    return actionError(errorMessage(result.error, "leave_decision"));
   }
   revalidatePath("/ceo");
   revalidatePath("/ceo/leave");

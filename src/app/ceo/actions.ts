@@ -1,12 +1,15 @@
 "use server";
 
-import { auth, clerkClient } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { requireRole } from "@/lib/auth/access";
-import { logger } from "@/lib/server/logger";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getAuthorizedActor } from "@/lib/auth/access";
+import { getRequestClerkClient } from "@/lib/auth/request-context";
+import {
+  dependencyActionMessage,
+  isDependencyError,
+  recordDependencyFailure,
+} from "@/lib/server/dependency-error";
 import {
   actionError,
   actionSuccess,
@@ -23,24 +26,30 @@ import {
 } from "@/lib/phase2/validation";
 
 async function getCeoContext() {
-  await requireRole("CEO");
-  const { userId } = await auth();
-  const supabase = await createServerSupabaseClient();
-  const { data, error } = await supabase
-    .from("application_users")
-    .select("id")
-    .eq("clerk_user_id", userId!)
-    .single();
-
-  if (error) {
-    logger.error("ceo_actor_lookup_failed", { code: error.code });
-    throw new Error("The CEO account could not be verified.");
+  try {
+    return await getAuthorizedActor("CEO");
+  } catch (error) {
+    if (isDependencyError(error)) {
+      return { failure: actionError(dependencyActionMessage(error)) } as const;
+    }
+    throw error;
   }
-
-  return { actorId: data.id, supabase };
 }
 
-function databaseErrorMessage(error: { code?: string; message: string }) {
+function databaseErrorMessage(
+  error: { code?: string; message: string },
+  operation: string,
+) {
+  const failure = recordDependencyFailure(error, {
+    dependency: "SUPABASE_DATA",
+    operation,
+    operationKind: "write",
+    routeFamily: "/ceo/projects|settings",
+    surface: "server_action",
+  });
+  if (failure.category.startsWith("AUTH_") || failure.retryable) {
+    return dependencyActionMessage(failure);
+  }
   if (error.code === "23505") {
     return "That value is already in use.";
   }
@@ -74,7 +83,9 @@ export async function createProjectAction(
     );
   }
 
-  const { actorId, supabase } = await getCeoContext();
+  const context = await getCeoContext();
+  if ("failure" in context) return context.failure;
+  const { actorId, supabase } = context;
   const { data, error } = await supabase
     .from("projects")
     .insert({
@@ -92,8 +103,7 @@ export async function createProjectAction(
     .single();
 
   if (error) {
-    logger.error("project_create_failed", { code: error.code });
-    return actionError(databaseErrorMessage(error));
+    return actionError(databaseErrorMessage(error, "project_create"));
   }
 
   revalidatePath("/ceo");
@@ -124,7 +134,9 @@ export async function updateProjectAction(
     );
   }
 
-  const { actorId, supabase } = await getCeoContext();
+  const context = await getCeoContext();
+  if ("failure" in context) return context.failure;
+  const { actorId, supabase } = context;
   const { error } = await supabase
     .from("projects")
     .update({
@@ -140,8 +152,7 @@ export async function updateProjectAction(
     .eq("id", parsedId.data);
 
   if (error) {
-    logger.error("project_update_failed", { code: error.code });
-    return actionError(databaseErrorMessage(error));
+    return actionError(databaseErrorMessage(error, "project_update"));
   }
 
   revalidatePath("/ceo");
@@ -164,15 +175,16 @@ export async function changeProjectStatusAction(
     return actionError("Invalid project status request.");
   }
 
-  const { actorId, supabase } = await getCeoContext();
+  const context = await getCeoContext();
+  if ("failure" in context) return context.failure;
+  const { actorId, supabase } = context;
   const { error } = await supabase
     .from("projects")
     .update({ status: parsedStatus.data, updated_by: actorId })
     .eq("id", parsedId.data);
 
   if (error) {
-    logger.error("project_status_update_failed", { code: error.code });
-    return actionError(databaseErrorMessage(error));
+    return actionError(databaseErrorMessage(error, "project_status_update"));
   }
 
   revalidatePath("/ceo");
@@ -202,7 +214,9 @@ export async function assignForemanAction(
     );
   }
 
-  const { supabase } = await getCeoContext();
+  const context = await getCeoContext();
+  if ("failure" in context) return context.failure;
+  const { supabase } = context;
   const { error } = await supabase.rpc("assign_foreman", {
     project_id: parsedProjectId.data,
     foreman_user_id: result.data.foremanUserId,
@@ -210,8 +224,7 @@ export async function assignForemanAction(
   });
 
   if (error) {
-    logger.error("foreman_assignment_failed", { code: error.code });
-    return actionError(databaseErrorMessage(error));
+    return actionError(databaseErrorMessage(error, "foreman_assignment"));
   }
 
   revalidatePath("/ceo");
@@ -235,7 +248,9 @@ async function saveCategory(
     );
   }
 
-  const { actorId, supabase } = await getCeoContext();
+  const context = await getCeoContext();
+  if ("failure" in context) return context.failure;
+  const { actorId, supabase } = context;
   const operation = categoryId
     ? supabase
         .from(table)
@@ -249,8 +264,7 @@ async function saveCategory(
   const { error } = await operation;
 
   if (error) {
-    logger.error("category_save_failed", { table, code: error.code });
-    return actionError(databaseErrorMessage(error));
+    return actionError(databaseErrorMessage(error, `category_save_${table}`));
   }
 
   revalidatePath("/ceo/settings");
@@ -301,15 +315,16 @@ export async function setCategoryActiveAction(
     return actionError("Invalid category.");
   }
 
-  const { actorId, supabase } = await getCeoContext();
+  const context = await getCeoContext();
+  if ("failure" in context) return context.failure;
+  const { actorId, supabase } = context;
   const { error } = await supabase
     .from(table)
     .update({ is_active: isActive, updated_by: actorId })
     .eq("id", parsedId.data);
 
   if (error) {
-    logger.error("category_status_failed", { table, code: error.code });
-    return actionError(databaseErrorMessage(error));
+    return actionError(databaseErrorMessage(error, `category_status_${table}`));
   }
 
   revalidatePath("/ceo/settings");
@@ -334,7 +349,9 @@ export async function updateCompanySettingsAction(
     );
   }
 
-  const { actorId, supabase } = await getCeoContext();
+  const context = await getCeoContext();
+  if ("failure" in context) return context.failure;
+  const { actorId, supabase } = context;
   const { error } = await supabase
     .from("company_settings")
     .update({
@@ -345,8 +362,7 @@ export async function updateCompanySettingsAction(
     .eq("singleton", true);
 
   if (error) {
-    logger.error("company_settings_update_failed", { code: error.code });
-    return actionError(databaseErrorMessage(error));
+    return actionError(databaseErrorMessage(error, "company_settings_update"));
   }
 
   revalidatePath("/ceo");
@@ -372,11 +388,13 @@ export async function createForemanAction(
     );
   }
 
-  const { supabase } = await getCeoContext();
-  const client = await clerkClient();
+  const context = await getCeoContext();
+  if ("failure" in context) return context.failure;
+  const { supabase } = context;
   let createdClerkUserId: string | null = null;
 
   try {
+    const client = await getRequestClerkClient();
     const clerkUser = await client.users.createUser({
       firstName: result.data.firstName,
       lastName: result.data.lastName ?? undefined,
@@ -396,16 +414,33 @@ export async function createForemanAction(
     });
 
     if (error) {
-      await client.users.deleteUser(clerkUser.id);
+      try {
+        await client.users.deleteUser(clerkUser.id);
+      } catch (cleanupError) {
+        recordDependencyFailure(cleanupError, {
+          dependency: "CLERK_BACKEND",
+          idempotent: true,
+          operation: "foreman_account_rollback",
+          operationKind: "write",
+          routeFamily: "/ceo/settings",
+          surface: "server_action",
+        });
+      }
       throw error;
     }
   } catch (error) {
-    logger.error("foreman_account_create_failed", {
-      createdClerkUserId,
-      reason: error instanceof Error ? error.name : "unknown",
+    const failure = recordDependencyFailure(error, {
+      dependency: createdClerkUserId ? "SUPABASE_DATA" : "CLERK_BACKEND",
+      operation: "foreman_account_create",
+      operationKind: "write",
+      routeFamily: "/ceo/settings",
+      surface: "server_action",
     });
     return actionError(
-      "The Foreman account could not be created. The username or email may already be in use, or the password may not meet the security rules.",
+      failure.category.includes("TRANSIENT") ||
+        failure.category.startsWith("AUTH_")
+        ? dependencyActionMessage(failure)
+        : "The Foreman account could not be created. The username or email may already be in use, or the password may not meet the security rules.",
     );
   }
 
@@ -439,8 +474,9 @@ export async function resetForemanPasswordAction(
     );
   }
 
-  const { actorId, supabase } = await getCeoContext();
-  const client = await clerkClient();
+  const context = await getCeoContext();
+  if ("failure" in context) return context.failure;
+  const { actorId, supabase } = context;
   const { data: foreman, error: foremanError } = await supabase
     .from("application_users")
     .select("id")
@@ -449,11 +485,22 @@ export async function resetForemanPasswordAction(
     .eq("role", "FOREMAN")
     .maybeSingle();
 
-  if (foremanError || !foreman) {
+  if (foremanError) {
+    const failure = recordDependencyFailure(foremanError, {
+      dependency: "SUPABASE_DATA",
+      operation: "foreman_password_account_lookup",
+      operationKind: "read",
+      routeFamily: "/ceo/settings",
+      surface: "server_action",
+    });
+    return actionError(dependencyActionMessage(failure));
+  }
+  if (!foreman) {
     return actionError("The Foreman account could not be verified.");
   }
 
   try {
+    const client = await getRequestClerkClient();
     await client.users.updateUser(parsedClerkUserId.data, {
       password: result.data.newPassword,
       signOutOfOtherSessions: true,
@@ -468,19 +515,29 @@ export async function resetForemanPasswordAction(
       after_data: { active_sessions_revoked: true },
     });
     if (auditError) {
-      logger.error("foreman_password_audit_failed", {
-        code: auditError.code,
+      recordDependencyFailure(auditError, {
+        dependency: "SUPABASE_DATA",
+        operation: "foreman_password_audit",
+        operationKind: "write",
+        routeFamily: "/ceo/settings",
+        surface: "server_action",
       });
       return actionError(
         "The password changed, but its audit entry could not be saved. Contact support before retrying.",
       );
     }
   } catch (error) {
-    logger.error("foreman_password_reset_failed", {
-      reason: error instanceof Error ? error.name : "unknown",
+    const failure = recordDependencyFailure(error, {
+      dependency: "CLERK_BACKEND",
+      operation: "foreman_password_reset",
+      operationKind: "write",
+      routeFamily: "/ceo/settings",
+      surface: "server_action",
     });
     return actionError(
-      "The password could not be changed. It may not meet Clerk’s security rules.",
+      failure.category === "CLERK_BACKEND_TRANSIENT"
+        ? dependencyActionMessage(failure)
+        : "The password could not be changed. It may not meet Clerk’s security rules.",
     );
   }
 
@@ -504,7 +561,9 @@ export async function setForemanActiveAction(
     return actionError("Invalid Foreman account.");
   }
 
-  const { supabase } = await getCeoContext();
+  const context = await getCeoContext();
+  if ("failure" in context) return context.failure;
+  const { supabase } = context;
   const { error } = await supabase
     .from("application_users")
     .update({ is_active: isActive })
@@ -512,8 +571,7 @@ export async function setForemanActiveAction(
     .eq("role", "FOREMAN");
 
   if (error) {
-    logger.error("foreman_status_update_failed", { code: error.code });
-    return actionError(databaseErrorMessage(error));
+    return actionError(databaseErrorMessage(error, "foreman_status_update"));
   }
 
   revalidatePath("/ceo");

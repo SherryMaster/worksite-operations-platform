@@ -1,9 +1,8 @@
 import "server-only";
 
-import { clerkClient } from "@clerk/nextjs/server";
-
+import { getRequestClerkClient } from "@/lib/auth/request-context";
 import { malaysiaDateInputValue } from "@/lib/phase2/format";
-import { logger } from "@/lib/server/logger";
+import { throwDependencyError } from "@/lib/server/dependency-error";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { Tables } from "@/types/database";
 
@@ -63,26 +62,37 @@ async function getClerkUsers(userIds: string[]) {
     return new Map<string, ClerkUserShape>();
   }
 
-  const client = await clerkClient();
-  const response = await client.users.getUserList({
-    limit: Math.min(userIds.length, 100),
-    userId: userIds.slice(0, 100),
-  });
-
-  return new Map(
-    response.data.map((user) => [user.id, user as unknown as ClerkUserShape]),
-  );
+  try {
+    const client = await getRequestClerkClient();
+    const response = await client.users.getUserList({
+      limit: Math.min(userIds.length, 100),
+      userId: userIds.slice(0, 100),
+    });
+    return new Map(
+      response.data.map((user) => [user.id, user as unknown as ClerkUserShape]),
+    );
+  } catch (error) {
+    throwDependencyError(error, {
+      dependency: "CLERK_BACKEND",
+      operation: "resolve_clerk_users",
+      operationKind: "read",
+      routeFamily: "/ceo/projects|settings|audit",
+      surface: "server_component",
+    });
+  }
 }
 
 function throwQueryError(
   operation: string,
   error: { code?: string; message: string } | null,
 ): never {
-  logger.error("phase_2_query_failed", {
+  throwDependencyError(error, {
+    dependency: "SUPABASE_DATA",
     operation,
-    code: error?.code,
+    operationKind: "read",
+    routeFamily: "/ceo/projects|settings|audit",
+    surface: "server_component",
   });
-  throw new Error("The requested operational data could not be loaded.");
 }
 
 export async function listForemen(): Promise<ForemanSummary[]> {

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { logger } from "@/lib/server/logger";
+import { throwDependencyError } from "@/lib/server/dependency-error";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { Json } from "@/types/database";
 
@@ -20,10 +20,12 @@ export async function recordPhase7AuditEvent(input: {
     source: "ONLINE",
   });
   if (response.error) {
-    logger.error("phase_7_audit_write_failed", {
-      code: response.error.code,
-      module: input.module,
+    throwDependencyError(response.error, {
+      dependency: "SUPABASE_DATA",
+      operation: `phase_7_audit_${input.module}`,
+      operationKind: "write",
+      routeFamily: "/api/reports|imports",
+      surface: "route_handler",
     });
-    throw new Error("The operation could not be audited.");
   }
 }

@@ -8,6 +8,20 @@ function stringValue(value: unknown) {
   return typeof value === "string" ? value : "";
 }
 
+export function pauseAttendanceActions(
+  actions: AttendanceQueueAction[],
+  attemptedAt: string,
+) {
+  return actions.map((action) => ({
+    ...action,
+    issueKind: null,
+    lastAttemptAt: attemptedAt,
+    message: "Sync paused. Retry when the connection is stable.",
+    serverStatus: null,
+    state: "PENDING" as const,
+  }));
+}
+
 export function applyLocalAttendanceAction(
   snapshot: AttendanceSnapshot,
   action: AttendanceQueueAction,

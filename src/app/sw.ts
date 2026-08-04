@@ -9,12 +9,17 @@ import {
   type PrecacheEntry,
 } from "serwist";
 
+import {
+  isAuthenticatedApiRequest,
+  serviceWorkerActivationPolicy,
+} from "@/lib/phase4/service-worker-policy";
+
 declare const self: ServiceWorkerGlobalScope & {
   __SW_MANIFEST: PrecacheEntry[];
 };
 
 const serwist = new Serwist({
-  clientsClaim: true,
+  clientsClaim: serviceWorkerActivationPolicy.clientsClaim,
   precacheEntries: self.__SW_MANIFEST,
   runtimeCaching: [
     {
@@ -36,7 +41,7 @@ const serwist = new Serwist({
     {
       handler: new NetworkOnly(),
       matcher: ({ sameOrigin, url }) =>
-        sameOrigin && url.pathname.startsWith("/api/"),
+        isAuthenticatedApiRequest(url.pathname, sameOrigin),
     },
     {
       handler: new CacheFirst({
@@ -65,7 +70,7 @@ const serwist = new Serwist({
         sameOrigin && request.destination === "image",
     },
   ],
-  skipWaiting: true,
+  skipWaiting: serviceWorkerActivationPolicy.skipWaiting,
 });
 
 serwist.setCatchHandler(async ({ request }) => {

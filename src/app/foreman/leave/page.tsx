@@ -19,6 +19,8 @@ const resultMessages: Record<string, string> = {
     "The request was not submitted. Check the dates, worker assignment, and overlapping leave.",
   failed: "The leave request could not be submitted. Please retry.",
   invalid: "Check the dates, leave type, notes, and optional file.",
+  recovery:
+    "A secure dependency interrupted this submission. The app did not replay it; check the request list, refresh the session or connection, then submit deliberately if needed.",
   submitted: "Leave request sent to the CEO for review.",
   "submitted-file-failed":
     "The request was submitted, but the supporting file could not be attached.",
@@ -28,12 +30,17 @@ export default async function ForemanLeavePage({
   searchParams,
 }: {
   searchParams: Promise<{
+    reference?: string;
     result?: string;
     status?: "ALL" | "APPROVED" | "PENDING" | "REJECTED";
     view?: string;
   }>;
 }) {
   const params = await searchParams;
+  const recoveryReference =
+    params.reference && /^[0-9a-f-]{36}$/i.test(params.reference)
+      ? params.reference
+      : null;
   const resultMessage = params.result
     ? resultMessages[params.result]
     : undefined;
@@ -78,6 +85,11 @@ export default async function ForemanLeavePage({
           }`}
         >
           {resultMessage}
+          {params.result === "recovery" && recoveryReference ? (
+            <span className="mt-1 block font-mono text-xs">
+              Reference: {recoveryReference}
+            </span>
+          ) : null}
         </p>
       ) : null}
 

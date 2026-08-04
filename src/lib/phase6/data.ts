@@ -1,6 +1,6 @@
 import "server-only";
 
-import { logger } from "@/lib/server/logger";
+import { throwDependencyError } from "@/lib/server/dependency-error";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { Json, Tables } from "@/types/database";
 
@@ -41,8 +41,13 @@ function throwQueryError(
   operation: string,
   error: { code?: string; message: string } | null,
 ): never {
-  logger.error("phase_6_query_failed", { code: error?.code, operation });
-  throw new Error("Payroll information could not be loaded.");
+  throwDependencyError(error, {
+    dependency: "SUPABASE_DATA",
+    operation,
+    operationKind: "read",
+    routeFamily: "/ceo/payroll",
+    surface: "server_component",
+  });
 }
 
 export async function listPayrollRuns() {

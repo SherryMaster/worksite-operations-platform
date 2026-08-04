@@ -67,6 +67,8 @@ const fileMessages: Record<string, string> = {
   failed: "The file change could not be completed. Please retry.",
   invalid: "Check the document metadata and selected file.",
   "photo-saved": "Worker photo saved.",
+  recovery:
+    "A secure dependency interrupted this file change. The app did not replay it; refresh the session or connection, check the current record, then submit deliberately.",
 };
 
 export default async function WorkerDetailPage({
@@ -77,12 +79,17 @@ export default async function WorkerDetailPage({
   searchParams: Promise<{
     file?: string;
     month?: string;
+    reference?: string;
     section?: string;
     tab?: string;
   }>;
 }) {
   const { workerId } = await params;
   const query = await searchParams;
+  const recoveryReference =
+    query.reference && /^[0-9a-f-]{36}$/i.test(query.reference)
+      ? query.reference
+      : null;
   if (!(await getWorkerIdentity(workerId))) notFound();
   const requested = query.section ?? query.tab ?? "overview";
   const section = sections.some((item) => item.value === requested)
@@ -104,9 +111,14 @@ export default async function WorkerDetailPage({
       {query.file && fileMessages[query.file] ? (
         <p
           role="status"
-          className={`mt-4 rounded-lg border p-3 text-sm ${query.file.includes("failed") || query.file === "invalid" || query.file.includes("warning") ? "border-amber-200 bg-amber-50 text-amber-950" : "border-emerald-200 bg-emerald-50 text-emerald-900"}`}
+          className={`mt-4 rounded-lg border p-3 text-sm ${query.file.includes("failed") || query.file === "invalid" || query.file === "recovery" || query.file.includes("warning") ? "border-amber-200 bg-amber-50 text-amber-950" : "border-emerald-200 bg-emerald-50 text-emerald-900"}`}
         >
           {fileMessages[query.file]}
+          {query.file === "recovery" && recoveryReference ? (
+            <span className="mt-1 block font-mono text-xs">
+              Reference: {recoveryReference}
+            </span>
+          ) : null}
         </p>
       ) : null}
       <Suspense

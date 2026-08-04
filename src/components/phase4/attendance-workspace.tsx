@@ -35,7 +35,10 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { calculateAttendance, formatMinutes } from "@/lib/phase4/calculations";
-import { applyLocalAttendanceAction } from "@/lib/phase4/local-actions";
+import {
+  applyLocalAttendanceAction,
+  pauseAttendanceActions,
+} from "@/lib/phase4/local-actions";
 import {
   deleteAttendanceActions,
   listAttendanceActions,
@@ -80,7 +83,6 @@ type WorkerFilter =
   | "INVALID";
 
 const SYNC_REQUEST_TIMEOUT_MS = 15_000;
-const SYNC_RETRY_DELAY_MS = 5_000;
 const ATTENDANCE_PAGE_SIZE = 20;
 
 const workerFilters = [
@@ -879,7 +881,6 @@ export function AttendanceWorkspace({
   const [issuesOpen, setIssuesOpen] = useState(false);
   const [focusedIssueKey, setFocusedIssueKey] = useState<string | null>(null);
   const synchronizing = useRef(false);
-  const retryTimer = useRef<number | null>(null);
   const snapshotRef = useRef(snapshot);
 
   useEffect(() => {
@@ -949,7 +950,6 @@ export function AttendanceWorkspace({
       if (synchronizing.current || !navigator.onLine) return;
       synchronizing.current = true;
       setSyncingNow(true);
-      let retryAfterMs: number | null = null;
       let requestTimeout: number | null = null;
       try {
         const stored = await listAttendanceActions(projectId);
@@ -1171,36 +1171,26 @@ export function AttendanceWorkspace({
             );
           }
         } catch {
+          const paused = pauseAttendanceActions(
+            pending,
+            new Date().toISOString(),
+          );
           await Promise.all(
-            pending.map((action) =>
-              saveAttendanceAction({
-                ...action,
-                issueKind: null,
-                lastAttemptAt: new Date().toISOString(),
-                message: "Sync paused. It will retry automatically.",
-                serverStatus: null,
-                state: "PENDING",
-              }),
-            ),
+            paused.map((action) => saveAttendanceAction(action)),
+          );
+          const pausedById = new Map(
+            paused.map((action) => [action.clientActionId, action]),
           );
           setActions((current) =>
             current.map((action) =>
               pendingIds.has(action.clientActionId)
-                ? {
-                    ...action,
-                    issueKind: null,
-                    lastAttemptAt: new Date().toISOString(),
-                    message: "Sync paused. It will retry automatically.",
-                    serverStatus: null,
-                    state: "PENDING",
-                  }
+                ? (pausedById.get(action.clientActionId) ?? action)
                 : action,
             ),
           );
           setMessage(
-            "Sync paused. Your attendance is safe on this device and will retry automatically.",
+            "Sync paused. Your attendance is safe on this device. Retry when the connection is stable.",
           );
-          retryAfterMs = SYNC_RETRY_DELAY_MS;
         } finally {
           if (requestTimeout !== null) {
             window.clearTimeout(requestTimeout);
@@ -1209,21 +1199,6 @@ export function AttendanceWorkspace({
       } finally {
         synchronizing.current = false;
         setSyncingNow(false);
-        const remaining = await listAttendanceActions(projectId);
-        if (
-          navigator.onLine &&
-          remaining.some(
-            (action) =>
-              action.state === "PENDING" || action.state === "SYNCING",
-          )
-        ) {
-          if (retryTimer.current !== null) {
-            window.clearTimeout(retryTimer.current);
-          }
-          retryTimer.current = window.setTimeout(() => {
-            void synchronize(projectId, workDate);
-          }, retryAfterMs ?? 0);
-        }
       }
     },
     [refreshSnapshot, reloadActions],
@@ -1266,9 +1241,6 @@ export function AttendanceWorkspace({
     window.addEventListener("online", onlineHandler);
     return () => {
       window.removeEventListener("online", onlineHandler);
-      if (retryTimer.current !== null) {
-        window.clearTimeout(retryTimer.current);
-      }
     };
     // The initial cache hydration should run once for this mounted workspace.
     // eslint-disable-next-line react-hooks/exhaustive-deps

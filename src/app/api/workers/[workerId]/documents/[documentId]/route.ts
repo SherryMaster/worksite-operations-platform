@@ -1,10 +1,12 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
+import { requireSignedInForRouteHandler } from "@/lib/auth/access";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { uuidSchema } from "@/lib/phase2/validation";
+import { throwDependencyError } from "@/lib/server/dependency-error";
+import { withDependencyRouteHandler } from "@/lib/server/route-handler";
 
-export async function GET(
+async function getWorkerDocument(
   _request: Request,
   {
     params,
@@ -12,8 +14,7 @@ export async function GET(
     params: Promise<{ documentId: string; workerId: string }>;
   },
 ) {
-  const { userId } = await auth();
-  if (!userId) return new Response("Sign in required.", { status: 401 });
+  await requireSignedInForRouteHandler();
 
   const values = await params;
   const workerId = uuidSchema.safeParse(values.workerId);
@@ -29,8 +30,16 @@ export async function GET(
     .eq("id", documentId.data)
     .eq("worker_id", workerId.data)
     .maybeSingle();
+  if (error) {
+    throwDependencyError(error, {
+      dependency: "SUPABASE_DATA",
+      operation: "worker_document_lookup",
+      operationKind: "read",
+      routeFamily: "/api/workers/[workerId]/documents/[documentId]",
+      surface: "route_handler",
+    });
+  }
   if (
-    error ||
     !document ||
     !document.bucket_id ||
     !document.object_path ||
@@ -51,8 +60,20 @@ export async function GET(
         : undefined,
     );
   if (signedError) {
-    return new Response("File access could not be prepared.", { status: 500 });
+    throwDependencyError(signedError, {
+      dependency: "SUPABASE_STORAGE",
+      operation: "worker_document_signed_url",
+      operationKind: "read",
+      routeFamily: "/api/workers/[workerId]/documents/[documentId]",
+      surface: "storage",
+    });
   }
 
   return NextResponse.redirect(signed.signedUrl, 307);
 }
+
+export const GET = withDependencyRouteHandler(getWorkerDocument, {
+  operation: "worker_document_download",
+  routeFamily: "/api/workers/[workerId]/documents/[documentId]",
+  surface: "route_handler",
+});

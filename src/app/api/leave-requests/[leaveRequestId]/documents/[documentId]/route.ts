@@ -1,10 +1,12 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
+import { requireSignedInForRouteHandler } from "@/lib/auth/access";
 import { uuidSchema } from "@/lib/phase2/validation";
+import { throwDependencyError } from "@/lib/server/dependency-error";
+import { withDependencyRouteHandler } from "@/lib/server/route-handler";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
-export async function GET(
+async function getLeaveDocument(
   _request: Request,
   {
     params,
@@ -12,8 +14,7 @@ export async function GET(
     params: Promise<{ documentId: string; leaveRequestId: string }>;
   },
 ) {
-  const { userId } = await auth();
-  if (!userId) return new Response("Sign in required.", { status: 401 });
+  await requireSignedInForRouteHandler();
   const values = await params;
   const requestId = uuidSchema.safeParse(values.leaveRequestId);
   const documentId = uuidSchema.safeParse(values.documentId);
@@ -28,7 +29,17 @@ export async function GET(
     .eq("id", documentId.data)
     .eq("leave_request_id", requestId.data)
     .maybeSingle();
-  if (document.error || !document.data) {
+  if (document.error) {
+    throwDependencyError(document.error, {
+      dependency: "SUPABASE_DATA",
+      operation: "leave_document_lookup",
+      operationKind: "read",
+      routeFamily:
+        "/api/leave-requests/[leaveRequestId]/documents/[documentId]",
+      surface: "route_handler",
+    });
+  }
+  if (!document.data) {
     return new Response("File not found or no longer authorized.", {
       status: 404,
     });
@@ -39,7 +50,20 @@ export async function GET(
       download: document.data.original_filename,
     });
   if (signed.error) {
-    return new Response("File access could not be prepared.", { status: 500 });
+    throwDependencyError(signed.error, {
+      dependency: "SUPABASE_STORAGE",
+      operation: "leave_document_signed_url",
+      operationKind: "read",
+      routeFamily:
+        "/api/leave-requests/[leaveRequestId]/documents/[documentId]",
+      surface: "storage",
+    });
   }
   return NextResponse.redirect(signed.data.signedUrl, 307);
 }
+
+export const GET = withDependencyRouteHandler(getLeaveDocument, {
+  operation: "leave_document_download",
+  routeFamily: "/api/leave-requests/[leaveRequestId]/documents/[documentId]",
+  surface: "route_handler",
+});

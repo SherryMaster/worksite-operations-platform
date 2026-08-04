@@ -30,4 +30,51 @@ describe("server environment validation", () => {
       }),
     ).not.toThrow("wrong");
   });
+
+  it.each([
+    [undefined, "pk_test_example", "sk_test_example"],
+    ["preview", "pk_test_example", "sk_test_example"],
+    ["production", "pk_live_example", "sk_live_example"],
+  ])(
+    "accepts a matched Clerk key pair for VERCEL_ENV=%s",
+    (vercelEnvironment, publishableKey, secretKey) => {
+      expect(() =>
+        parseServerEnvironment({
+          ...validEnvironment,
+          CLERK_SECRET_KEY: secretKey,
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: publishableKey,
+          VERCEL_ENV: vercelEnvironment,
+        }),
+      ).not.toThrow();
+    },
+  );
+
+  it.each([
+    ["production", "pk_test_example", "sk_test_example"],
+    ["production", "pk_live_example", "sk_test_example"],
+    ["production", "pk_test_example", "sk_live_example"],
+    ["preview", "pk_live_example", "sk_test_example"],
+    ["preview", "pk_live_example", "sk_live_example"],
+  ])(
+    "rejects an unsafe Clerk key pair for VERCEL_ENV=%s without exposing values",
+    (vercelEnvironment, publishableKey, secretKey) => {
+      let message = "";
+      try {
+        parseServerEnvironment({
+          ...validEnvironment,
+          CLERK_SECRET_KEY: secretKey,
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: publishableKey,
+          VERCEL_ENV: vercelEnvironment,
+        });
+      } catch (error) {
+        message = error instanceof Error ? error.message : String(error);
+      }
+
+      expect(message).toMatch(
+        /CLERK_SECRET_KEY|NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY/,
+      );
+      expect(message).not.toContain(publishableKey);
+      expect(message).not.toContain(secretKey);
+    },
+  );
 });

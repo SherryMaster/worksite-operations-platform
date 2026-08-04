@@ -1,7 +1,14 @@
 import { SignIn } from "@clerk/nextjs";
 import { BadgeCheck, HardHat, ShieldCheck } from "lucide-react";
+import { redirect } from "next/navigation";
 
 import { BrandMark } from "@/components/brand-mark";
+import { getCurrentAccess } from "@/lib/auth/access";
+import { getRequestAuth } from "@/lib/auth/request-context";
+import {
+  safeInternalReturnPath,
+  signedInDestination,
+} from "@/lib/auth/return-path";
 
 const safeguards = [
   {
@@ -21,7 +28,21 @@ const safeguards = [
   },
 ];
 
-export default function SignInPage() {
+export default async function SignInPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ redirect_url?: string }>;
+}) {
+  const [{ redirect_url: requestedReturnPath }, { userId }] = await Promise.all(
+    [searchParams, getRequestAuth()],
+  );
+  const returnPath = safeInternalReturnPath(requestedReturnPath);
+
+  if (userId) {
+    const access = await getCurrentAccess();
+    redirect(signedInDestination(access, requestedReturnPath));
+  }
+
   return (
     <main className="min-h-screen bg-slate-100 text-slate-950 lg:grid lg:grid-cols-[minmax(0,0.85fr)_minmax(28rem,0.65fr)]">
       <section className="hidden min-h-screen border-r border-slate-200 bg-white p-10 lg:flex lg:flex-col lg:justify-between xl:p-14">
@@ -70,7 +91,7 @@ export default function SignInPage() {
           <div className="mt-8">
             <SignIn
               withSignUp={false}
-              fallbackRedirectUrl="/"
+              forceRedirectUrl={returnPath}
               appearance={{
                 elements: {
                   rootBox: "w-full",

@@ -22,6 +22,8 @@ const resultMessages: Record<string, string> = {
     "The request was not submitted. Check the worker assignment, overlapping leave, and selected dates.",
   failed: "The leave request could not be submitted. Please retry.",
   invalid: "Check the worker, dates, leave type, notes, and optional file.",
+  recovery:
+    "A secure dependency interrupted this submission. The app did not replay it; check the request list, refresh the session or connection, then submit deliberately if needed.",
   submitted: "Leave request submitted for CEO review.",
   "submitted-file-failed":
     "The leave request was submitted, but the supporting file could not be attached.",
@@ -33,6 +35,7 @@ export default async function CeoLeavePage({
 }: {
   searchParams: Promise<{
     project?: string;
+    reference?: string;
     page?: string;
     result?: string;
     status?: string;
@@ -40,6 +43,10 @@ export default async function CeoLeavePage({
   }>;
 }) {
   const params = await searchParams;
+  const recoveryReference =
+    params.reference && /^[0-9a-f-]{36}$/i.test(params.reference)
+      ? params.reference
+      : null;
   const selectedStatus = ["ALL", "PENDING", "APPROVED", "REJECTED"].includes(
     params.status ?? "",
   )
@@ -75,6 +82,11 @@ export default async function CeoLeavePage({
           }`}
         >
           {resultMessage}
+          {params.result === "recovery" && recoveryReference ? (
+            <span className="mt-1 block font-mono text-xs">
+              Reference: {recoveryReference}
+            </span>
+          ) : null}
         </p>
       ) : null}
 

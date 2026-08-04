@@ -7,7 +7,7 @@ import {
   validateWorkerFile,
   type WorkerFileKind,
 } from "@/lib/phase3/files";
-import { logger } from "@/lib/server/logger";
+import { recordDependencyFailure } from "@/lib/server/dependency-error";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 type SupabaseClient = Awaited<ReturnType<typeof createServerSupabaseClient>>;
@@ -38,7 +38,13 @@ export async function uploadWorkerFile({
       upsert: false,
     });
   if (upload.error) {
-    logger.error("worker_file_upload_failed", { code: upload.error.name });
+    recordDependencyFailure(upload.error, {
+      dependency: "SUPABASE_STORAGE",
+      operation: "worker_file_upload",
+      operationKind: "write",
+      routeFamily: "/ceo/workers/[workerId]",
+      surface: "storage",
+    });
     return {
       message: "The optional file could not be uploaded.",
       ok: false,
@@ -57,9 +63,23 @@ export async function uploadWorkerFile({
     p_worker_id: workerId,
   });
   if (registration.error) {
-    await supabase.storage.from(bucketId).remove([objectPath]);
-    logger.error("worker_file_registration_failed", {
-      code: registration.error.code,
+    const cleanup = await supabase.storage.from(bucketId).remove([objectPath]);
+    if (cleanup.error) {
+      recordDependencyFailure(cleanup.error, {
+        dependency: "SUPABASE_STORAGE",
+        idempotent: true,
+        operation: "worker_file_registration_cleanup",
+        operationKind: "write",
+        routeFamily: "/ceo/workers/[workerId]",
+        surface: "storage",
+      });
+    }
+    recordDependencyFailure(registration.error, {
+      dependency: "SUPABASE_DATA",
+      operation: "worker_file_registration",
+      operationKind: "write",
+      routeFamily: "/ceo/workers/[workerId]",
+      surface: "storage",
     });
     return {
       message:
@@ -83,8 +103,12 @@ export async function bestEffortStorageCleanup({
   if (!bucketId || !objectPath) return true;
   const cleanup = await supabase.storage.from(bucketId).remove([objectPath]);
   if (cleanup.error) {
-    logger.error("worker_file_storage_cleanup_failed", {
-      code: cleanup.error.name,
+    recordDependencyFailure(cleanup.error, {
+      dependency: "SUPABASE_STORAGE",
+      operation: "worker_file_cleanup",
+      operationKind: "write",
+      routeFamily: "/ceo/workers/[workerId]",
+      surface: "storage",
     });
     return false;
   }
