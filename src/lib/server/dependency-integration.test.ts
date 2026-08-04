@@ -61,6 +61,14 @@ describe("whole-application dependency recovery integration", () => {
     expect(source("src/lib/supabase/server.ts")).not.toContain("service_role");
   });
 
+  it("preserves Next.js control-flow errors before classifying Clerk failures", () => {
+    const contents = source("src/lib/auth/request-context.ts");
+    expect(contents).toContain(
+      'import { unstable_rethrow } from "next/navigation"',
+    );
+    expect(contents.match(/unstable_rethrow\(error\)/g)).toHaveLength(2);
+  });
+
   it("redirects an already signed-in sign-in request before rendering Clerk SignIn", () => {
     const contents = source("src/app/sign-in/[[...sign-in]]/page.tsx");
     expect(contents).toContain("getRequestAuth");
