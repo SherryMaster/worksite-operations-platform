@@ -201,9 +201,10 @@ describe("attendance monitor live state and quality", () => {
       }),
     );
     expect(record.presenceStatus).toBe("PRESENT");
+    expect(record.liveStatus).toBe("ON_BREAK");
     expect(record.quality).toBe("INCOMPLETE");
     expect(record.issues.map((issue) => issue.type)).toContain(
-      "INCOMPLETE_BREAK",
+      "INCOMPLETE_SESSION",
     );
   });
 
